@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN_GERAL
+  ADMIN
+  INSTRUTOR
+  ALUNO
+}
+
+enum SupportTicketType {
+  PASSWORD_RESET
+  GENERAL_SUPPORT
+  LOGIN_ISSUE
+  APP_ERROR
+  WORKOUT_ISSUE
+  PROFILE_UPDATE
+  PAYMENT_PLAN_ISSUE
+  IMPROVEMENT_SUGGESTION
+  EXERCISE_REPORT
+  OTHER
+}
+
+enum SupportTicketStatus {
+  OPEN
+  APPROVED
+  RESOLVED
+  REJECTED
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String   @unique
+  phone         String?  @unique
+  avatarUrl     String   @default("") @map("avatar_url")
+  password      String?
+  role          Role     @default(ALUNO)
+  isEnabled     Boolean  @default(true)
+  failedLoginAttempts Int      @default(0)
+  loginLockUntil      DateTime?
+  lastLoginAt         DateTime?
+  lastSeenAt          DateTime?
+  treinos             Treino[]
+  objetivos           Objetivo[]
+  passwordResetTokens PasswordResetToken[]
+  supportTicketsRequested SupportTicket[] @relation("SupportTicketRequester")
+  supportTicketsResolved  SupportTicket[] @relation("SupportTicketResolver")
+  weeklyTrainingChecks WeeklyTrainingCheck[]
+  workoutCompletions  WorkoutCompletion[]
+  createdWorkoutTemplates WorkoutTemplate[] @relation("WorkoutTemplateCreatedBy")
+  createdWorkouts         Workout[]         @relation("WorkoutCreatedBy")
+  studentWorkouts         Workout[]         @relation("WorkoutStudent")
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+}
+
+model SupportTicket {
+  id          Int                @id @default(autoincrement())
+  requesterId Int?               @map("requester_id")
+  requesterEmail String          @map("requester_email")
+  requesterName  String?         @map("requester_name")
+  requesterRole  String?         @map("requester_role")
+  type        SupportTicketType  @default(GENERAL_SUPPORT)
+  subject     String
+  description String
+  status      SupportTicketStatus @default(OPEN)
+  adminResponse String?          @map("admin_response")
+  metadata    Json?
+  resolvedById Int?              @map("resolved_by_id")
+  resolvedAt   DateTime?         @map("resolved_at")
+  requester   User?              @relation("SupportTicketRequester", fields: [requesterId], references: [id], onDelete: SetNull)
+  resolver    User?              @relation("SupportTicketResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@index([requesterEmail])
+  @@index([requesterId])
+  @@index([status, type])
+  @@index([createdAt])
+  @@map("support_ticket")
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Treino {
+  id        Int      @id @default(autoincrement())
+  titulo    String
+  descricao String?
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Objetivo {
+  id        Int      @id @default(autoincrement())
+  titulo    String
+  concluido Boolean  @default(false)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WeeklyTrainingCheck {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  dateKey      String
+  weekStartKey String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dateKey])
+  @@index([userId, weekStartKey])
+}
+
+model WorkoutCompletion {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @map("user_id")
+  workoutId        Int      @map("workout_id")
+  completedDateKey String   @map("completed_date_key")
+  completedAt      DateTime @default(now()) @map("completed_at")
+  workoutTitle     String   @map("workout_title")
+  durationMinutes  Int      @default(1) @map("duration_minutes")
+  kcal             Float    @default(0)
+  groupKey         String   @default("") @map("group_key")
+  thumbnailUrl     String   @default("") @map("thumbnail_url")
+  coverImageUrl    String   @default("") @map("cover_image_url")
+  exerciseCount    Int      @default(0) @map("exercise_count")
+  snapshot         Json?
+  sourceUpdatedAt  DateTime? @map("source_updated_at")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workoutId, completedDateKey])
+  @@index([userId, completedAt])
+  @@index([userId, completedDateKey])
+  @@index([workoutId, completedAt])
+  @@map("workout_completion")
+}
+
+model Exercise {
+  id                Int                       @id @default(autoincrement())
+  name              String
+  muscleGroup       String                    @map("muscle_group")
+  description       String
+  animationUrl      String                    @map("animation_url")
+  tutorialText      String                    @map("tutorial_text")
+  level             String
+  type              String
+  imageUrl          String                    @default("") @map("image_url")
+  videoUrl          String                    @default("") @map("video_url")
+  repetitions       Int                       @default(10)
+  durationSeconds   Int                       @default(60) @map("duration_seconds")
+  restSeconds       Int                       @default(30) @map("rest_seconds")
+  caloriesEstimate  Int                       @default(0) @map("calories_estimate")
+  loadKg            Float                     @default(0) @map("load_kg")
+  musclesWorked     Json?                     @map("muscles_worked")
+  intensityScore    Int                       @default(3) @map("intensity_score")
+  tutorialSteps     Json?                     @map("tutorial_steps")
+  importantTips     Json?                     @map("important_tips")
+  createdById       Int                       @default(0) @map("created_by_id")
+  createdByRole     String                    @default("INSTRUTOR") @map("created_by_role")
+  isActive          Boolean                   @default(true) @map("is_active")
+  templateExercises WorkoutTemplateExercise[]
+  workoutExercises  WorkoutExercise[]         @relation("WorkoutExerciseCurrentExercise")
+  replacedInWorkouts WorkoutExercise[]        @relation("WorkoutExerciseReplacedFrom")
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  @@map("exercise")
+}
+
+model WorkoutTemplate {
+  id                Int                       @id @default(autoincrement())
+  name              String
+  description       String?
+  createdBy         Int                       @map("created_by")
+  isActive          Boolean                   @default(true) @map("is_active")
+  creator           User                      @relation("WorkoutTemplateCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  templateExercises WorkoutTemplateExercise[]
+  workouts          Workout[]
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  @@index([createdBy])
+  @@index([isActive])
+  @@map("workout_template")
+}
+
+model WorkoutTemplateExercise {
+  id          Int             @id @default(autoincrement())
+  templateId  Int             @map("template_id")
+  exerciseId  Int             @map("exercise_id")
+  order       Int             @default(1)
+  series      Int             @default(3)
+  reps        Int             @default(10)
+  defaultLoad Float           @default(0) @map("default_load")
+  restTime    Int             @default(30) @map("rest_time")
+  template    WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  exercise    Exercise        @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  @@index([templateId, order])
+  @@index([exerciseId])
+  @@map("workout_template_exercise")
+}
+
+model Workout {
+  id               Int               @id @default(autoincrement())
+  name             String
+  coverImageUrl    String            @default("") @map("cover_image_url")
+  studentId        Int               @map("student_id")
+  createdBy        Int               @map("created_by")
+  originTemplateId Int?              @map("origin_template_id")
+  isActive         Boolean           @default(true) @map("is_active")
+  startDate        DateTime?         @map("start_date")
+  endDate          DateTime?         @map("end_date")
+  student          User              @relation("WorkoutStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  creator          User              @relation("WorkoutCreatedBy", fields: [createdBy], references: [id], onDelete: Restrict)
+  originTemplate   WorkoutTemplate?  @relation(fields: [originTemplateId], references: [id], onDelete: SetNull)
+  workoutExercises WorkoutExercise[]
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+
+  @@index([studentId, isActive])
+  @@index([createdBy])
+  @@index([originTemplateId])
+  @@map("workout")
+}
+
+model WorkoutExercise {
+  id                     Int       @id @default(autoincrement())
+  workoutId              Int       @map("workout_id")
+  exerciseId             Int       @map("exercise_id")
+  order                  Int       @default(1)
+  series                 Int       @default(3)
+  reps                   Int       @default(10)
+  load                   Float     @default(0)
+  restTime               Int       @default(30) @map("rest_time")
+  completed              Boolean   @default(false)
+  replacedFromExerciseId Int?      @map("replaced_from_exercise_id")
+  workout                Workout   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise               Exercise  @relation("WorkoutExerciseCurrentExercise", fields: [exerciseId], references: [id], onDelete: Restrict)
+  replacedFromExercise   Exercise? @relation("WorkoutExerciseReplacedFrom", fields: [replacedFromExerciseId], references: [id], onDelete: SetNull)
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  @@index([workoutId, order])
+  @@index([exerciseId])
+  @@index([completed])
+  @@index([replacedFromExerciseId])
+  @@map("workout_exercise")
+}

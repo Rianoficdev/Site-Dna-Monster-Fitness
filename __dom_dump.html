@@ -1,0 +1,906 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR"><head>
+  <!-- Metadados basicos de SEO e responsividade -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DNA Monster Fitness | Academia Premium</title>
+  <meta name="description" content="Academia premium com musculação, funcional, cardio e acompanhamento personalizado. Resultados reais com estrutura moderna.">
+  <meta name="keywords" content="academia, musculação, treino funcional, cardio, personal trainer, fitness">
+  <meta name="theme-color" content="#1CBF5C">
+  <meta property="og:title" content="DNA Monster Fitness">
+  <meta property="og:description" content="A melhor experiência fitness com estrutura premium e resultados reais.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header fixo com navegacao principal e atalhos -->
+  <header class="site-header">
+    <div class="container nav">
+      <!-- Logo principal (varia entre modo claro e escuro) -->
+      <a class="logo" href="#home" aria-label="DNA Monster Fitness">
+        <img class="logo-image logo-image-light" src="aba de img/nova logo.png" alt="DNA Monster Fitness">
+        <img class="logo-image logo-image-dark" src="aba de img/logo branca.png" alt="" aria-hidden="true">
+      </a>
+      <!-- Menu principal (desktop / mobile) -->
+      <nav class="menu" aria-label="Navegação principal">
+        <a href="#home">Início</a>
+        <a href="#modalidades">Modalidades</a>
+        <a href="#planos">Planos</a>
+        <a href="#localizacao">Localização</a>
+        <a href="#contato">Contato</a>
+      </nav>
+      <div class="header-actions">
+        <!-- Aciona fluxo SPA da Area do Aluno -->
+        <a class="btn btn-primary header-student-btn" href="#" data-student-open="">Área do Aluno</a>
+        <!-- Botao de alternancia de tema -->
+        <button class="theme-toggle" type="button" data-theme-toggle="" aria-label="Ativar modo noturno" aria-pressed="false" title="Ativar modo noturno">
+          <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 7 7 0 0 0 20 14.5z"></path>
+          </svg>
+          <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2"></circle>
+            <path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5"></path>
+          </svg>
+        </button>
+      </div>
+      <!-- Botao hamburguer para menu mobile -->
+      <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero principal -->
+    <section id="home" class="hero">
+      <div class="hero-overlay"></div>
+      <div class="container hero-content">
+        <div class="hero-text reveal visible">
+          <img class="hero-logo-mobile" src="aba de img/logo branca.png" alt="DNA Monster Fitness">
+          <h1><span class="hero-firstline">A MELHOR</span> <br><span class="nowrap">EXPERIÊNCIA FITNESS</span></h1>
+          <p>
+            <span class="desktop-only">Treinos completos, estrutura moderna e acompanhamento para resultados reais. Tudo em um ambiente limpo, <span class="nowrap">organizado e motivador</span>.</span>
+            <span class="mobile-only">Treinos completos, estrutura moderna e acompanhamento para resultados reais.</span>
+          </p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="#contato">Matricule-se agora</a>
+            <a class="btn btn-outline" href="#planos">Ver planos</a>
+          </div>
+          <div class="hero-highlight">
+            <div>
+              <strong>+1.500</strong>
+              <span>alunos satisfeitos</span>
+            </div>
+            <div>
+              <strong>+60</strong>
+              <span>equipamentos premium</span>
+            </div>
+            <div>
+              <strong>10 anos</strong>
+              <span>de resultados</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao de horarios e status dinamico (aberta/fechada) -->
+    <section id="horario" class="section schedule-section">
+      <div class="container">
+        <div class="schedule-header reveal">
+          <h2>Horário de Funcionamento</h2>
+        </div>
+        <div class="schedule-grid">
+          <article class="schedule-card reveal">
+            <p class="schedule-day">Segunda à Sexta</p>
+            <p class="schedule-time">5:30 às 22:00</p>
+          </article>
+          <article class="schedule-card reveal">
+            <p class="schedule-day">Sábados</p>
+            <p class="schedule-time">6:00 às 17:00</p>
+          </article>
+          <article class="schedule-card reveal">
+            <p class="schedule-day">Domingos</p>
+            <p class="schedule-time">6:00 às 11:00</p>
+          </article>
+        </div>
+        <div class="schedule-status-wrap">
+          <span class="status-chip is-open is-ready" data-gym-status="" aria-live="polite">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span class="status-text">Academia Aberta</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao de modalidades -->
+    <section id="modalidades" class="section alt">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2>Modalidades e Aulas</h2>
+          <p>Programas completos para força, resistência e performance.</p>
+        </div>
+        <div class="grid-4">
+          <article class="card reveal">
+            <div class="card-image image-1"></div>
+            <h3>Musculação</h3>
+            <p>Foco em hipertrofia<br>força e definição.</p>
+          </article>
+          <article class="card reveal">
+            <div class="card-image image-2"></div>
+            <h3>Treino funcional</h3>
+            <p>Movimentos dinâmicos para performance real.</p>
+          </article>
+          <article class="card reveal">
+            <div class="card-image image-3"></div>
+            <h3>Cardio</h3>
+            <p>Condicionamento e resistência com tecnologia.</p>
+          </article>
+          <article class="card reveal">
+            <div class="card-image image-4"></div>
+            <h3>Personalizado</h3>
+            <p>Planos feitos sob medida com acompanhamento.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao avaliacao + personal -->
+    <section id="avaliacao" class="section">
+      <div class="container split">
+        <div class="reveal">
+          <h2 class="avaliacao-title">
+            <img class="avaliacao-title-image avaliacao-title-image-light" src="aba de img/texto.png" alt="Avaliação Física e Treino Personalizado">
+            <img class="avaliacao-title-image avaliacao-title-image-dark" src="aba de img/texto branco.png" alt="" aria-hidden="true">
+          </h2>
+          <p>Comece com avaliação completa e receba um plano de treino ajustado ao seu objetivo, seja ganho de massa, emagrecimento ou performance.</p>
+          <div class="check-list">
+            <span>Plano individual</span>
+            <span>Acompanhamento técnico</span>
+            <span>Evolução monitorada</span>
+          </div>
+        </div>
+        <div class="trainer-card reveal">
+          <div class="trainer-photo"></div>
+          <h3>Personal Trainer</h3>
+          <p>Profissionais dedicados para acelerar seus resultados.</p>
+          <a class="btn btn-primary" href="#contato">Agendar avaliação</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao de planos -->
+    <section id="planos" class="section plans-section">
+      <div class="container">
+        <div class="section-header plans-header reveal">
+          <h2>JÁ CONHECE OS NOSSOS PLANOS?</h2>
+          <p>Confira as ofertas que preparamos para sua evolução e escolha o plano ideal para começar hoje.</p>
+        </div>
+        <div class="plans-stage">
+          <div class="plans-grid">
+            <article class="plan-card reveal">
+              <div class="plan-topbar" aria-hidden="true"></div>
+              <h3>Plano Mensal</h3>
+              <p class="plan-price"><small>R$</small>80,00</p>
+              <ul class="plan-features">
+                <li>Acesso total à musculação</li>
+                <li>Aulas coletivas selecionadas</li>
+                <li>Acompanhamento técnico</li>
+                <li>Suporte via app</li>
+              </ul>
+              <a class="plan-btn" href="#contato">Plano Mensal <span aria-hidden="true">↗</span></a>
+            </article>
+            <article class="plan-card reveal">
+              <div class="plan-topbar" aria-hidden="true"></div>
+              <h3>Plano Trimestral</h3>
+              <p class="plan-price"><small>R$</small>150,00</p>
+              <ul class="plan-features">
+                <li>Treino personalizado completo</li>
+                <li>Suporte via WhatsApp</li>
+                <li>Correção de movimentos por vídeo</li>
+                <li>Atualizações periódicas de treino</li>
+              </ul>
+              <a class="plan-btn" href="#contato">Plano Trimestral<span aria-hidden="true">↗</span></a>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao de localizacao com mapa oficial -->
+    <section id="localizacao" class="section">
+      <div class="container location-layout">
+        <div class="section-header reveal">
+          <h2>Localização</h2>
+          <p>A DNA Monster Fitness está em uma região de fácil acesso, próxima aos principais pontos da cidade, <br> conforto e praticidade para o seu treino.</p>
+        </div>
+        <div class="map-box reveal">
+          <iframe title="Mapa DNA Monster Fitness" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d219.96226768230483!2d-38.612841516664055!3d-3.8740441077476118!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x7c75325fd7d197d%3A0x32f3b7968b0bf629!2sAcademia%20DNA%20Monster%20Fitness!5e1!3m2!1spt-BR!2sbr!4v1770682395108!5m2!1spt-BR!2sbr" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao da equipe -->
+    <section id="time" class="section team-section">
+      <div class="container">
+        <div class="section-header team-header reveal">
+          <h2>CONHEÇA O NOSSO TIME</h2>
+          <p>Profissionais qualificados para te acompanhar em cada evolução.</p>
+        </div>
+        <div class="team-grid">
+          <article class="team-card reveal">
+            <div class="team-top-weight" aria-hidden="true"></div>
+            <div class="team-photo team-1"></div>
+            <h3>Ailton</h3>
+            <p class="team-role">Educador Físico</p>
+            <p class="team-desc">Especialista em hipertrofia e condicionamento, com atendimento individual e foco total na execução correta.</p>
+          </article>
+          <article class="team-card reveal">
+            <div class="team-top-weight" aria-hidden="true"></div>
+            <div class="team-photo team-2"></div>
+            <h3>Rogerio Filho</h3>
+            <p class="team-role">Personal Trainner</p>
+            <p class="team-desc">Treinos de força e periodização estratégica para ganho de performance, evolução consistente e segurança.</p>
+          </article>
+          <article class="team-card reveal">
+            <div class="team-top-weight" aria-hidden="true"></div>
+            <div class="team-photo team-3"></div>
+            <h3>Hanne</h3>
+            <p class="team-role">Personal Trainner</p>
+            <p class="team-desc">Acompanhamento dinâmico com foco em mobilidade, resistência e melhoria da capacidade física no dia a dia.</p>
+          </article>
+          <article class="team-card reveal">
+            <div class="team-top-weight" aria-hidden="true"></div>
+            <div class="team-photo team-4"></div>
+            <h3>Jéssica</h3>
+            <p class="team-role">Personal Trainner</p>
+            <p class="team-desc">Aulas energéticas e acessíveis para todos os níveis, com atenção ao ritmo, motivação e gasto calórico.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao de contato -->
+    <section id="contato" class="section contact-section">
+      <div class="container">
+        <div class="contact-grid">
+          <div class="contact-lead reveal">
+            <span class="contact-kicker">FAÇA SUA MATRÍCULA</span>
+            <h2>Construa com a gente <span>mais um futuro de sucesso!</span></h2>
+            <p>Preencha o formulário e receba atendimento personalizado para começar sua jornada na <br>DNA Monster Fitness.</p>
+            <p class="contact-emphasis">Em breve, nosso time entrará em contato com você.</p>
+          </div>
+
+          <form class="contact-form reveal" aria-label="Formulário de contato">
+            <label>
+              <span>Nome do Responsável</span>
+              <input type="text" name="nome" placeholder="Digite seu nome" required="">
+            </label>
+
+            <div class="contact-row contact-row-2">
+              <label>
+                <span>E-mail</span>
+                <input type="email" name="email" placeholder="Digite um e-mail válido" required="">
+              </label>
+              <label>
+                <span>Telefone para Contato</span>
+                <input type="tel" name="telefone" placeholder="Digite um número com DDD" required="">
+              </label>
+            </div>
+
+            <label>
+              <span>Objetivo de Interesse</span>
+              <select name="objetivo" required="">
+                <option value="">Selecione uma opção</option>
+                <option>Hipertrofia</option>
+                <option>Emagrecimento</option>
+                <option>Condicionamento físico</option>
+                <option>Treino personalizado</option>
+              </select>
+            </label>
+
+            <label class="contact-consent">
+              <input type="checkbox" name="consentimento" required="">
+              <span>Declaro que li e concordo com o uso dos meus dados para contato e apresentação dos serviços da academia.</span>
+            </label>
+
+            <button class="btn btn-primary contact-submit" type="submit">Enviar</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Overlay SPA da Area do Aluno (loading + login) -->
+  <section class="student-area" data-student-area="" hidden="" aria-hidden="true">
+    <!-- Fundo clicavel para fechar -->
+    <div class="student-area-scrim" data-student-close=""></div>
+
+    <div class="student-area-layer">
+      <!-- Etapa 1: loading com video -->
+      <div class="student-loading-screen is-visible" data-student-loading="">
+        <video class="student-loading-video" data-student-video="" autoplay="" muted="" playsinline="" preload="auto">
+          <source src="img/carregamento.mp4" type="video/mp4">
+        </video>
+        <p class="student-loading-text">Preparando sua Área do Aluno...</p>
+      </div>
+
+      <!-- Etapa 2: tela de login -->
+      <div class="student-login-screen" data-student-login="">
+        <button class="student-area-close" type="button" data-student-close="" aria-label="Fechar Área do Aluno">×</button>
+
+        <div class="student-login-card">
+          <img class="student-login-logo" src="aba de img/logo branca.png" alt="DNA Monster Fitness">
+          <h2>Área do Aluno</h2>
+          <p class="student-login-subtitle">Acesse seus treinos e acompanhe sua evolução</p>
+          <!-- Painel de login -->
+          <div class="student-auth-panel is-active" data-student-panel="login">
+            <form class="student-login-form" data-student-login-form="" novalidate="">
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9a7 7 0 0 1 14 0"></path></svg>
+                </span>
+                <input type="text" name="usuario" placeholder="E-mail ou usuário" autocomplete="username" data-student-user="" required="">
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 1 1 10 0v3"></path><rect x="4" y="11" width="16" height="10" rx="2"></rect></svg>
+                </span>
+                <input type="password" name="senha" placeholder="Senha" autocomplete="current-password" data-student-pass="" required="">
+              </label>
+
+              <p class="student-form-error" data-student-form-error="" aria-live="polite"></p>
+
+              <button class="student-login-btn" type="submit" data-student-submit="">
+                <span>Entrar</span>
+              </button>
+
+              <a class="student-forgot-link" href="#" data-student-forgot="">Esqueci minha senha</a>
+              <button class="student-form-link" type="button" data-student-go-register="">Ainda não sou aluno - Criar cadastro</button>
+              <small class="student-login-note">Acesso exclusivo para alunos</small>
+            </form>
+          </div>
+
+          <!-- Painel de novo cadastro -->
+          <div class="student-auth-panel" data-student-panel="register" hidden="">
+            <form class="student-register-form" data-student-register-form="" novalidate="">
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9a7 7 0 0 1 14 0"></path></svg>
+                </span>
+                <input type="text" name="nome" placeholder="Nome completo" autocomplete="name" data-student-register-name="" required="">
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"></path><path d="M4 8l8 6 8-6"></path></svg>
+                </span>
+                <input type="email" name="email" placeholder="E-mail" autocomplete="email" data-student-register-email="" required="">
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M6 4h4l2 5-3 2a14 14 0 0 0 4 4l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 4 6a2 2 0 0 1 2-2z"></path></svg>
+                </span>
+                <input type="tel" name="telefone" placeholder="Telefone com DDD" autocomplete="tel" data-student-register-phone="" required="">
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 1 1 10 0v3"></path><rect x="4" y="11" width="16" height="10" rx="2"></rect></svg>
+                </span>
+                <input type="password" name="nova_senha" placeholder="Crie uma senha" autocomplete="new-password" data-student-register-pass="" required="">
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 1 1 10 0v3"></path><rect x="4" y="11" width="16" height="10" rx="2"></rect></svg>
+                </span>
+                <input type="password" name="confirmar_senha" placeholder="Confirmar senha" autocomplete="new-password" data-student-register-pass-confirm="" required="">
+              </label>
+
+              <p class="student-form-error" data-student-register-error="" aria-live="polite"></p>
+
+              <button class="student-login-btn" type="submit" data-student-register-submit="">
+                <span>Cadastrar</span>
+              </button>
+
+              <button class="student-form-link" type="button" data-student-go-login="">Já tenho cadastro - Entrar</button>
+              <small class="student-login-note">Cadastro inicial sujeito à validação da recepção</small>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Etapa 3: aplicativo interno da Area do Aluno (tela cheia) -->
+      <div class="student-app-screen" data-student-app="">
+        <div class="student-app-shell">
+          <header class="student-app-topbar">
+            <div class="student-app-brand">
+              <span class="student-app-brand-logo-wrap">
+                <img class="student-app-brand-logo" src="aba de img/nova logo.png" alt="DNA Monster Fitness">
+              </span>
+              <div class="student-app-brand-meta">
+                <h4>Ola, <span data-student-greeting-name="">Aluno DNA</span>!</h4>
+                <p data-student-date-display="">Segunda-feira, 16 de fevereiro</p>
+              </div>
+            </div>
+            <div class="student-app-top-actions">
+              <button class="student-app-icon-btn" type="button" aria-label="Notificacoes">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a5 5 0 0 0-5 5v3l-2 3h14l-2-3V9a5 5 0 0 0-5-5z"></path><path d="M10 18a2 2 0 0 0 4 0"></path></svg>
+              </button>
+              <button class="student-app-icon-btn" type="button" data-student-logout="" aria-label="Sair">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"></path><path d="M15 12H4"></path><path d="M13 4h5v16h-5"></path></svg>
+              </button>
+            </div>
+          </header>
+
+          <main class="student-app-main">
+            <article class="student-week-summary-card">
+              <div class="student-week-summary-head">
+                <h5>Resumo da Semana</h5>
+                <span data-student-week-total="">4/5 treinos</span>
+              </div>
+              <div class="student-week-strip" data-student-week-grid="">
+          <div class="student-week-col">
+            <span class="student-week-col-label">Seg</span>
+            <div class="student-week-col-box is-done"><svg class="student-week-col-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"></path></svg></div>
+          </div>
+        
+          <div class="student-week-col">
+            <span class="student-week-col-label">Ter</span>
+            <div class="student-week-col-box is-done"><svg class="student-week-col-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"></path></svg></div>
+          </div>
+        
+          <div class="student-week-col">
+            <span class="student-week-col-label">Qua</span>
+            <div class="student-week-col-box is-current"></div>
+          </div>
+        
+          <div class="student-week-col">
+            <span class="student-week-col-label">Qui</span>
+            <div class="student-week-col-box is-done"><svg class="student-week-col-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"></path></svg></div>
+          </div>
+        
+          <div class="student-week-col">
+            <span class="student-week-col-label">Sex</span>
+            <div class="student-week-col-box "></div>
+          </div>
+        
+          <div class="student-week-col">
+            <span class="student-week-col-label">Sab</span>
+            <div class="student-week-col-box is-done"><svg class="student-week-col-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"></path></svg></div>
+          </div>
+        
+          <div class="student-week-col">
+            <span class="student-week-col-label">Dom</span>
+            <div class="student-week-col-box "></div>
+          </div>
+        </div>
+            </article>
+
+            <div class="student-tab-loading" data-student-tab-loading="" hidden="">
+              <span class="student-tab-loading-dot" aria-hidden="true"></span>
+              <span>Carregando...</span>
+            </div>
+
+            <section class="student-app-panel is-active" data-student-app-panel="dashboard">
+              <article class="student-dashboard-hero">
+                <div>
+                  <h4>Treino de hoje</h4>
+                  <p data-student-dashboard-greeting="">Plano atualizado para esta semana</p>
+                </div>
+                <button class="student-cta-inline" type="button" data-student-open-workouts="">
+                  <span>Iniciar treino</span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l8 7-8 7"></path><path d="M16 12H4"></path></svg>
+                </button>
+              </article>
+
+              <div class="student-dashboard-grid">
+                <article class="student-app-card student-upcoming-card">
+                  <div class="student-upcoming-head">
+                    <h5>Próximos Treinos</h5>
+                    <button class="student-upcoming-viewall" type="button" data-student-open-workouts-list="">Ver todos</button>
+                  </div>
+
+                  <div class="student-upcoming-list">
+                    <div class="student-upcoming-item is-today">
+                      <span class="student-upcoming-icon" aria-hidden="true">
+                        <svg class="student-upcoming-calendar" viewBox="0 0 24 24">
+                          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                          <path d="M16 2v4"></path>
+                          <path d="M8 2v4"></path>
+                          <path d="M3 10h18"></path>
+                          <text x="12" y="18" text-anchor="middle" data-student-upcoming-day-current="">16</text>
+                        </svg>
+                      </span>
+                      <div class="student-upcoming-copy">
+                        <strong data-student-dashboard-current="">Treino A - Peito e triceps</strong>
+                        <small data-student-dashboard-current-meta="">3 exercícios • 60 min</small>
+                      </div>
+                      <span class="student-upcoming-when">Hoje</span>
+                    </div>
+
+                    <div class="student-upcoming-item">
+                      <span class="student-upcoming-icon" aria-hidden="true">
+                        <svg class="student-upcoming-calendar" viewBox="0 0 24 24">
+                          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                          <path d="M16 2v4"></path>
+                          <path d="M8 2v4"></path>
+                          <path d="M3 10h18"></path>
+                          <text x="12" y="18" text-anchor="middle" data-student-upcoming-day-next="">17</text>
+                        </svg>
+                      </span>
+                      <div class="student-upcoming-copy">
+                        <strong data-student-dashboard-next="">Treino B - Costas e biceps</strong>
+                        <small data-student-dashboard-next-meta="">3 exercícios • 55 min</small>
+                      </div>
+                      <span class="student-upcoming-when">Amanhã</span>
+                    </div>
+                  </div>
+                </article>
+                <article class="student-app-card student-metric-card">
+                  <h5>
+                    <span class="student-card-heading">
+                      <svg class="student-status-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M11.246 16.657a1 1 0 0 0 1.508 0l3.57-4.101A2.75 2.75 0 1 0 12 9.168a2.75 2.75 0 1 0-4.324 3.388z"></path>
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                      </svg>
+                      <span>Status do Aluno</span>
+                    </span>
+                  </h5>
+                  <p data-student-dashboard-status="">Em evolucao</p>
+                  <small class="student-status-level" data-student-dashboard-level="">Nivel: Iniciante</small>
+                </article>
+                <article class="student-app-card student-metric-card student-card-completion">
+                  <h5>
+                    <span class="student-card-heading">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"></path></svg>
+                      <span>Treinos Concluidos</span>
+                    </span>
+                  </h5>
+                  <p class="student-completion-percent" data-student-dashboard-completed-percent="">33%</p>
+                  <small class="student-completion-text" data-student-dashboard-completed-text="">1 de 3 concluidos</small>
+                  <div class="student-completion-track">
+                    <span data-student-dashboard-completed-fill="" style="width: 33%;"></span>
+                  </div>
+                </article>
+              </div>
+
+              <article class="student-all-workouts-card">
+                <h5>Todos os Treinos</h5>
+                <div class="student-all-workouts-list" data-student-all-workouts-list=""><button type="button" class="student-all-workout-item is-active" data-workout-id="a">
+      <span class="student-all-workout-badge">A</span>
+      <span class="student-all-workout-copy">
+        <strong>Treino A</strong>
+        <small>Peito e triceps</small>
+      </span>
+      <span class="student-all-workout-arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg>
+      </span>
+    </button><button type="button" class="student-all-workout-item" data-workout-id="b">
+      <span class="student-all-workout-badge">B</span>
+      <span class="student-all-workout-copy">
+        <strong>Treino B</strong>
+        <small>Costas e biceps</small>
+      </span>
+      <span class="student-all-workout-arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg>
+      </span>
+    </button><button type="button" class="student-all-workout-item" data-workout-id="c">
+      <span class="student-all-workout-badge">C</span>
+      <span class="student-all-workout-copy">
+        <strong>Treino C</strong>
+        <small>Pernas e gluteos</small>
+      </span>
+      <span class="student-all-workout-arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg>
+      </span>
+    </button></div>
+              </article>
+
+              <div class="student-dashboard-secondary-grid">
+                <article class="student-app-card">
+                  <h5>Objetivo atual</h5>
+                  <p class="student-goal-title">Hipertrofia com condicionamento</p>
+                  <div class="student-goal-track">
+                    <span data-student-goal-fill="" style="width: 68%;"></span>
+                  </div>
+                  <small data-student-goal-percent="">68% concluido</small>
+                </article>
+                <article class="student-app-card">
+                  <h5>Desempenho semanal</h5>
+                  <p class="student-performance-score" data-student-performance="">84%</p>
+                  <small>Consistencia de treinos e evolucao</small>
+                </article>
+                <article class="student-app-card">
+                  <h5>Motivacao</h5>
+                  <p class="student-motivation-text">Constancia e disciplina geram resultados reais.</p>
+                </article>
+              </div>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="treino-ativo" hidden="">
+              <article class="student-active-workout">
+                <header class="student-active-workout-head">
+                  <button class="student-active-back" type="button" data-student-active-back="" aria-label="Voltar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+                  </button>
+                  <div>
+                    <h4 data-student-active-title="">Treino A</h4>
+                    <p data-student-active-subtitle="">Peito e triceps</p>
+                  </div>
+                </header>
+
+                <div class="student-active-workout-list" data-student-active-workout-exercises="">
+        <article class="student-active-exercise-card">
+          <div class="student-active-exercise-badge">#1</div>
+          <h5>Supino reto</h5>
+          <div class="student-active-exercise-metrics">
+            <div>
+              <small>Series</small>
+              <strong>4x</strong>
+            </div>
+            <div>
+              <small>Repeticoes</small>
+              <strong>10</strong>
+            </div>
+            <div>
+              <small>Carga</small>
+              <strong>50kg</strong>
+            </div>
+          </div>
+          <p>Obs: mantenha execucao controlada e postura correta.</p>
+        </article>
+      
+        <article class="student-active-exercise-card">
+          <div class="student-active-exercise-badge">#2</div>
+          <h5>Supino inclinado</h5>
+          <div class="student-active-exercise-metrics">
+            <div>
+              <small>Series</small>
+              <strong>3x</strong>
+            </div>
+            <div>
+              <small>Repeticoes</small>
+              <strong>12</strong>
+            </div>
+            <div>
+              <small>Carga</small>
+              <strong>40kg</strong>
+            </div>
+          </div>
+          <p>Obs: mantenha execucao controlada e postura correta.</p>
+        </article>
+      
+        <article class="student-active-exercise-card">
+          <div class="student-active-exercise-badge">#3</div>
+          <h5>Triceps corda</h5>
+          <div class="student-active-exercise-metrics">
+            <div>
+              <small>Series</small>
+              <strong>3x</strong>
+            </div>
+            <div>
+              <small>Repeticoes</small>
+              <strong>12</strong>
+            </div>
+            <div>
+              <small>Carga</small>
+              <strong>25kg</strong>
+            </div>
+          </div>
+          <p>Obs: mantenha execucao controlada e postura correta.</p>
+        </article>
+      </div>
+
+                <button class="student-login-btn student-active-finish-btn" type="button" data-student-finish-active-workout="">
+                  <span>Concluir treino</span>
+                </button>
+              </article>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="treinos" hidden="">
+              <div class="student-panel-head">
+                <h4>Treinos do aluno</h4>
+                <p data-student-workout-progress="">1 de 3 concluidos</p>
+              </div>
+              <div class="student-workout-layout">
+                <div class="student-workout-list" data-student-workout-list=""><button type="button" class="student-workout-item is-active">
+      <div class="student-workout-item-head">
+        <strong>Treino A - Peito e triceps</strong>
+        <span class="student-workout-badge is-pending">nao feito</span>
+      </div>
+      <p>Segunda e quinta - 60 min</p>
+    </button><button type="button" class="student-workout-item">
+      <div class="student-workout-item-head">
+        <strong>Treino B - Costas e biceps</strong>
+        <span class="student-workout-badge is-pending">nao feito</span>
+      </div>
+      <p>Terca e sexta - 55 min</p>
+    </button><button type="button" class="student-workout-item">
+      <div class="student-workout-item-head">
+        <strong>Treino C - Pernas e gluteos</strong>
+        <span class="student-workout-badge is-done">feito</span>
+      </div>
+      <p>Quarta e sabado - 70 min</p>
+    </button></div>
+                <article class="student-workout-detail">
+                  <h4 data-student-workout-detail-title="">Treino A - Peito e triceps</h4>
+                  <p data-student-workout-detail-day="">Dias: Segunda e quinta | Duracao media: 60 min</p>
+                  <ul class="student-workout-exercises" data-student-workout-exercises=""><li><strong>Supino reto</strong><span>4x series - 10 repeticoes - Carga: 50kg</span></li><li><strong>Supino inclinado</strong><span>3x series - 12 repeticoes - Carga: 40kg</span></li><li><strong>Triceps corda</strong><span>3x series - 12 repeticoes - Carga: 25kg</span></li></ul>
+                  <button class="student-login-btn student-complete-btn" type="button" data-student-complete-workout="">
+                    <span>Marcar treino como concluido</span>
+                  </button>
+                </article>
+              </div>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="biblioteca" hidden="">
+              <div class="student-panel-head">
+                <h4>Biblioteca de exercicios</h4>
+                <p>Busque por nome ou grupo muscular</p>
+              </div>
+              <div class="student-library-tools">
+                <label class="student-library-search-wrap">
+                  <input type="search" placeholder="Buscar exercicio..." data-student-library-search="">
+                </label>
+                <div class="student-library-filters">
+                  <button class="student-filter-btn is-active" type="button" data-student-library-filter="todos">Todos</button>
+                  <button class="student-filter-btn" type="button" data-student-library-filter="peito">Peito</button>
+                  <button class="student-filter-btn" type="button" data-student-library-filter="costas">Costas</button>
+                  <button class="student-filter-btn" type="button" data-student-library-filter="pernas">Pernas</button>
+                  <button class="student-filter-btn" type="button" data-student-library-filter="ombros">Ombros</button>
+                </div>
+              </div>
+              <div class="student-library-grid" data-student-library-grid=""><button type="button" class="student-library-item"><strong>Supino reto</strong><span>Peito</span></button><button type="button" class="student-library-item"><strong>Puxada frontal</strong><span>Costas</span></button><button type="button" class="student-library-item"><strong>Agachamento livre</strong><span>Pernas</span></button><button type="button" class="student-library-item"><strong>Desenvolvimento halteres</strong><span>Ombros</span></button></div>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="progresso" hidden="">
+              <div class="student-panel-head">
+                <h4>Progresso do aluno</h4>
+                <p data-student-progress-compare="">Comparativo semanal: +14% de desempenho acima da media inicial.</p>
+              </div>
+              <div class="student-progress-stats" data-student-progress-stats=""><article class="student-app-card"><h5>Treinos no mes</h5><p>12</p></article><article class="student-app-card"><h5>Sequencia atual</h5><p>4 dias</p></article><article class="student-app-card"><h5>Evolucao geral</h5><p>+11%</p></article></div>
+              <div class="student-progress-grid">
+                <article class="student-app-card">
+                  <h5>Peso (kg)</h5>
+                  <div class="student-chart-list" data-student-weight-chart=""><div class="student-chart-row"><div class="student-chart-row-head"><span>Jan</span><span>84</span></div><div class="student-chart-bar is-animated" style="--bar-size:100%"><span></span></div></div><div class="student-chart-row"><div class="student-chart-row-head"><span>Fev</span><span>82.7</span></div><div class="student-chart-bar is-animated" style="--bar-size:98%"><span></span></div></div><div class="student-chart-row"><div class="student-chart-row-head"><span>Mar</span><span>81.5</span></div><div class="student-chart-bar is-animated" style="--bar-size:97%"><span></span></div></div><div class="student-chart-row"><div class="student-chart-row-head"><span>Abr</span><span>80.4</span></div><div class="student-chart-bar is-animated" style="--bar-size:96%"><span></span></div></div><div class="student-chart-row"><div class="student-chart-row-head"><span>Mai</span><span>79.8</span></div><div class="student-chart-bar is-animated" style="--bar-size:95%"><span></span></div></div></div>
+                </article>
+                <article class="student-app-card">
+                  <h5>Medidas (cm)</h5>
+                  <div class="student-chart-list" data-student-measure-chart=""><div class="student-chart-row"><div class="student-chart-row-head"><span>Braco</span><span>38</span></div><div class="student-chart-bar is-animated" style="--bar-size:37%"><span></span></div></div><div class="student-chart-row"><div class="student-chart-row-head"><span>Peito</span><span>104</span></div><div class="student-chart-bar is-animated" style="--bar-size:100%"><span></span></div></div><div class="student-chart-row"><div class="student-chart-row-head"><span>Cintura</span><span>84</span></div><div class="student-chart-bar is-animated" style="--bar-size:81%"><span></span></div></div><div class="student-chart-row"><div class="student-chart-row-head"><span>Coxa</span><span>61</span></div><div class="student-chart-bar is-animated" style="--bar-size:59%"><span></span></div></div></div>
+                </article>
+                <article class="student-app-card">
+                  <h5>Evolucao mensal (%)</h5>
+                  <div class="student-chart-list" data-student-evolution-chart=""><div class="student-chart-row"><div class="student-chart-row-head"><span>Forca</span><span>82</span></div><div class="student-chart-bar is-animated" style="--bar-size:91%"><span></span></div></div><div class="student-chart-row"><div class="student-chart-row-head"><span>Resistencia</span><span>74</span></div><div class="student-chart-bar is-animated" style="--bar-size:82%"><span></span></div></div><div class="student-chart-row"><div class="student-chart-row-head"><span>Mobilidade</span><span>68</span></div><div class="student-chart-bar is-animated" style="--bar-size:76%"><span></span></div></div><div class="student-chart-row"><div class="student-chart-row-head"><span>Constancia</span><span>90</span></div><div class="student-chart-bar is-animated" style="--bar-size:100%"><span></span></div></div></div>
+                </article>
+              </div>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="perfil" hidden="">
+              <div class="student-profile-layout">
+                <article class="student-profile-card">
+                  <div class="student-profile-avatar" data-student-profile-avatar="">AD</div>
+                  <h4 data-student-profile-name="">Aluno DNA</h4>
+                  <p data-student-profile-goal="">Objetivo: Hipertrofia com condicionamento.</p>
+                  <div class="student-profile-actions">
+                    <button class="student-profile-btn" type="button">Atualizar dados</button>
+                    <button class="student-profile-btn" type="button">Editar objetivo</button>
+                  </div>
+                </article>
+                <article class="student-app-card student-profile-info" data-student-profile-info=""><div class="student-profile-line"><strong>Email</strong><span>aluno@dnamonsterfitness.com</span></div><div class="student-profile-line"><strong>Objetivo</strong><span>Hipertrofia e definicao muscular</span></div><div class="student-profile-line"><strong>Plano</strong><span>Trimestral ativo</span></div><div class="student-profile-line"><strong>Frequencia</strong><span>4 vezes por semana</span></div></article>
+              </div>
+            </section>
+
+            <!-- Modal de detalhes da biblioteca -->
+            <div class="student-exercise-modal" data-student-exercise-modal="" hidden="">
+              <div class="student-exercise-modal-scrim" data-student-exercise-close=""></div>
+              <article class="student-exercise-modal-card">
+                <button class="student-exercise-close" type="button" data-student-exercise-close="" aria-label="Fechar detalhes do exercício">×</button>
+                <h4 data-student-exercise-title="">Exercicio</h4>
+                <p data-student-exercise-muscle="">Grupo muscular</p>
+                <iframe class="student-exercise-video" data-student-exercise-video="" src="" title="Video demonstrativo do exercicio" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen=""></iframe>
+                <p data-student-exercise-instructions="">Instrucoes do exercicio.</p>
+                <ul class="student-exercise-tips" data-student-exercise-tips=""></ul>
+              </article>
+            </div>
+          </main>
+
+          <nav class="student-app-bottom-nav" aria-label="Navegação do app do aluno">
+            <button class="student-app-nav-btn is-active" type="button" data-student-app-tab="dashboard">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M3 10l9-7 9 7"></path><path d="M6 10v10h12V10"></path></svg>
+              </span>
+              <span>Inicio</span>
+            </button>
+            <button class="student-app-nav-btn" type="button" data-student-app-tab="treinos">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M3 12h4"></path><path d="M17 12h4"></path><path d="M7 10v4h10v-4"></path></svg>
+              </span>
+              <span>Treinos</span>
+            </button>
+            <button class="student-app-nav-btn" type="button" data-student-app-tab="biblioteca">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 5v14"></path><path d="M9 7v10"></path><path d="M15 7v10"></path><path d="M19 5v14"></path><path d="M9 12h6"></path></svg>
+              </span>
+              <span>Exercicios</span>
+            </button>
+            <button class="student-app-nav-btn" type="button" data-student-app-tab="progresso">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 20h16"></path><path d="M8 16v-5"></path><path d="M12 16V8"></path><path d="M16 16v-3"></path></svg>
+              </span>
+              <span>Progresso</span>
+            </button>
+            <button class="student-app-nav-btn" type="button" data-student-app-tab="perfil">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path><path d="M4 20a8 8 0 0 1 16 0"></path></svg>
+              </span>
+              <span>Perfil</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rodape institucional -->
+  <footer class="site-footer">
+    <div class="container footer-shell">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <img class="footer-logo-image" src="aba de img/logo branca.png" alt="DNA Monster Fitness">
+          </div>
+          <p>Treino com foco em resultado, saúde e evolução constante.</p>
+          <small>Direitos Reservados © 2026 DNA Monster Fitness.</small>
+        </div>
+
+        <div>
+          <h3 class="footer-heading">Unidades</h3>
+          <div class="footer-unit">
+            <strong>Unidade DNA Monster</strong>
+            <span>R. 20, 318 - Jereissati - Setor A</span>
+            <span> Maracanaú - CE</span>
+          </div>
+          <div class="footer-unit">
+            <strong>Horário de funcionamento</strong>
+            <span>Seg a Sex: 5h30 às 22h</span>
+            <span>Sáb: 6h às 17h - Dom: 6h às 11h</span>
+          </div>
+        </div>
+
+        <div class="footer-contact">
+          <h3 class="footer-heading">Entre em Contato</h3>
+          <span>(85) 8672-1781</span>
+          <span>contato@dnmonsterfitness.com</span>
+          <div class="socials">
+            <a href="https://www.instagram.com/dnamonsterfitness/" target="_blank" rel="noopener" aria-label="Instagram">
+              <img src="aba de img/logo insta.png" alt="Instagram">
+            </a>
+            <a href="https://wa.me/558586721781?text=Ol%C3%A1%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es%20sobre%20a%20academia" target="_blank" rel="noopener" aria-label="WhatsApp">
+              <img src="aba de img/Logo whats.png" alt="WhatsApp">
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Botao flutuante de WhatsApp -->
+  <a class="whatsapp" href="https://wa.me/558586721781?text=Ol%C3%A1%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es%20sobre%20a%20academia" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <img src="aba de img/Logo whats.png" alt="" aria-hidden="true">
+  </a>
+
+  <!-- Script principal de interacoes -->
+  <script src="script.js"></script>
+
+
+</body></html>

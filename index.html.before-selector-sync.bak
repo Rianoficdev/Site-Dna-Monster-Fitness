@@ -1,0 +1,1944 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <!-- Metadados basicos de SEO e responsividade -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DNA Monster Fitness | Academia Premium</title>
+  <meta name="description" content="Academia premium com musculação, funcional, cardio e acompanhamento personalizado. Resultados reais com estrutura moderna." />
+  <meta name="keywords" content="academia, musculação, treino funcional, cardio, personal trainer, fitness" />
+  <meta name="theme-color" content="#1CBF5C" />
+  <meta name="dna-api-base-url" content="" />
+  <meta property="og:title" content="DNA Monster Fitness" />
+  <meta property="og:description" content="A melhor experiência fitness com estrutura premium e resultados reais." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=20260225-014" />
+</head>
+<body>
+  <!-- Header fixo com navegacao principal e atalhos -->
+  <header class="site-header">
+    <div class="container nav">
+      <!-- Logo principal (varia entre modo claro e escuro) -->
+      <a class="logo" href="#home" aria-label="DNA Monster Fitness">
+        <img class="logo-image logo-image-light" src="aba de img/nova logo.png" alt="DNA Monster Fitness" />
+        <img class="logo-image logo-image-dark" src="aba de img/logo branca.png" alt="" aria-hidden="true" />
+      </a>
+      <!-- Menu principal (desktop / mobile) -->
+      <nav class="menu" aria-label="Navegação principal">
+        <a href="#home">Início</a>
+        <a href="#modalidades">Modalidades</a>
+        <a href="#planos">Planos</a>
+        <a href="#localizacao">Localização</a>
+        <a href="#contato">Contato</a>
+      </nav>
+      <div class="header-actions">
+        <!-- Aciona fluxo SPA da Area do Aluno -->
+        <a class="btn btn-primary header-student-btn" href="#" data-student-open>Área do Aluno</a>
+        <!-- Botao de alternancia de tema -->
+        <button
+          class="theme-toggle"
+          type="button"
+          data-theme-toggle
+          aria-label="Ativar modo noturno"
+          aria-pressed="false"
+          title="Ativar modo noturno"
+        >
+          <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 7 7 0 0 0 20 14.5z"></path>
+          </svg>
+          <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2"></circle>
+            <path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5"></path>
+          </svg>
+        </button>
+      </div>
+      <!-- Botao hamburguer para menu mobile -->
+      <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero principal -->
+    <section id="home" class="hero">
+      <div class="hero-overlay"></div>
+      <div class="container hero-content">
+        <div class="hero-text reveal">
+          <img class="hero-logo-mobile" src="aba de img/logo branca.png" alt="DNA Monster Fitness" />
+          <h1><span class="hero-firstline">A MELHOR</span> <br /><span class="nowrap">EXPERIÊNCIA FITNESS</span></h1>
+          <p>
+            <span class="desktop-only">Treinos completos, estrutura moderna e acompanhamento para resultados reais. Tudo em um ambiente limpo, <span class="nowrap">organizado e motivador</span>.</span>
+            <span class="mobile-only">Treinos completos, estrutura moderna e acompanhamento para resultados reais.</span>
+          </p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="#contato">Matricule-se agora</a>
+            <a class="btn btn-outline" href="#planos">Ver planos</a>
+          </div>
+          <div class="hero-highlight">
+            <div>
+              <strong>+1.500</strong>
+              <span>alunos satisfeitos</span>
+            </div>
+            <div>
+              <strong>+60</strong>
+              <span>equipamentos premium</span>
+            </div>
+            <div>
+              <strong>10 anos</strong>
+              <span>de resultados</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao de horarios e status dinamico (aberta/fechada) -->
+    <section id="horario" class="section schedule-section">
+      <div class="container">
+        <div class="schedule-header reveal">
+          <h2>Horário de Funcionamento</h2>
+        </div>
+        <div class="schedule-grid">
+          <article class="schedule-card reveal">
+            <p class="schedule-day">Segunda à Sexta</p>
+            <p class="schedule-time">5:30 às 22:00</p>
+          </article>
+          <article class="schedule-card reveal">
+            <p class="schedule-day">Sábados</p>
+            <p class="schedule-time">6:00 às 17:00</p>
+          </article>
+          <article class="schedule-card reveal">
+            <p class="schedule-day">Domingos</p>
+            <p class="schedule-time">6:00 às 11:00</p>
+          </article>
+        </div>
+        <div class="schedule-status-wrap">
+          <span class="status-chip" data-gym-status aria-live="polite">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span class="status-text">Verificando status...</span>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao de modalidades -->
+    <section id="modalidades" class="section alt">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2>Modalidades e Aulas</h2>
+          <p>Programas completos para força, resistência e performance.</p>
+        </div>
+        <div class="grid-4">
+          <article class="card reveal">
+            <div class="card-image image-1"></div>
+            <h3>Musculação</h3>
+            <p>Foco em hipertrofia<br />força e definição.</p>
+          </article>
+          <article class="card reveal">
+            <div class="card-image image-2"></div>
+            <h3>Treino funcional</h3>
+            <p>Movimentos dinâmicos para performance real.</p>
+          </article>
+          <article class="card reveal">
+            <div class="card-image image-3"></div>
+            <h3>Cardio</h3>
+            <p>Condicionamento e resistência com tecnologia.</p>
+          </article>
+          <article class="card reveal">
+            <div class="card-image image-4"></div>
+            <h3>Personalizado</h3>
+            <p>Planos feitos sob medida com acompanhamento.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao avaliacao + personal -->
+    <section id="avaliacao" class="section">
+      <div class="container split">
+        <div class="reveal">
+          <h2 class="avaliacao-title">
+            <img class="avaliacao-title-image avaliacao-title-image-light" src="aba de img/texto.png" alt="Avaliação Física e Treino Personalizado" />
+            <img class="avaliacao-title-image avaliacao-title-image-dark" src="aba de img/texto branco.png" alt="" aria-hidden="true" />
+          </h2>
+          <p>Comece com avaliação completa e receba um plano de treino ajustado ao seu objetivo, seja ganho de massa, emagrecimento ou performance.</p>
+          <div class="check-list">
+            <span>Plano individual</span>
+            <span>Acompanhamento técnico</span>
+            <span>Evolução monitorada</span>
+          </div>
+        </div>
+        <div class="trainer-card reveal">
+          <div class="trainer-photo"></div>
+          <h3>Personal Trainer</h3>
+          <p>Profissionais dedicados para acelerar seus resultados.</p>
+          <a class="btn btn-primary" href="#contato">Agendar avaliação</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao de planos -->
+    <section id="planos" class="section plans-section">
+      <div class="container">
+        <div class="section-header plans-header reveal">
+          <h2>JÁ CONHECE OS NOSSOS PLANOS?</h2>
+          <p>Confira as ofertas que preparamos para sua evolução e escolha o plano ideal para começar hoje.</p>
+        </div>
+        <div class="plans-stage">
+          <div class="plans-grid">
+            <article class="plan-card reveal">
+              <div class="plan-topbar" aria-hidden="true"></div>
+              <h3>Plano Mensal</h3>
+              <p class="plan-price"><small>R$</small>80,00</p>
+              <ul class="plan-features">
+                <li>Acesso total à musculação</li>
+                <li>Aulas coletivas selecionadas</li>
+                <li>Acompanhamento técnico</li>
+                <li>Suporte via app</li>
+              </ul>
+              <a class="plan-btn" href="#contato">Plano Mensal <span aria-hidden="true">?</span></a>
+            </article>
+            <article class="plan-card reveal">
+              <div class="plan-topbar" aria-hidden="true"></div>
+              <h3>Plano Trimestral</h3>
+              <p class="plan-price"><small>R$</small>150,00</p>
+              <ul class="plan-features">
+                <li>Treino personalizado completo</li>
+                <li>Suporte via WhatsApp</li>
+                <li>Correção de movimentos por vídeo</li>
+                <li>Atualizações periódicas de treino</li>
+              </ul>
+              <a class="plan-btn" href="#contato">Plano Trimestral<span aria-hidden="true">?</span></a>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao de localizacao com mapa oficial -->
+    <section id="localizacao" class="section">
+      <div class="container location-layout">
+        <div class="section-header reveal">
+          <h2>Localização</h2>
+          <p>A DNA Monster Fitness está em uma região de fácil acesso, próxima aos principais pontos da cidade, <br /> conforto e praticidade para o seu treino.</p>
+        </div>
+        <div class="map-box reveal">
+          <iframe
+            title="Mapa DNA Monster Fitness"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d219.96226768230483!2d-38.612841516664055!3d-3.8740441077476118!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x7c75325fd7d197d%3A0x32f3b7968b0bf629!2sAcademia%20DNA%20Monster%20Fitness!5e1!3m2!1spt-BR!2sbr!4v1770682395108!5m2!1spt-BR!2sbr"
+            allowfullscreen=""
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao da equipe -->
+    <section id="time" class="section team-section">
+      <div class="container">
+        <div class="section-header team-header reveal">
+          <h2>CONHEÇA O NOSSO TIME</h2>
+          <p>Profissionais qualificados para te acompanhar em cada evolução.</p>
+        </div>
+        <div class="team-grid">
+          <article class="team-card reveal">
+            <div class="team-top-weight" aria-hidden="true"></div>
+            <div class="team-photo team-1"></div>
+            <h3>Ailton</h3>
+            <p class="team-role">Educador Físico</p>
+            <p class="team-desc">Especialista em hipertrofia e condicionamento, com atendimento individual e foco total na execução correta.</p>
+          </article>
+          <article class="team-card reveal">
+            <div class="team-top-weight" aria-hidden="true"></div>
+            <div class="team-photo team-2"></div>
+            <h3>Rogerio Filho</h3>
+            <p class="team-role">Personal Trainer</p>
+            <p class="team-desc">Treinos de força e periodização estratégica para ganho de performance, evolução consistente e segurança.</p>
+          </article>
+          <article class="team-card reveal">
+            <div class="team-top-weight" aria-hidden="true"></div>
+            <div class="team-photo team-3"></div>
+            <h3>Hanne</h3>
+            <p class="team-role">Personal Trainer</p>
+            <p class="team-desc">Acompanhamento dinâmico com foco em mobilidade, resistência e melhoria da capacidade física no dia a dia.</p>
+          </article>
+          <article class="team-card reveal">
+            <div class="team-top-weight" aria-hidden="true"></div>
+            <div class="team-photo team-4"></div>
+            <h3>Jéssica</h3>
+            <p class="team-role">Personal Trainer</p>
+            <p class="team-desc">Aulas energéticas e acessíveis para todos os níveis, com atenção ao ritmo, motivação e gasto calórico.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Secao de contato -->
+    <section id="contato" class="section contact-section">
+      <div class="container">
+        <div class="contact-grid">
+          <div class="contact-lead reveal">
+            <span class="contact-kicker">FAÇA SUA MATRÍCULA</span>
+            <h2>Construa com a gente <span>mais um futuro de sucesso!</span></h2>
+            <p>Preencha o formulário e receba atendimento personalizado para começar sua jornada na <br />DNA Monster Fitness.</p>
+            <p class="contact-emphasis">Em breve, nosso time entrará em contato com você.</p>
+          </div>
+
+          <form class="contact-form reveal" aria-label="Formulário de contato">
+            <label>
+              <span>Nome do Responsável</span>
+              <input type="text" name="nome" placeholder="Digite seu nome" required />
+            </label>
+
+            <div class="contact-row contact-row-2">
+              <label>
+                <span>E-mail</span>
+                <input type="email" name="email" placeholder="Digite um e-mail válido" required />
+              </label>
+              <label>
+                <span>Telefone para Contato</span>
+                <input type="tel" name="telefone" placeholder="Digite um número com DDD" required />
+              </label>
+            </div>
+
+            <label>
+              <span>Objetivo de Interesse</span>
+              <select name="objetivo" required>
+                <option value="">Selecione uma opção</option>
+                <option>Hipertrofia</option>
+                <option>Emagrecimento</option>
+                <option>Condicionamento físico</option>
+                <option>Treino personalizado</option>
+              </select>
+            </label>
+
+            <label class="contact-consent">
+              <input type="checkbox" name="consentimento" required />
+              <span>Declaro que li e concordo com o uso dos meus dados para contato e apresentação dos serviços da academia.</span>
+            </label>
+
+            <button class="btn btn-primary contact-submit" type="submit">Enviar</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Overlay SPA da Area do Aluno (loading + login) -->
+  <section class="student-area" data-student-area hidden aria-hidden="true">
+    <!-- Fundo clicavel para fechar -->
+    <div class="student-area-scrim" data-student-close></div>
+
+    <div class="student-area-layer">
+      <!-- Etapa 1: loading com video -->
+      <div class="student-loading-screen is-visible" data-student-loading>
+        <video class="student-loading-video" data-student-video autoplay muted playsinline preload="auto">
+          <source src="img/carregamento.mp4" type="video/mp4" />
+        </video>
+        <p class="student-loading-text">Preparando sua Área do Aluno...</p>
+      </div>
+
+      <!-- Etapa 2: tela de login -->
+      <div class="student-login-screen" data-student-login>
+        <button class="student-area-close" type="button" data-student-close aria-label="Fechar Área do Aluno">&times;</button>
+
+        <div class="student-login-card">
+          <img class="student-login-logo" src="aba de img/logo branca.png" alt="DNA Monster Fitness" />
+          <h2>Área do Aluno</h2>
+          <p class="student-login-subtitle">Acesse seus treinos e acompanhe sua evolução</p>
+          <!-- Painel de login -->
+          <div class="student-auth-panel is-active" data-student-panel="login">
+            <form class="student-login-form" data-student-login-form novalidate>
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9a7 7 0 0 1 14 0"/></svg>
+                </span>
+                <input type="text" name="usuario" placeholder="E-mail" autocomplete="username" data-student-user required />
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 1 1 10 0v3"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg>
+                </span>
+                <input type="password" name="senha" placeholder="Senha" autocomplete="current-password" data-student-pass required />
+              </label>
+
+              <div class="student-login-options">
+                <label class="student-remember-option">
+                  <input type="checkbox" data-student-remember />
+                  <span>Lembrar login neste aparelho</span>
+                </label>
+                <label class="student-remember-option">
+                  <input type="checkbox" data-student-show-pass />
+                  <span>Mostrar senha</span>
+                </label>
+              </div>
+
+              <p class="student-form-error" data-student-form-error aria-live="polite"></p>
+
+              <button class="student-login-btn" type="submit" data-student-submit>
+                <span>Entrar</span>
+              </button>
+
+              <a class="student-forgot-link" href="#" data-student-forgot>Esqueci minha senha</a>
+              <button class="student-form-link" type="button" data-student-go-register>Ainda não sou aluno - Criar cadastro</button>
+              <small class="student-login-note">Acesso exclusivo para alunos</small>
+            </form>
+          </div>
+
+          <!-- Painel de novo cadastro -->
+          <div class="student-auth-panel" data-student-panel="register" hidden>
+            <form class="student-register-form" data-student-register-form novalidate>
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 9a7 7 0 0 1 14 0"/></svg>
+                </span>
+                <input type="text" name="nome" placeholder="Nome completo" autocomplete="name" data-student-register-name required />
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M4 8l8 6 8-6"/></svg>
+                </span>
+                <input type="email" name="email" placeholder="E-mail" autocomplete="email" data-student-register-email required />
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M6 4h4l2 5-3 2a14 14 0 0 0 4 4l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 4 6a2 2 0 0 1 2-2z"/></svg>
+                </span>
+                <input type="tel" name="telefone" placeholder="Telefone com DDD" autocomplete="tel" data-student-register-phone required />
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 1 1 10 0v3"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg>
+                </span>
+                <input type="password" name="nova_senha" placeholder="Crie uma senha" autocomplete="new-password" data-student-register-pass required />
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 1 1 10 0v3"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg>
+                </span>
+                <input type="password" name="confirmar_senha" placeholder="Confirmar senha" autocomplete="new-password" data-student-register-pass-confirm required />
+              </label>
+
+              <p class="student-form-error" data-student-register-error aria-live="polite"></p>
+
+              <button class="student-login-btn" type="submit" data-student-register-submit>
+                <span>Cadastrar</span>
+              </button>
+
+              <button class="student-form-link" type="button" data-student-go-login>Já tenho cadastro - Entrar</button>
+              <small class="student-login-note">Cadastro inicial sujeito à validação da recepção</small>
+            </form>
+          </div>
+
+          <!-- Painel de recuperação de senha -->
+          <div class="student-auth-panel" data-student-panel="forgot" hidden>
+            <form class="student-forgot-request-form" data-student-forgot-request-form novalidate>
+              <p class="student-form-helper">Digite o e-mail da sua conta para receber o código de recuperação.</p>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M4 8l8 6 8-6"/></svg>
+                </span>
+                <input type="email" name="recovery_email" placeholder="E-mail cadastrado" autocomplete="email" data-student-forgot-email required />
+              </label>
+
+              <p class="student-form-error" data-student-forgot-request-error aria-live="polite"></p>
+
+              <button class="student-login-btn" type="submit" data-student-forgot-request-submit>
+                <span>Enviar código</span>
+              </button>
+
+              <button class="student-form-link" type="button" data-student-go-login>Voltar para login</button>
+            </form>
+
+            <form class="student-forgot-reset-form" data-student-forgot-reset-form novalidate hidden>
+              <p class="student-form-helper">Digite o código recebido e crie sua nova senha.</p>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M4 8l8 6 8-6"/></svg>
+                </span>
+                <input type="text" name="recovery_token" placeholder="Código de recuperação" autocomplete="one-time-code" data-student-forgot-token required />
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 1 1 10 0v3"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg>
+                </span>
+                <input type="password" name="recovery_new_password" placeholder="Nova senha" autocomplete="new-password" data-student-forgot-new-pass required />
+              </label>
+
+              <label class="student-field">
+                <span class="student-field-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 1 1 10 0v3"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg>
+                </span>
+                <input type="password" name="recovery_confirm_password" placeholder="Confirmar nova senha" autocomplete="new-password" data-student-forgot-confirm-pass required />
+              </label>
+
+              <p class="student-form-error" data-student-forgot-reset-error aria-live="polite"></p>
+
+              <button class="student-login-btn" type="submit" data-student-forgot-reset-submit>
+                <span>Redefinir senha</span>
+              </button>
+
+              <button class="student-form-link" type="button" data-student-forgot-back-request>Solicitar novo código</button>
+              <button class="student-form-link" type="button" data-student-go-login>Voltar para login</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Etapa 3: aplicativo interno da Area do Aluno (tela cheia) -->
+      <div class="student-app-screen" data-student-app>
+        <div class="student-app-shell">
+          <header class="student-app-topbar">
+            <div class="student-app-brand">
+              <button class="student-app-brand-logo-wrap" type="button" data-student-home-btn aria-label="Ir para início da Área do Aluno">
+                <img class="student-app-brand-logo student-app-brand-logo-light" src="aba de img/nova logo.png" alt="DNA Monster Fitness" />
+                <img class="student-app-brand-logo student-app-brand-logo-dark" src="aba de img/logo branca.png" alt="" aria-hidden="true" />
+              </button>
+              <div class="student-app-brand-meta">
+                <h4>Ola, <span data-student-greeting-name>Aluno</span>!</h4>
+                <p data-student-date-display>Domingo, 15 de Fevereiro</p>
+              </div>
+            </div>
+            <div class="student-app-top-actions">
+              <button class="student-app-icon-btn" type="button" data-student-theme-toggle aria-label="Ativar modo noturno" aria-pressed="false" title="Ativar modo noturno">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 7 7 0 0 0 20 14.5z"></path></svg>
+              </button>
+              <button class="student-app-icon-btn" type="button" data-student-logout aria-label="Sair">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H4"/><path d="M13 4h5v16h-5"/></svg>
+              </button>
+            </div>
+          </header>
+
+          <section class="student-app-main" aria-label="Painel da Área do Aluno">
+            <div class="student-tab-loading" data-student-tab-loading hidden>
+              <span class="student-tab-loading-dot" aria-hidden="true"></span>
+              <span>Carregando...</span>
+            </div>
+
+            <section class="student-app-panel is-active" data-student-app-panel="dashboard">
+              <article class="student-week-summary-card">
+                <div class="student-week-summary-head">
+                  <h5>Resumo da Semana</h5>
+                  <span data-student-week-total>0/5 treinos</span>
+                </div>
+                <div class="student-week-strip" data-student-week-grid></div>
+              </article>
+
+              <article class="student-dashboard-hero has-image-cta">
+                <div>
+                  <h4>Treino de hoje</h4>
+                  <p data-student-dashboard-greeting>Plano atualizado para esta semana</p>
+                </div>
+                <button class="student-cta-inline" type="button" data-student-open-workouts>
+                  <span>Iniciar treino</span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l8 7-8 7"/><path d="M16 12H4"/></svg>
+                </button>
+              </article>
+
+              <div class="student-dashboard-grid">
+                <article class="student-app-card student-upcoming-card">
+                  <div class="student-upcoming-head">
+                    <h5>Próximos Treinos</h5>
+                    <button class="student-upcoming-viewall" type="button" data-student-open-workouts-list>Ver todos</button>
+                  </div>
+
+                  <div class="student-upcoming-list">
+                    <div class="student-upcoming-item is-today">
+                      <span class="student-upcoming-icon" aria-hidden="true">
+                        <svg class="student-upcoming-calendar" viewBox="0 0 24 24">
+                          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                          <path d="M16 2v4"></path>
+                          <path d="M8 2v4"></path>
+                          <path d="M3 10h18"></path>
+                          <text x="12" y="18" text-anchor="middle" data-student-upcoming-day-current>1</text>
+                        </svg>
+                      </span>
+                      <div class="student-upcoming-copy">
+                        <strong data-student-dashboard-current>Treino A - Peito e triceps</strong>
+                        <small data-student-dashboard-current-meta>0 exercícios - 0 min</small>
+                      </div>
+                      <span class="student-upcoming-when">Hoje</span>
+                    </div>
+
+                    <div class="student-upcoming-item">
+                      <span class="student-upcoming-icon" aria-hidden="true">
+                        <svg class="student-upcoming-calendar" viewBox="0 0 24 24">
+                          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                          <path d="M16 2v4"></path>
+                          <path d="M8 2v4"></path>
+                          <path d="M3 10h18"></path>
+                          <text x="12" y="18" text-anchor="middle" data-student-upcoming-day-next>2</text>
+                        </svg>
+                      </span>
+                      <div class="student-upcoming-copy">
+                        <strong data-student-dashboard-next>Treino B - Costas e biceps</strong>
+                        <small data-student-dashboard-next-meta>0 exercícios - 0 min</small>
+                      </div>
+                      <span class="student-upcoming-when">Amanhã</span>
+                    </div>
+                  </div>
+                </article>
+                <article class="student-app-card student-metric-card">
+                  <h5>
+                    <span class="student-card-heading">
+                      <svg class="student-status-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M11.246 16.657a1 1 0 0 0 1.508 0l3.57-4.101A2.75 2.75 0 1 0 12 9.168a2.75 2.75 0 1 0-4.324 3.388z"/>
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2"/>
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+                      </svg>
+                      <span>Status do Aluno</span>
+                    </span>
+                  </h5>
+                  <p data-student-dashboard-status>Em evolucao</p>
+                  <small class="student-status-level" data-student-dashboard-level>Nivel: Iniciante</small>
+                </article>
+                <article class="student-app-card student-metric-card student-card-completion">
+                  <h5>
+                    <span class="student-card-heading">
+                      <svg class="loop-check-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path pathLength="1" d="M18 6 7 17l-5-5"></path>
+                        <path class="loop-check-path-2" pathLength="1" d="m22 10-7.5 7.5L13 16"></path>
+                      </svg>
+                      <span>Treinos Concluidos</span>
+                    </span>
+                  </h5>
+                  <p class="student-completion-percent" data-student-dashboard-completed-percent>0%</p>
+                  <small class="student-completion-text" data-student-dashboard-completed-text>0 de 0 concluídos</small>
+                  <div class="student-completion-track">
+                    <span data-student-dashboard-completed-fill></span>
+                  </div>
+                </article>
+              </div>
+
+              <article class="student-all-workouts-card">
+                <h5>Todos os Treinos</h5>
+                <div class="student-all-workouts-list" data-student-all-workouts-list></div>
+              </article>
+
+              <div class="student-dashboard-secondary-grid">
+                <article class="student-app-card">
+                  <h5>Objetivo atual</h5>
+                  <p class="student-goal-title">Hipertrofia com condicionamento</p>
+                  <div class="student-goal-track">
+                    <span data-student-goal-fill></span>
+                  </div>
+                  <small data-student-goal-percent>0%</small>
+                </article>
+              </div>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="treino-ativo" hidden>
+              <article class="student-active-workout">
+                <header class="student-active-hero" data-student-active-hero>
+                  <button class="student-active-back" type="button" data-student-active-back aria-label="Voltar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+                  </button>
+                  <div class="student-active-hero-overlay"></div>
+                </header>
+
+                <section class="student-active-card">
+                  <div class="student-active-title-wrap">
+                    <div>
+                      <h4 data-student-active-title>Treino A</h4>
+                      <p data-student-active-subtitle>Peito e triceps</p>
+                    </div>
+                  </div>
+
+                  <div class="student-active-summary-grid">
+                    <article>
+                      <strong data-student-active-duration>60 min</strong>
+                      <span>Duração</span>
+                    </article>
+                    <article>
+                      <strong data-student-active-exercises-total>0</strong>
+                      <span>Exercícios</span>
+                    </article>
+                  </div>
+
+                  <div class="student-active-progress">
+                    <div class="student-active-progress-head">
+                      <strong>Progresso do treino</strong>
+                      <span data-student-active-progress-label>0% concluído</span>
+                    </div>
+                    <div class="student-active-progress-track">
+                      <span data-student-active-progress-fill></span>
+                    </div>
+                  </div>
+
+                  <div class="student-active-list-head">
+                    <h5>Exercícios</h5>
+                    <span>toque para marcar</span>
+                  </div>
+                  <div class="student-active-workout-list" data-student-active-workout-exercises></div>
+                </section>
+
+                <button class="student-login-btn student-active-finish-btn" type="button" data-student-finish-active-workout>
+                  <span>Iniciar treino</span>
+                </button>
+              </article>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="pre-treino" hidden>
+              <article class="student-prep-view">
+                <div class="student-prep-media">
+                  <div class="student-prep-figure" data-student-prep-figure>??</div>
+                </div>
+
+                <button class="student-active-back student-prep-back" type="button" data-student-prep-back aria-label="Voltar">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+                </button>
+
+                <section class="student-prep-body">
+                  <h4>Preparado para começar</h4>
+                  <p data-student-prep-exercise>Exercício</p>
+
+                  <div class="student-prep-countdown-ring" data-student-prep-ring>
+                    <span data-student-prep-seconds>20</span>
+                  </div>
+
+                  <button class="student-prep-next" type="button" data-student-prep-next aria-label="Avançar para o exercício">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                  </button>
+                </section>
+              </article>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="treino-execucao" hidden>
+              <article class="student-run-view">
+                <div class="student-run-media">
+                  <button class="student-active-back student-run-back" type="button" data-student-run-back aria-label="Voltar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+                  </button>
+                  <div class="student-run-figure" data-student-run-figure>??</div>
+                </div>
+
+                <section class="student-run-body">
+                  <p class="student-run-exercise" data-student-run-exercise>Exercício</p>
+                  <strong class="student-run-clock" data-student-run-clock>01:00</strong>
+                  <small class="student-run-counter" data-student-run-counter>1/1</small>
+
+                  <div class="student-run-controls">
+                    <button type="button" data-student-run-prev aria-label="Exercício anterior">?</button>
+                    <button class="student-run-pause" type="button" data-student-run-pause aria-label="Pausar">?</button>
+                    <button type="button" data-student-run-next aria-label="Próximo exercício">?</button>
+                  </div>
+                </section>
+              </article>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="exercicio-detalhe" hidden>
+              <article class="student-exercise-detail-view">
+                <header class="student-exercise-detail-head">
+                  <button class="student-active-back" type="button" data-student-exercise-detail-back aria-label="Voltar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+                  </button>
+                  <h4 data-student-exercise-detail-title>Exercício</h4>
+                  <button class="student-exercise-substitute-btn" type="button">Substituir</button>
+                </header>
+
+                <div class="student-exercise-detail-media">
+                  <div class="student-exercise-detail-figure" data-student-exercise-detail-figure>??</div>
+                </div>
+
+                <div class="student-exercise-detail-tabs" role="tablist" aria-label="Detalhes do exercício">
+                  <button class="is-active" type="button">Animação</button>
+                  <button type="button">Músculos</button>
+                  <button type="button">Tutorial</button>
+                </div>
+
+                <div class="student-exercise-detail-duration">
+                  <strong>Duração</strong>
+                  <div class="student-exercise-duration-controls">
+                    <button type="button" data-student-exercise-duration-minus aria-label="Diminuir duração">-</button>
+                    <span data-student-exercise-detail-duration>00:20</span>
+                    <button type="button" data-student-exercise-duration-plus aria-label="Aumentar duração">+</button>
+                  </div>
+                </div>
+
+                <section class="student-exercise-detail-instructions">
+                  <h5>Instruções</h5>
+                  <p data-student-exercise-detail-instructions></p>
+                </section>
+
+                <footer class="student-exercise-detail-footer">
+                  <div class="student-exercise-detail-stepper">
+                    <button type="button" data-student-exercise-prev aria-label="Exercício anterior">?</button>
+                    <span data-student-exercise-counter>1/1</span>
+                    <button type="button" data-student-exercise-next aria-label="Próximo exercício">?</button>
+                  </div>
+                  <button class="student-login-btn student-exercise-detail-close" type="button" data-student-exercise-detail-close>
+                    <span>Fechar</span>
+                  </button>
+                </footer>
+              </article>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="treinos" hidden>
+              <div class="student-panel-head">
+                <button class="student-workouts-back" type="button" data-student-workouts-back aria-label="Voltar para início">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <h4>Treinos do aluno</h4>
+                <p data-student-workout-progress>0 de 0 concluídos</p>
+              </div>
+              <div class="student-workout-layout">
+                <p class="student-workout-hint">Role para visualizar todos os treinos definidos pelo seu personal.</p>
+                <div class="student-workout-list" data-student-workout-list></div>
+                <button class="student-login-btn student-workout-start-btn" type="button" data-student-workout-start>
+                  <span>Iniciar treino</span>
+                </button>
+              </div>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="biblioteca" hidden>
+              <div class="student-panel-head">
+                <h4>Biblioteca de exercícios</h4>
+                <p>Busque por nome ou grupo muscular</p>
+              </div>
+              <div class="student-library-tools">
+                <label class="student-library-search-wrap">
+                  <input type="search" placeholder="Buscar exercício..." data-student-library-search />
+                </label>
+              </div>
+              <div class="student-library-manage" data-library-manager hidden>
+                <button class="student-group-create-btn student-group-create-btn-top" type="button" data-library-manager-toggle>
+                  <span>Adicionar à biblioteca</span>
+                </button>
+                <p class="student-form-error student-library-manage-feedback" data-library-manager-feedback aria-live="polite"></p>
+                <article class="admin-overview-table-card student-library-manage-card" data-library-manager-form-wrap hidden>
+                  <header class="trainer-library-head">
+                    <div class="trainer-library-head-main">
+                      <div>
+                        <h5>Biblioteca de Exercícios</h5>
+                        <p>Adicione um novo exercício à sua biblioteca.</p>
+                      </div>
+                    </div>
+                    <button class="trainer-library-close-btn" type="button" data-library-manager-close aria-label="Fechar cadastro">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </header>
+                  <form class="trainer-library-form trainer-library-form--model" data-trainer-library-form novalidate>
+                    <div class="trainer-workout-form-grid trainer-library-grid">
+                      <label>
+                        <span>Nome do exercício <em class="trainer-required-chip">Obrigatório</em></span>
+                        <input type="text" name="name" placeholder="Ex: Supino reto" data-trainer-library-name required />
+                      </label>
+                      <label>
+                        <span>Grupo muscular <em class="trainer-required-chip">Obrigatório</em></span>
+                        <select name="group" data-trainer-library-group>
+                          <option value="peito">Peito</option>
+                          <option value="costas">Costas</option>
+                          <option value="ombros">Ombros</option>
+                          <option value="biceps">Bíceps</option>
+                          <option value="triceps">Tríceps</option>
+                          <option value="antebraco">Antebraço</option>
+                          <option value="abdomen">Abdômen</option>
+                          <option value="lombar">Lombar</option>
+                          <option value="gluteos">Glúteos</option>
+                          <option value="quadriceps">Quadríceps</option>
+                          <option value="posterior">Posterior de coxa</option>
+                          <option value="adutores">Adutores</option>
+                          <option value="abdutores">Abdutores</option>
+                          <option value="panturrilhas">Panturrilhas</option>
+                        </select>
+                      </label>
+                      <label class="trainer-field-full">
+                        <span>Descrição / execução técnica</span>
+                        <textarea name="description" placeholder="Execução técnica do exercício" data-trainer-library-description required></textarea>
+                      </label>
+
+                      <hr class="trainer-form-divider trainer-field-full" />
+
+                      <div class="trainer-library-defaults trainer-field-full">
+                        <h6>Valores padrão (opcional)</h6>
+                      </div>
+                      <div class="trainer-metrics-row trainer-field-full trainer-library-metrics">
+                        <label class="trainer-metric-field">
+                          <span>Repetições</span>
+                          <input type="number" name="repetitions" min="1" step="1" value="10" data-trainer-library-repetitions required />
+                        </label>
+                        <label class="trainer-metric-field">
+                          <span>Tempo</span>
+                          <input type="number" name="durationSeconds" min="10" step="1" value="60" data-trainer-library-duration required />
+                        </label>
+                        <label class="trainer-metric-field">
+                          <span>Descanso</span>
+                          <input type="number" name="restSeconds" min="0" step="1" value="30" data-trainer-library-rest required />
+                        </label>
+                      </div>
+
+                      <hr class="trainer-form-divider trainer-field-full" />
+
+                      <div class="trainer-library-media-grid trainer-field-full">
+                        <label class="trainer-library-media-drop">
+                          <span class="trainer-library-media-title">Imagens (opcional)</span>
+                          <span class="trainer-library-media-zone">
+                            <input type="file" name="imageFile" accept="image/*" capture="environment" data-trainer-library-image-file />
+                            <span class="trainer-library-media-icon" aria-hidden="true">
+                              <svg viewBox="0 0 24 24">
+                                <path d="M12 16V5m0 0-4 4m4-4 4 4M4 15v4h16v-4"/>
+                              </svg>
+                            </span>
+                            <strong>Arraste imagens ou clique para selecionar</strong>
+                          </span>
+                        </label>
+
+                        <label class="trainer-library-media-drop">
+                          <span class="trainer-library-media-title">Vídeos (opcional)</span>
+                          <span class="trainer-library-media-zone">
+                            <input type="file" name="videoFile" accept="video/*" data-trainer-library-video-file />
+                            <span class="trainer-library-media-icon" aria-hidden="true">
+                              <svg viewBox="0 0 24 24">
+                                <path d="M12 16V5m0 0-4 4m4-4 4 4M4 15v4h16v-4"/>
+                              </svg>
+                            </span>
+                            <strong>Arraste vídeos ou clique para selecionar</strong>
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="trainer-library-actions">
+                      <button class="trainer-library-cancel-btn" type="button" data-library-manager-cancel>Cancelar</button>
+                      <button class="student-login-btn trainer-workout-submit trainer-library-submit-btn" type="submit" data-trainer-library-submit>
+                        <span>Adicionar à biblioteca</span>
+                      </button>
+                    </div>
+                  </form>
+                </article>
+              </div>
+              <div class="student-library-grid" data-student-library-grid></div>
+
+              <section class="student-group-guide-sheet" data-group-guide-sheet hidden>
+                <header class="student-group-guide-top">
+                  <button class="student-group-guide-back student-group-guide-back-arrow" type="button" data-group-guide-back aria-label="Voltar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <h5 data-group-guide-title>Exercícios</h5>
+                </header>
+                <label class="student-group-guide-search">
+                  <input type="search" placeholder="Pesquisar exercício..." data-group-guide-search />
+                </label>
+                <div class="student-group-guide-grid" data-group-guide-grid></div>
+              </section>
+
+              <section class="student-group-detail-sheet" data-group-detail-sheet hidden>
+                <header class="student-group-guide-top">
+                  <button class="student-group-guide-back student-group-guide-back-arrow" type="button" data-group-detail-back aria-label="Voltar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <h5 data-group-detail-title>Exercício</h5>
+                </header>
+                <p class="student-group-detail-muscle" data-group-detail-muscle>Músculo primário</p>
+                <div class="student-group-detail-media">
+                  <iframe data-group-detail-video title="Vídeo do exercício" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                  <video data-group-detail-video-file controls playsinline preload="metadata"></video>
+                  <img data-group-detail-image alt="Imagem do exercício" />
+                  <div class="student-group-detail-no-video" data-group-detail-no-video>Vídeo será adicionado</div>
+                </div>
+                <p class="student-group-detail-description" data-group-detail-description>Descrição breve do exercício.</p>
+                <section class="student-group-detail-panel is-active" data-group-detail-panel="tutorial">
+                  <article class="student-group-detail-info-card">
+                    <h6>Tutorial</h6>
+                    <ol data-group-detail-steps></ol>
+                  </article>
+                  <article class="student-group-detail-info-card is-tip">
+                    <h6>Dicas importantes</h6>
+                    <ul data-group-detail-tips-list></ul>
+                  </article>
+                </section>
+              </section>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="progresso" hidden>
+              <div class="trainer-progress-report" data-trainer-progress-report hidden>
+                <div class="student-panel-head trainer-progress-head">
+                  <h4>Relatórios dos Alunos</h4>
+                  <p>Acompanhe evolução, histórico de treino e estimativa semanal por aluno.</p>
+                  <button class="student-progress-action-btn trainer-progress-refresh" type="button" data-trainer-progress-refresh>
+                    Atualizar dados
+                  </button>
+                </div>
+
+                <p class="student-form-error trainer-progress-error" data-trainer-progress-error aria-live="polite"></p>
+
+                <article class="admin-overview-table-card">
+                  <div class="trainer-progress-toolbar">
+                    <label>
+                      <span>Aluno</span>
+                      <select data-trainer-progress-student></select>
+                    </label>
+                    <small data-trainer-progress-range>Semana atual</small>
+                  </div>
+                </article>
+
+                <article class="admin-overview-table-card trainer-progress-empty-state" data-trainer-progress-empty>
+                  <span class="trainer-progress-empty-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"></circle><path d="M5 19a7 7 0 0 1 14 0"></path></svg>
+                  </span>
+                  <p>Selecione um aluno para ver as informações detalhadas</p>
+                </article>
+
+                <article class="admin-overview-table-card" data-trainer-progress-details hidden>
+                  <header class="admin-overview-table-head">
+                    <h5>Resumo do aluno</h5>
+                  </header>
+                  <div class="trainer-progress-student-grid">
+                    <article>
+                      <small>Peso atual</small>
+                      <strong data-trainer-progress-weight>Não informado</strong>
+                    </article>
+                    <article>
+                      <small>Altura</small>
+                      <strong data-trainer-progress-height>Não informado</strong>
+                    </article>
+                    <article>
+                      <small>Treinos na semana</small>
+                      <strong data-trainer-progress-planned>0</strong>
+                    </article>
+                    <article>
+                      <small>Treinos feitos</small>
+                      <strong data-trainer-progress-completed>0</strong>
+                    </article>
+                    <article>
+                      <small>Tempo estimado</small>
+                      <strong data-trainer-progress-minutes>0 min</strong>
+                    </article>
+                    <article>
+                      <small>Calorias estimadas</small>
+                      <strong data-trainer-progress-kcal>0 kcal</strong>
+                    </article>
+                    <article>
+                      <small>Aderência semanal</small>
+                      <strong data-trainer-progress-adherence>0%</strong>
+                    </article>
+                    <article>
+                      <small>Status da conta</small>
+                      <strong data-trainer-progress-status>Habilitado</strong>
+                    </article>
+                  </div>
+                </article>
+
+                <section class="trainer-progress-stats-grid" data-trainer-progress-details hidden>
+                  <article class="trainer-progress-stat-card">
+                    <small>Alunos no relatório</small>
+                    <strong data-trainer-progress-total-students>0</strong>
+                  </article>
+                  <article class="trainer-progress-stat-card">
+                    <small>Treinos delegados</small>
+                    <strong data-trainer-progress-total-workouts>0</strong>
+                  </article>
+                  <article class="trainer-progress-stat-card">
+                    <small>Treinos concluídos</small>
+                    <strong data-trainer-progress-total-completed>0</strong>
+                  </article>
+                </section>
+
+                <article class="admin-overview-table-card" data-trainer-progress-details hidden>
+                  <header class="admin-overview-table-head">
+                    <h5>Histórico de treinos do aluno</h5>
+                  </header>
+                  <div class="admin-overview-table-wrap">
+                    <table class="admin-overview-table trainer-workout-table trainer-progress-history-table">
+                      <thead>
+                        <tr>
+                          <th>Treino</th>
+                          <th>Dias</th>
+                          <th>Exercícios</th>
+                          <th>Tempo/sessão</th>
+                          <th>Kcal/sessão</th>
+                          <th>Criado em</th>
+                        </tr>
+                      </thead>
+                      <tbody data-trainer-progress-history-body></tbody>
+                    </table>
+                  </div>
+                </article>
+              </div>
+
+              <div class="student-progress-report" data-student-progress-report>
+                <div class="student-panel-head student-progress-report-head">
+                  <h4>RELATÓRIO</h4>
+                </div>
+
+                <article class="student-progress-summary-card">
+                  <article class="student-progress-summary-item">
+                    <span class="student-progress-summary-icon" aria-hidden="true">??</span>
+                    <strong data-progress-summary-workouts>0</strong>
+                    <small>treino</small>
+                  </article>
+                  <article class="student-progress-summary-item">
+                    <span class="student-progress-summary-icon" aria-hidden="true">??</span>
+                    <strong data-progress-summary-kcal>0</strong>
+                    <small>kcal</small>
+                  </article>
+                  <article class="student-progress-summary-item">
+                    <span class="student-progress-summary-icon" aria-hidden="true">??</span>
+                    <strong data-progress-summary-minutes>0</strong>
+                    <small>Minuto</small>
+                  </article>
+                </article>
+
+                <article class="student-progress-history-card">
+                  <header class="student-progress-card-head">
+                    <h5>Histórico</h5>
+                    <button class="student-progress-link-btn" type="button" data-progress-history-open>Todos os registros</button>
+                  </header>
+                  <div class="student-progress-weekday-row">
+                    <span>Dom</span><span>Seg</span><span>Ter</span><span>Quar</span><span>Quin</span><span>Sex</span><span>Sáb</span>
+                  </div>
+                  <div class="student-progress-date-row" data-progress-history-days></div>
+                  <div class="student-progress-history-divider" aria-hidden="true"></div>
+                  <div class="student-progress-history-footer">
+                    <div>
+                      <small>Sequência de dias</small>
+                      <strong><span aria-hidden="true">??</span> <span data-progress-streak>0</span></strong>
+                    </div>
+                    <div class="is-right">
+                      <small>Recorde pessoal</small>
+                      <strong data-progress-record>0 dia</strong>
+                    </div>
+                  </div>
+                </article>
+
+                <section class="student-progress-block">
+                  <header class="student-progress-card-head">
+                    <h5>Peso</h5>
+                    <button class="student-progress-action-btn" type="button" data-progress-weight-open>Registrar</button>
+                  </header>
+                  <article class="student-progress-weight-card">
+                    <div class="student-progress-weight-meta">
+                      <div>
+                        <small>Atual</small>
+                        <strong><span data-progress-current-weight>0</span> kg</strong>
+                      </div>
+                      <div class="is-right">
+                        <small>Maior peso <strong data-progress-max-weight>0</strong></small>
+                        <small>Menor peso <strong data-progress-min-weight>0</strong></small>
+                      </div>
+                    </div>
+                    <div class="student-progress-weight-chart" data-progress-weight-plot></div>
+                  </article>
+                </section>
+
+                <div class="student-progress-weight-modal" data-progress-weight-modal hidden>
+                  <div class="student-progress-weight-modal-scrim" data-progress-weight-close></div>
+                  <article class="student-progress-weight-modal-card">
+                    <header class="student-progress-weight-modal-head">
+                      <h6>Peso</h6>
+                      <span data-progress-weight-date>19 fev. 2026</span>
+                    </header>
+
+                    <p class="student-progress-weight-live-value"><strong data-progress-weight-live-value>80.0</strong> <small data-progress-weight-live-unit>kg</small></p>
+
+                    <div class="student-progress-weight-ruler-wrap">
+                      <div class="student-progress-weight-ruler-indicator" aria-hidden="true"></div>
+                      <div class="student-progress-weight-ruler" data-progress-weight-ruler aria-label="Ajuste de peso"></div>
+                    </div>
+
+                    <footer class="student-progress-weight-modal-actions">
+                      <button type="button" class="student-progress-weight-cancel" data-progress-weight-close>Cancelar</button>
+                      <button type="button" class="student-progress-weight-save" data-progress-weight-save>Salvar</button>
+                    </footer>
+                  </article>
+                </div>
+
+                <section class="student-progress-block">
+                  <header class="student-progress-card-head">
+                    <h5>BMI</h5>
+                    <button class="student-progress-action-btn" type="button" data-progress-bmi-open>Editar</button>
+                  </header>
+                  <article class="student-progress-bmi-card">
+                    <div class="student-progress-bmi-head">
+                      <strong data-progress-bmi>0.0</strong>
+                      <small><span class="student-progress-bmi-dot" aria-hidden="true"></span><span data-progress-bmi-label>Normal</span></small>
+                    </div>
+                    <div class="student-progress-bmi-scale">
+                      <span style="--bmi-color:#0f8e42;"></span>
+                      <span style="--bmi-color:#19b856;"></span>
+                      <span style="--bmi-color:#5fcf8e;"></span>
+                      <span style="--bmi-color:#e8c84b;"></span>
+                      <span style="--bmi-color:#e59a44;"></span>
+                      <span style="--bmi-color:#e74b5b;"></span>
+                    </div>
+                    <div class="student-progress-bmi-marks">
+                      <small>15</small><small>16</small><small>18.5</small><small>25</small><small>30</small><small>35</small><small>40</small>
+                    </div>
+                    <div class="student-progress-bmi-height">
+                      <small>Altura</small>
+                      <strong><span data-progress-height>170</span> cm</strong>
+                    </div>
+                  </article>
+                </section>
+
+                <div class="student-progress-bmi-modal" data-progress-bmi-modal hidden>
+                  <div class="student-progress-bmi-modal-scrim" data-progress-bmi-close></div>
+                  <article class="student-progress-bmi-modal-card">
+                    <header class="student-progress-bmi-modal-top">
+                      <h6>BMI <span aria-hidden="true">?</span></h6>
+                    </header>
+
+                    <section class="student-progress-bmi-editor-block">
+                      <p class="student-progress-bmi-editor-title">Peso</p>
+                      <div class="student-progress-bmi-toggle" role="tablist" aria-label="Unidade de peso">
+                        <button type="button" class="is-active" data-progress-bmi-weight-unit="kg" aria-selected="true">kg</button>
+                      </div>
+                      <p class="student-progress-bmi-live">
+                        <strong data-progress-bmi-live-weight>80.0</strong>
+                        <small data-progress-bmi-live-weight-unit>kg</small>
+                      </p>
+                      <div class="student-progress-bmi-ruler-wrap">
+                        <div class="student-progress-bmi-ruler-indicator" aria-hidden="true"></div>
+                        <div class="student-progress-bmi-ruler" data-progress-bmi-weight-ruler aria-label="Ajuste de peso"></div>
+                      </div>
+                    </section>
+
+                    <section class="student-progress-bmi-editor-block">
+                      <p class="student-progress-bmi-editor-title">Altura</p>
+                      <div class="student-progress-bmi-toggle" role="tablist" aria-label="Unidade de altura">
+                        <button type="button" class="is-active" data-progress-bmi-height-unit="cm" aria-selected="true">cm</button>
+                      </div>
+                      <p class="student-progress-bmi-live">
+                        <strong data-progress-bmi-live-height>170</strong>
+                        <small data-progress-bmi-live-height-unit>cm</small>
+                      </p>
+                      <div class="student-progress-bmi-ruler-wrap">
+                        <div class="student-progress-bmi-ruler-indicator" aria-hidden="true"></div>
+                        <div class="student-progress-bmi-ruler" data-progress-bmi-height-ruler aria-label="Ajuste de altura"></div>
+                      </div>
+                    </section>
+
+                    <footer class="student-progress-bmi-modal-actions">
+                      <button type="button" class="student-progress-bmi-cancel" data-progress-bmi-close>Cancelar</button>
+                      <button type="button" class="student-progress-bmi-save" data-progress-bmi-save>Salvar</button>
+                    </footer>
+                  </article>
+                </div>
+              </div>
+
+              <section class="student-progress-history-sheet" data-progress-history-sheet hidden>
+                <header class="student-progress-history-sheet-top">
+                  <button class="student-progress-history-back" type="button" data-progress-history-close aria-label="Voltar">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <h5>Histórico</h5>
+                </header>
+
+                <div class="student-progress-history-month-nav">
+                  <button type="button" data-progress-history-prev-month aria-label="Mês anterior">?</button>
+                  <strong data-progress-history-month>2026/02</strong>
+                  <button type="button" data-progress-history-next-month aria-label="Próximo mês">?</button>
+                </div>
+
+                <div class="student-progress-history-weekdays">
+                  <span>Dom</span><span>Seg</span><span>Ter</span><span>Quar</span><span>Quin</span><span>Sex</span><span>Sáb</span>
+                </div>
+                <div class="student-progress-history-calendar" data-progress-history-calendar></div>
+
+                <section class="student-progress-history-summary">
+                  <h6>Resumo Semanal</h6>
+                  <article class="student-progress-history-summary-card">
+                    <div class="student-progress-history-summary-head">
+                      <strong data-progress-history-range>1 de jan. - 7 de jan.</strong>
+                      <div class="student-progress-history-summary-metas">
+                        <small>? <span data-progress-history-total-time>00:00</span></small>
+                        <small>?? <span data-progress-history-total-kcal>0.0</span> kcal</small>
+                      </div>
+                    </div>
+                    <small class="student-progress-history-count" data-progress-history-count>0 treino</small>
+                    <div class="student-progress-history-list" data-progress-history-list></div>
+                  </article>
+                </section>
+              </section>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="admin-geral" hidden>
+              <div class="admin-overview-screen" data-admin-overview-panel>
+                <div class="student-panel-head admin-overview-head">
+                  <div class="admin-overview-head-copy">
+                    <h4>Painel do Administrador Geral</h4>
+                    <p>Visualize usuários cadastrados, funções e todos os treinos do sistema.</p>
+                  </div>
+                  <div class="admin-overview-head-actions">
+                    <button class="student-progress-action-btn admin-overview-refresh" type="button" data-admin-overview-refresh>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M21 12a9 9 0 1 1-2.64-6.36" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <polyline points="21 3 21 9 15 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                      </svg>
+                      <span>Atualizar dados</span>
+                    </button>
+                    <button class="admin-overview-report-btn" type="button" data-admin-overview-report>
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"></rect><path d="M8 3v4M16 3v4M3 10h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                      <span>Relatório</span>
+                    </button>
+                  </div>
+                </div>
+
+                <p class="student-form-error admin-overview-error" data-admin-overview-error aria-live="polite"></p>
+
+                <section class="admin-overview-stats-grid" aria-label="Resumo administrativo">
+                  <article class="admin-overview-stat-card">
+                    <div class="admin-overview-stat-head">
+                      <small>Total de usuários</small>
+                      <span class="admin-overview-icon-card is-blue">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 19a4 4 0 0 0-8 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><circle cx="12" cy="10" r="3.2" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M20 19a3 3 0 0 0-3-3m3-6a2.6 2.6 0 0 0-2.6-2.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                      </span>
+                    </div>
+                    <strong data-admin-stat-total-users>0</strong>
+                    <span class="admin-overview-trend is-positive">+20%</span>
+                  </article>
+                  <article class="admin-overview-stat-card">
+                    <div class="admin-overview-stat-head">
+                      <small>Treinos criados</small>
+                      <span class="admin-overview-icon-card is-purple">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h3v10H6zM15 7h3v10h-3zM9 12h6" fill="none" stroke="currentColor" stroke-width="2"></path><path d="M4 10h2v4H4zm14 0h2v4h-2z" fill="none" stroke="currentColor" stroke-width="2"></path></svg>
+                      </span>
+                    </div>
+                    <strong data-admin-stat-total-workouts>0</strong>
+                    <span class="admin-overview-trend is-neutral">0%</span>
+                  </article>
+                  <article class="admin-overview-stat-card">
+                    <div class="admin-overview-stat-head">
+                      <small>Alunos cadastrados</small>
+                      <span class="admin-overview-icon-card is-green">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 8-4 8 4-8 4-8-4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path><path d="M8 14.5V18c0 1 1.8 2 4 2s4-1 4-2v-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                      </span>
+                    </div>
+                    <strong data-admin-stat-alunos>0</strong>
+                    <span class="admin-overview-trend is-positive">+50%</span>
+                  </article>
+                  <article class="admin-overview-stat-card">
+                    <div class="admin-overview-stat-head">
+                      <small>Instrutores ativos</small>
+                      <span class="admin-overview-icon-card is-orange">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M4 19a5 5 0 0 1 10 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M17 11h4M19 9v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                      </span>
+                    </div>
+                    <strong data-admin-stat-instrutores>0</strong>
+                    <span class="admin-overview-trend is-neutral">0%</span>
+                  </article>
+                  <article class="admin-overview-stat-card">
+                    <div class="admin-overview-stat-head">
+                      <small>Administradores</small>
+                      <span class="admin-overview-icon-card is-red">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 7 3v6c0 4-2.7 7.4-7 9-4.3-1.6-7-5-7-9V6l7-3Z" fill="none" stroke="currentColor" stroke-width="2"></path><path d="m9.2 12 1.9 1.8 3.7-3.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                      </span>
+                    </div>
+                    <strong data-admin-stat-admins>0</strong>
+                    <span class="admin-overview-trend is-negative">-100%</span>
+                  </article>
+                  <article class="admin-overview-stat-card">
+                    <div class="admin-overview-stat-head">
+                      <small>Admin geral</small>
+                      <span class="admin-overview-icon-card is-cyan">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 4 2.2 4.4 4.8.7-3.5 3.4.8 4.8-4.3-2.2-4.3 2.2.8-4.8L5 9.1l4.8-.7L12 4Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"></path></svg>
+                      </span>
+                    </div>
+                    <strong data-admin-stat-admin-geral>0</strong>
+                    <span class="admin-overview-trend is-neutral">0%</span>
+                  </article>
+                  <article class="admin-overview-stat-card">
+                    <div class="admin-overview-stat-head">
+                      <small>Alunos ativos</small>
+                      <span class="admin-overview-icon-card is-green-soft">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="m9.2 12.4 2.2 2.2 3.4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                      </span>
+                    </div>
+                    <strong data-admin-stat-alunos-ativos>0</strong>
+                    <span class="admin-overview-trend is-positive">+15%</span>
+                  </article>
+                  <article class="admin-overview-stat-card">
+                    <div class="admin-overview-stat-head">
+                      <small>Alunos desabilitados</small>
+                      <span class="admin-overview-icon-card is-slate">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="m9 9 6 6M15 9l-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                      </span>
+                    </div>
+                    <strong data-admin-stat-alunos-desabilitados>0</strong>
+                    <span class="admin-overview-trend is-negative">-100%</span>
+                  </article>
+                  <article class="admin-overview-stat-card">
+                    <div class="admin-overview-stat-head">
+                      <small>Online agora</small>
+                      <span class="admin-overview-icon-card is-amber">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                      </span>
+                    </div>
+                    <strong data-admin-stat-online-agora>0</strong>
+                    <span class="admin-overview-trend is-neutral">0%</span>
+                  </article>
+                </section>
+
+                <section class="admin-overview-charts-grid" aria-label="Gráficos de atividade">
+                  <div class="admin-overview-tabs" role="tablist" aria-label="Alternar gráficos">
+                    <button class="admin-overview-tab is-active" type="button" role="tab" aria-selected="true" data-admin-overview-tab="distribution">Distribuição</button>
+                    <button class="admin-overview-tab" type="button" role="tab" aria-selected="false" data-admin-overview-tab="activity">Atividade</button>
+                    <button class="admin-overview-tab" type="button" role="tab" aria-selected="false" data-admin-overview-tab="growth">Crescimento</button>
+                  </div>
+
+                  <article class="admin-overview-chart-card" data-admin-overview-pane="distribution">
+                    <header class="admin-overview-chart-head">
+                      <h5>Distribuição por Função</h5>
+                      <p>Visualização dos tipos de usuários no sistema</p>
+                    </header>
+                    <div class="admin-overview-pie-layout">
+                      <div class="admin-overview-pie-wrap">
+                        <div class="admin-overview-pie chart-container" data-admin-role-chart></div>
+                      </div>
+                      <div class="admin-overview-pie-legend" data-admin-role-legend></div>
+                    </div>
+                  </article>
+
+                  <article class="admin-overview-chart-card" data-admin-overview-pane="activity" hidden>
+                    <header class="admin-overview-chart-head">
+                      <h5>Atividade Semanal</h5>
+                      <p>Número de usuários ativos e treinos realizados por dia</p>
+                    </header>
+                    <div class="admin-overview-activity-chart chart-container" data-admin-activity-chart></div>
+                  </article>
+
+                  <article class="admin-overview-chart-card" data-admin-overview-pane="growth" hidden>
+                    <header class="admin-overview-chart-head">
+                      <h5>Crescimento Mensal</h5>
+                      <p>Evolução do número de usuários ao longo dos meses</p>
+                    </header>
+                    <div class="admin-overview-growth-chart chart-container" data-admin-growth-chart></div>
+                    <div class="admin-overview-growth-footer">
+                      <article class="admin-overview-growth-card is-green">
+                        <small>Crescimento</small>
+                        <strong data-admin-growth-percent>0%</strong>
+                      </article>
+                      <article class="admin-overview-growth-card is-blue">
+                        <small>Total atual</small>
+                        <strong data-admin-growth-total>0</strong>
+                      </article>
+                    </div>
+                  </article>
+                </section>
+
+                <article class="admin-overview-chart-card admin-overview-status-card">
+                  <header class="admin-overview-chart-head">
+                    <h5>Status dos Alunos</h5>
+                    <p>Distribuição de alunos ativos, desabilitados e online</p>
+                  </header>
+                  <div class="admin-overview-status-bars" data-admin-student-status-chart></div>
+                </article>
+
+                <article class="admin-overview-table-card">
+                  <header class="admin-overview-table-head">
+                    <h5>Usuários cadastrados</h5>
+                  </header>
+                  <div class="admin-overview-table-wrap">
+                    <table class="admin-overview-table">
+                      <thead>
+                        <tr>
+                          <th>Nome</th>
+                          <th>E-mail</th>
+                          <th>Telefone</th>
+                          <th>Função</th>
+                          <th>Status</th>
+                          <th>Ações</th>
+                          <th>Criado em</th>
+                        </tr>
+                      </thead>
+                      <tbody data-admin-users-table-body></tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <article class="admin-overview-table-card">
+                  <header class="admin-overview-table-head">
+                    <h5>Treinos cadastrados</h5>
+                  </header>
+                  <div class="admin-overview-table-wrap">
+                    <table class="admin-overview-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Título</th>
+                          <th>Aluno</th>
+                          <th>Instrutor</th>
+                          <th>Criado em</th>
+                        </tr>
+                      </thead>
+                      <tbody data-admin-workouts-table-body></tbody>
+                    </table>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="admin-treinos" hidden>
+              <div class="trainer-workout-screen" data-trainer-workout-panel>
+                <div class="student-panel-head trainer-workout-head">
+                  <h4>Gestão de Treinos</h4>
+                  <p>Crie treinos, adicione exercícios com foto, descrição, repetições, tempo e descanso.</p>
+                  <button class="student-progress-action-btn trainer-workout-refresh" type="button" data-trainer-workout-refresh>
+                    Atualizar dados
+                  </button>
+                </div>
+
+                <p class="student-form-error trainer-workout-error" data-trainer-workout-error aria-live="polite"></p>
+
+                <article class="admin-overview-table-card trainer-workout-create-card">
+                  <header class="admin-overview-table-head">
+                    <h5>Informações do Treino</h5>
+                    <p class="trainer-card-subtitle">Preencha os dados básicos do treino</p>
+                  </header>
+                  <form class="trainer-workout-form" data-trainer-workout-form novalidate>
+                    <div class="trainer-workout-form-grid trainer-workout-form-grid--model">
+                      <label class="trainer-student-field">
+                        <span>Aluno <small class="trainer-required-chip">Obrigatório</small></span>
+                        <div class="trainer-select-search">
+                          <span class="trainer-select-search-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 5 5"></path></svg>
+                          </span>
+                          <input type="search" placeholder="Buscar aluno por nome" data-trainer-workout-student-search autocomplete="off" />
+                        </div>
+                        <select name="studentId" data-trainer-workout-student required></select>
+                      </label>
+                      <label class="trainer-instructor-field" data-trainer-workout-instructor-wrap>
+                        <span>Instrutor responsável <small class="trainer-required-chip">Obrigatório</small></span>
+                        <div class="trainer-select-search">
+                          <span class="trainer-select-search-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 5 5"></path></svg>
+                          </span>
+                          <input type="search" placeholder="Buscar instrutor por nome" data-trainer-workout-instructor-search autocomplete="off" />
+                        </div>
+                        <select name="instructorId" data-trainer-workout-instructor required></select>
+                      </label>
+                      <label class="trainer-field-full">
+                        <span>Objetivo <small class="trainer-required-chip">Obrigatório</small></span>
+                        <select name="objective" data-trainer-workout-objective required>
+                          <option value="">Selecione o objetivo</option>
+                          <option value="Hipertrofia">Hipertrofia</option>
+                          <option value="Emagrecimento">Emagrecimento</option>
+                          <option value="Resistência">Resistência</option>
+                          <option value="Força">Força</option>
+                        </select>
+                      </label>
+                      <label class="trainer-field-full">
+                        <span>Status <small class="trainer-required-chip">Obrigatório</small></span>
+                        <select name="status" data-trainer-workout-status required>
+                          <option value="ATIVO">Ativo</option>
+                          <option value="INATIVO">Inativo</option>
+                        </select>
+                      </label>
+                      <hr class="trainer-form-divider trainer-field-full" />
+                      <fieldset class="trainer-weekdays-fieldset trainer-field-full">
+                        <legend>Dias da Semana</legend>
+                        <label><input type="checkbox" value="Seg" data-trainer-weekday checked /><span>Seg</span></label>
+                        <label><input type="checkbox" value="Ter" data-trainer-weekday checked /><span>Ter</span></label>
+                        <label><input type="checkbox" value="Qua" data-trainer-weekday checked /><span>Qua</span></label>
+                        <label><input type="checkbox" value="Qui" data-trainer-weekday checked /><span>Qui</span></label>
+                        <label><input type="checkbox" value="Sex" data-trainer-weekday checked /><span>Sex</span></label>
+                        <label><input type="checkbox" value="Sab" data-trainer-weekday /><span>Sáb</span></label>
+                        <label><input type="checkbox" value="Dom" data-trainer-weekday /><span>Dom</span></label>
+                      </fieldset>
+                      <div class="trainer-field-full" data-trainer-weekday-assignment-wrap hidden>
+                        <h6>Associar treino por dia</h6>
+                        <div class="trainer-weekday-assignment-list" data-trainer-weekday-assignment-list></div>
+                      </div>
+                      <hr class="trainer-form-divider trainer-field-full" />
+                      <label class="trainer-field-full">
+                        <span>Observações gerais</span>
+                        <textarea name="description" placeholder="Adicione recomendações, cuidados e observações gerais..." data-trainer-workout-description></textarea>
+                      </label>
+                    </div>
+                    <div class="trainer-workout-actions">
+                      <button class="student-login-btn trainer-workout-submit" type="submit" data-trainer-workout-submit>
+                        <span>Cadastrar treino</span>
+                      </button>
+                    </div>
+                  </form>
+                </article>
+
+                <article class="admin-overview-table-card trainer-exercise-create-card">
+                  <header class="admin-overview-table-head trainer-exercise-create-head">
+                    <div class="trainer-exercise-title-wrap">
+                      <h5>Treino em construção</h5>
+                      <p>Selecione o treino e adicione exercícios da biblioteca geral.</p>
+                    </div>
+                    <button class="trainer-exercise-add-btn" type="button" data-trainer-exercise-focus>
+                      <span aria-hidden="true">+</span>
+                      <span>Adicionar ao treino</span>
+                    </button>
+                  </header>
+                  <div class="trainer-exercise-empty-state" data-trainer-exercise-empty>
+                    <p>Nenhum exercício no treino selecionado.</p>
+                    <p>Clique em "Adicionar ao treino" para começar.</p>
+                  </div>
+                  <form class="trainer-exercise-form" data-trainer-exercise-form novalidate hidden>
+                    <div class="trainer-workout-form-grid trainer-workout-form-grid--model trainer-exercise-grid">
+                      <label class="trainer-field-full">
+                        <span>Treino <small class="trainer-required-chip">Obrigatório</small></span>
+                        <div class="trainer-workout-select-actions">
+                          <select name="workoutId" data-trainer-exercise-workout required>
+                            <option value="">Selecione o treino</option>
+                          </select>
+                          <button class="trainer-workout-select-action" type="button" data-trainer-exercise-workout-view aria-label="Visualizar treino" title="Visualizar treino" disabled>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                          </button>
+                          <button class="trainer-workout-select-action trainer-workout-select-action--edit" type="button" data-trainer-exercise-workout-edit aria-label="Editar treino" title="Editar treino" disabled>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="m4 20 4.5-1 9.7-9.7a2.1 2.1 0 0 0 0-3L17.7 3.8a2.1 2.1 0 0 0-3 0L5 13.5 4 18Z"></path>
+                              <path d="M13.5 6.5 17.5 10.5"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </label>
+
+                      <label class="trainer-field-full">
+                        <span>Grupo Muscular <small class="trainer-required-chip">Obrigatório</small></span>
+                        <select name="group" data-trainer-exercise-group required>
+                          <option value="">Selecione o grupo muscular</option>
+                          <option value="peito">Peito</option>
+                          <option value="costas">Costas</option>
+                          <option value="ombros">Ombros</option>
+                          <option value="biceps">Bíceps</option>
+                          <option value="triceps">Tríceps</option>
+                          <option value="antebraco">Antebraço</option>
+                          <option value="abdomen">Abdômen</option>
+                          <option value="lombar">Lombar</option>
+                          <option value="gluteos">Glúteos</option>
+                          <option value="quadriceps">Quadríceps</option>
+                          <option value="posterior">Posterior de coxa</option>
+                          <option value="adutores">Adutores</option>
+                          <option value="abdutores">Abdutores</option>
+                          <option value="panturrilhas">Panturrilhas</option>
+                        </select>
+                        <small class="trainer-field-hint" data-trainer-exercise-group-hint>Selecione o grupo para filtrar a biblioteca.</small>
+                      </label>
+
+                      <label class="trainer-field-full">
+                        <span>Exercício da Biblioteca <small class="trainer-required-chip">Obrigatório</small></span>
+                        <select name="libraryExerciseId" data-trainer-exercise-library>
+                          <option value="">Clique para abrir a biblioteca geral</option>
+                        </select>
+                      </label>
+
+                      <input type="hidden" name="series" value="3" data-trainer-exercise-series />
+                      <input type="hidden" name="repetitions" value="12" data-trainer-exercise-repetitions />
+                      <input type="hidden" name="loadKg" value="0" data-trainer-exercise-load />
+                      <input type="hidden" name="restSeconds" value="60" data-trainer-exercise-rest />
+                      <input type="hidden" name="durationSeconds" value="60" data-trainer-exercise-duration />
+                      <input type="hidden" name="order" value="1" data-trainer-exercise-order />
+                    </div>
+                    <p class="student-form-error trainer-exercise-feedback" data-trainer-exercise-feedback aria-live="polite"></p>
+                    <div class="trainer-workout-actions">
+                      <button class="student-login-btn trainer-workout-submit" type="submit" data-trainer-exercise-submit>
+                        <span>Adicionar ao treino</span>
+                      </button>
+                    </div>
+                  </form>
+                </article>
+
+                <article class="admin-overview-table-card">
+                  <header class="admin-overview-table-head">
+                    <h5>Treinos gerenciados</h5>
+                  </header>
+                  <div class="admin-overview-table-wrap">
+                    <table class="admin-overview-table trainer-workout-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Nome do treino</th>
+                          <th>Aluno</th>
+                          <th>Objetivo</th>
+                          <th>Status</th>
+                          <th>Exercícios</th>
+                          <th>Criado em</th>
+                          <th>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody data-trainer-workouts-table-body></tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <div class="trainer-exercise-library-picker" data-trainer-exercise-library-picker hidden>
+                  <div class="trainer-exercise-library-picker-scrim" data-trainer-exercise-library-picker-scrim></div>
+                  <article class="trainer-exercise-library-picker-card" role="dialog" aria-modal="true" aria-labelledby="trainer-library-picker-title">
+                    <div class="trainer-exercise-library-picker-head">
+                      <div>
+                        <strong id="trainer-library-picker-title">Biblioteca geral</strong>
+                        <small>Selecione o exercício para adicionar ao treino.</small>
+                        <small class="trainer-exercise-library-picker-group" data-trainer-exercise-library-picker-group>Grupo selecionado: Todos</small>
+                        <small class="trainer-exercise-library-picker-pending" data-trainer-exercise-library-picker-pending>0 selecionados</small>
+                      </div>
+                      <button class="trainer-exercise-library-picker-close" type="button" data-trainer-exercise-library-picker-close>Fechar</button>
+                    </div>
+                    <label class="trainer-exercise-library-picker-search">
+                      <span aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 5 5"></path></svg>
+                      </span>
+                      <input type="search" placeholder="Digite o nome ou grupo muscular" data-trainer-exercise-library-picker-search autocomplete="off" />
+                    </label>
+                    <p class="trainer-workout-modal-library-empty" data-trainer-exercise-library-picker-empty>Nenhum exercício encontrado.</p>
+                    <div class="trainer-workout-modal-library-list" data-trainer-exercise-library-picker-list></div>
+                  </article>
+                </div>
+
+                <div class="student-profile-action-modal" data-trainer-workout-quick-create-modal hidden>
+                  <div class="student-profile-action-modal-scrim" data-trainer-workout-quick-create-close></div>
+                  <article class="student-profile-action-modal-card" role="dialog" aria-modal="true" aria-labelledby="trainer-workout-quick-create-title">
+                    <header class="student-profile-action-modal-head">
+                      <h5 id="trainer-workout-quick-create-title">Criar treino</h5>
+                      <button class="student-profile-action-close" type="button" data-trainer-workout-quick-create-close aria-label="Fechar">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+                      </button>
+                    </header>
+                    <form class="student-profile-action-form" data-trainer-workout-quick-create-form novalidate>
+                      <label class="student-profile-action-field">
+                        <span>Nome do treino</span>
+                        <input type="text" placeholder="Ex: Treino A - Peito e tríceps" data-trainer-workout-quick-create-name maxlength="120" />
+                      </label>
+                      <p class="student-form-error" data-trainer-workout-quick-create-feedback aria-live="polite"></p>
+                      <div class="student-profile-action-actions">
+                        <button class="student-profile-action-btn" type="button" data-trainer-workout-quick-create-close>Cancelar</button>
+                        <button class="student-login-btn" type="submit" data-trainer-workout-quick-create-submit>
+                          <span>Criar treino</span>
+                        </button>
+                      </div>
+                    </form>
+                  </article>
+                </div>
+
+              </div>
+            </section>
+
+            <section class="student-app-panel" data-student-app-panel="perfil" hidden>
+              <div class="student-profile-screen">
+                <section class="student-profile-hero">
+                  <div class="student-profile-hero-avatar" data-student-profile-avatar aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                      <path d="M4 20a8 8 0 0 1 16 0"></path>
+                    </svg>
+                  </div>
+                  <h4 data-student-profile-name>Rian</h4>
+                  <p data-student-profile-email>rianaraujo170606@gmail.com</p>
+
+                  <div class="student-profile-hero-meta">
+                    <article class="student-profile-hero-meta-item">
+                      <span class="student-profile-hero-meta-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg>
+                      </span>
+                      <small>Membro desde</small>
+                      <strong data-student-profile-member-since>15/03/2023</strong>
+                    </article>
+                    <article class="student-profile-hero-meta-item">
+                      <span class="student-profile-hero-meta-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><circle cx="12" cy="12" r="4"></circle></svg>
+                      </span>
+                      <small>Nível</small>
+                      <strong data-student-profile-level>Intermediário</strong>
+                    </article>
+                  </div>
+                </section>
+
+                <section class="student-profile-block">
+                  <h5>Informações Pessoais</h5>
+                  <div class="student-profile-list" data-student-profile-personal-info></div>
+                </section>
+
+                <section class="student-profile-block">
+                  <h5>Configurações</h5>
+                  <div class="student-profile-list student-profile-settings-list" data-student-profile-settings></div>
+                </section>
+              </div>
+            </section>
+
+            <div class="student-profile-action-modal" data-profile-action-modal hidden>
+              <div class="student-profile-action-modal-scrim" data-profile-action-close></div>
+              <article class="student-profile-action-modal-card" role="dialog" aria-modal="true" aria-labelledby="profile-action-title">
+                <button class="student-profile-action-modal-close" type="button" data-profile-action-close aria-label="Fechar">&times;</button>
+                <h6 id="profile-action-title" data-profile-action-title>Configuração</h6>
+                <p data-profile-action-text>Opção do perfil.</p>
+                <div class="student-profile-action-modal-actions">
+                  <button class="student-profile-action-cancel" type="button" data-profile-action-close>Fechar</button>
+                  <button class="student-profile-action-save" type="button" data-profile-action-primary>Continuar</button>
+                </div>
+              </article>
+            </div>
+
+            <!-- Modal de detalhes da biblioteca -->
+            <div class="student-exercise-modal" data-student-exercise-modal hidden>
+              <div class="student-exercise-modal-scrim" data-student-exercise-close></div>
+              <article class="student-exercise-modal-card">
+                <button class="student-exercise-close" type="button" data-student-exercise-close aria-label="Fechar detalhes do exercício">&times;</button>
+                <h4 data-student-exercise-title>Exercicio</h4>
+                <p data-student-exercise-muscle>Grupo muscular</p>
+                <iframe
+                  class="student-exercise-video"
+                  data-student-exercise-video
+                  src=""
+                  title="Vídeo demonstrativo do exercício"
+                  loading="lazy"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                ></iframe>
+                <p data-student-exercise-instructions>Instruções do exercício.</p>
+                <ul class="student-exercise-tips" data-student-exercise-tips></ul>
+              </article>
+            </div>
+          </section>
+
+          <nav class="student-app-bottom-nav" aria-label="Navegação do app do aluno">
+            <button class="student-app-nav-btn admin-general-only" type="button" data-student-app-tab="admin-geral">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <img src="aba de img/ICONE INICIO.png" alt="" />
+              </span>
+              <span>Painel</span>
+            </button>
+            <button class="student-app-nav-btn trainer-only" type="button" data-student-app-tab="admin-treinos">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <img src="aba de img/ICONE INICIO.png" alt="" />
+              </span>
+              <span>Gestão</span>
+            </button>
+            <button class="student-app-nav-btn is-active" type="button" data-student-app-tab="dashboard">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <img src="aba de img/ICONE INICIO.png" alt="" />
+              </span>
+              <span>Inicio</span>
+            </button>
+            <button class="student-app-nav-btn" type="button" data-student-app-tab="biblioteca">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <img src="aba de img/2.png" alt="" />
+              </span>
+              <span>Exercicios</span>
+            </button>
+            <button class="student-app-nav-btn" type="button" data-student-app-tab="progresso">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <img src="aba de img/3.png" alt="" />
+              </span>
+              <span>Progresso</span>
+            </button>
+            <button class="student-app-nav-btn" type="button" data-student-app-tab="perfil">
+              <span class="student-app-nav-icon" aria-hidden="true">
+                <img src="aba de img/4.png" alt="" />
+              </span>
+              <span>Perfil</span>
+            </button>
+          </nav>
+          <div class="student-app-mode-note" aria-hidden="true">Direitos Reservados © 2026 DNA Monster Fitness.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rodape institucional -->
+  <footer class="site-footer">
+    <div class="container footer-shell">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <img class="footer-logo-image" src="aba de img/logo branca.png" alt="DNA Monster Fitness" />
+          </div>
+          <p>Treino com foco em resultado, saúde e evolução constante.</p>
+          <small>Direitos Reservados &copy; 2026 DNA Monster Fitness.</small>
+        </div>
+
+        <div>
+          <h3 class="footer-heading">Unidades</h3>
+          <div class="footer-unit">
+            <strong>Unidade DNA Monster</strong>
+            <span>R. 20, 318 - Jereissati - Setor A</span>
+            <span> Maracanaú - CE</span>
+          </div>
+          <div class="footer-unit">
+            <strong>Horário de funcionamento</strong>
+            <span>Seg a Sex: 5h30 às 22h</span>
+            <span>Sáb: 6h às 17h - Dom: 6h às 11h</span>
+          </div>
+        </div>
+
+        <div class="footer-contact">
+          <h3 class="footer-heading">Entre em Contato</h3>
+          <span>(85) 8672-1781</span>
+          <span>contato@dnmonsterfitness.com</span>
+          <div class="socials">
+            <a href="https://www.instagram.com/dnamonsterfitness/" target="_blank" rel="noopener" aria-label="Instagram">
+              <img src="aba de img/logo insta.png" alt="Instagram" />
+            </a>
+            <a href="https://wa.me/558586721781?text=Ol%C3%A1%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es%20sobre%20a%20academia" target="_blank" rel="noopener" aria-label="WhatsApp">
+              <img src="aba de img/Logo whats.png" alt="WhatsApp" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Botao flutuante de WhatsApp -->
+  <a class="whatsapp" href="https://wa.me/558586721781?text=Ol%C3%A1%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es%20sobre%20a%20academia" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <img src="aba de img/Logo whats.png" alt="" aria-hidden="true" />
+  </a>
+
+  <!-- GSAP (animacoes premium) -->
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- Script principal de interações -->
+  <script src="script.js?v=20260225-023"></script>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+</body>
+</html>
+
+

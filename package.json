@@ -1,0 +1,49 @@
+{
+  "name": "dna-monster-fitness-backend",
+  "version": "1.0.0",
+  "description": "Backend base para o sistema DNA Monster Fitness",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "backup:projeto": "node scripts/backup-project.js",
+    "backup:boa-noite": "node scripts/backup-project.js --label=boa-noite",
+    "db:migrate:sql": "node scripts/apply-sql-migrations.js",
+    "check:rotina": "node scripts/check-rotina.js",
+    "test:designacao": "node scripts/test-designacao.js",
+    "test:concorrencia": "node scripts/test-concorrencia.js",
+    "prelaunch:full": "node scripts/prelaunch-full.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs --env production",
+    "pm2:restart": "pm2 restart dna-monster-api --update-env",
+    "pm2:stop": "pm2 stop dna-monster-api",
+    "pm2:delete": "pm2 delete dna-monster-api",
+    "pm2:logs": "pm2 logs dna-monster-api"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "fitness",
+    "backend"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.4.1",
+    "@prisma/client": "^7.4.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.1",
+    "pg": "^8.18.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9",
+    "prisma": "^7.4.1",
+    "supabase": "^2.76.12",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
