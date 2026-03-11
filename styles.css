@@ -10380,6 +10380,18 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   order: -1;
 }
 
+.trainer-workout-screen .trainer-exercise-create-card {
+  order: 0;
+}
+
+.trainer-workout-screen .trainer-workout-create-card {
+  order: 1;
+}
+
+.trainer-workout-screen [data-trainer-managed-workouts-card] {
+  order: 2;
+}
+
 .trainer-workout-head {
   display: grid;
   gap: 8px;
