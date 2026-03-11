@@ -84,6 +84,13 @@ function createWorkoutsRoutes({ workoutsController, authMiddleware, roleMiddlewa
     workoutsController.updateWorkoutTemplate
   );
 
+  router.delete(
+    "/workouts/templates/:templateId",
+    authMiddleware,
+    roleMiddleware(roles.INSTRUTOR, roles.ADMIN_GERAL),
+    workoutsController.deleteWorkoutTemplate
+  );
+
   router.get(
     "/workouts/templates/:templateId/exercises",
     authMiddleware,

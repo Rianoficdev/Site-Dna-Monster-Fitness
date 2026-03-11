@@ -650,6 +650,45 @@ function createWorkoutsService({
     );
   }
 
+  async function deleteWorkoutTemplate({ authUser, templateId }) {
+    const actorRole = normalizeRole(authUser && authUser.role);
+    const actorId = normalizeId(authUser && authUser.id);
+    if (!managementRoles.has(actorRole)) {
+      throw new AppError("Apenas instrutor ou administrador geral podem excluir modelos.", 403, "FORBIDDEN");
+    }
+
+    const normalizedTemplateId = normalizeId(templateId);
+    if (!normalizedTemplateId) {
+      throw new AppError("Campo obrigatorio: templateId.", 400, "VALIDATION_ERROR");
+    }
+
+    const template = await workoutsRepository.findWorkoutTemplateById(normalizedTemplateId, {
+      includeInactive: true,
+    });
+    if (!template) {
+      throw new AppError("Modelo de treino nao encontrado.", 404, "TEMPLATE_NOT_FOUND");
+    }
+
+    if (actorRole === "INSTRUTOR" && Number(template.createdBy) !== actorId) {
+      throw new AppError("Instrutor so pode excluir modelos que criou.", 403, "FORBIDDEN");
+    }
+
+    if (template.isActive !== false) {
+      throw new AppError(
+        "Apenas treinos em si inativos podem ser excluidos.",
+        400,
+        "TEMPLATE_MUST_BE_INACTIVE"
+      );
+    }
+
+    const removed = await workoutsRepository.deleteWorkoutTemplate(normalizedTemplateId);
+    if (!removed) {
+      throw new AppError("Modelo de treino nao encontrado.", 404, "TEMPLATE_NOT_FOUND");
+    }
+
+    return removed;
+  }
+
   async function addTemplateExercise({
     authUser,
     templateId,
@@ -1016,6 +1055,7 @@ function createWorkoutsService({
     listAssignableStudents,
     createWorkoutTemplate,
     updateWorkoutTemplate,
+    deleteWorkoutTemplate,
     listWorkoutTemplates,
     addTemplateExercise,
     listTemplateExercises,

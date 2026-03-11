@@ -475,6 +475,22 @@ SET objective = EXCLUDED.objective,
     }
   }
 
+  async function deleteWorkoutTemplate(templateId) {
+    const normalizedTemplateId = Number(templateId) || 0;
+    if (!normalizedTemplateId) return null;
+
+    try {
+      const deleted = await prisma.workoutTemplate.delete({
+        where: { id: normalizedTemplateId },
+      });
+      return withTemplateCompatibility(deleted);
+    } catch (error) {
+      const code = String((error && error.code) || "").toUpperCase();
+      if (code === "P2025") return null;
+      throw error;
+    }
+  }
+
   async function createWorkoutTemplateExercise(data) {
     const created = await prisma.workoutTemplateExercise.create({
       data: {
@@ -534,6 +550,7 @@ SET objective = EXCLUDED.objective,
     listWorkoutTemplates,
     findWorkoutTemplateById,
     updateWorkoutTemplate,
+    deleteWorkoutTemplate,
     createWorkoutTemplateExercise,
     listTemplateExercises,
     findTemplateExerciseById,

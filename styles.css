@@ -11714,6 +11714,10 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   background: linear-gradient(90deg, #be123c 0%, #e11d48 50%, #f43f5e 100%);
 }
 
+.trainer-action-warning {
+  background: linear-gradient(90deg, #9a6a06 0%, #c18208 50%, #e39a11 100%);
+}
+
 .trainer-action-icon-btn {
   width: 34px;
   min-width: 34px;
@@ -11738,6 +11742,11 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   cursor: not-allowed;
 }
 
+.trainer-action-warning:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
 .trainer-status-chip {
   display: inline-flex;
   align-items: center;
@@ -11758,6 +11767,12 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   border-color: rgba(16, 155, 69, 0.5);
   background: rgba(28, 191, 92, 0.16);
   color: #0f7d3d;
+}
+
+.trainer-status-chip.is-disabled {
+  border-color: rgba(190, 24, 93, 0.34);
+  background: rgba(244, 63, 94, 0.12);
+  color: #9f1239;
 }
 
 .trainer-progress-report {
@@ -14827,8 +14842,18 @@ body.theme-dark .trainer-status-chip.is-success {
   color: #8ef0ba;
 }
 
+body.theme-dark .trainer-status-chip.is-disabled {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(104, 25, 25, 0.42);
+  color: #fecaca;
+}
+
 body.theme-dark .trainer-action-danger {
   background: linear-gradient(90deg, #9f1239 0%, #be123c 48%, #e11d48 100%);
+}
+
+body.theme-dark .trainer-action-warning {
+  background: linear-gradient(90deg, #8a5b02 0%, #b77906 48%, #d99110 100%);
 }
 
 @media (max-width: 760px) {

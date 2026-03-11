@@ -130,6 +130,18 @@ function createWorkoutsController({ workoutsService }) {
     });
   });
 
+  const deleteWorkoutTemplate = asyncHandler(async (req, res) => {
+    const template = await workoutsService.deleteWorkoutTemplate({
+      authUser: req.user,
+      templateId: req.params.templateId,
+    });
+
+    return res.status(200).json({
+      message: "Modelo de treino excluido com sucesso.",
+      template,
+    });
+  });
+
   const addTemplateExercise = asyncHandler(async (req, res) => {
     const templateExercise = await workoutsService.addTemplateExercise({
       ...req.body,
@@ -176,6 +188,7 @@ function createWorkoutsController({ workoutsService }) {
     listMyWorkouts,
     createWorkoutTemplate,
     updateWorkoutTemplate,
+    deleteWorkoutTemplate,
     listWorkoutTemplates,
     addTemplateExercise,
     listTemplateExercises,

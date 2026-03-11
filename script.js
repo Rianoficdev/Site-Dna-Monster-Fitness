@@ -9781,6 +9781,40 @@ const requestInstructorWorkoutDelete = async (workoutId) => {
   }
 };
 
+const requestWorkoutTemplateUpdate = async ({ templateId, body }) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  if (!normalizedTemplateId) {
+    throw new Error('Treino em si inválido para atualização.');
+  }
+
+  return requestStudentApi(
+    `/workouts/templates/${encodeURIComponent(String(normalizedTemplateId))}`,
+    {
+      method: 'PATCH',
+      body
+    }
+  );
+};
+
+const requestWorkoutTemplateDeactivate = async (templateId) => {
+  return requestWorkoutTemplateUpdate({
+    templateId,
+    body: { isActive: false }
+  });
+};
+
+const requestWorkoutTemplateDelete = async (templateId) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  if (!normalizedTemplateId) {
+    throw new Error('Treino em si inválido para exclusão.');
+  }
+
+  return requestStudentApi(
+    `/workouts/templates/${encodeURIComponent(String(normalizedTemplateId))}`,
+    { method: 'DELETE' }
+  );
+};
+
 const setTrainerManagementFeedback = (message, isSuccess = false) => {
   setInlineFeedback(trainerWorkoutError, message, isSuccess);
 };
@@ -13986,7 +14020,7 @@ const renderTrainerManagementPanel = () => {
             templateId,
             name: String((template && template.name) || '').trim() || `Treino ${templateId || '-'}`,
             statusLabel: template && template.isActive === false ? 'Inativo' : 'Ativo',
-            statusClass: template && template.isActive === false ? '' : 'is-success',
+            statusClass: template && template.isActive === false ? 'is-disabled' : 'is-success',
             exercisesCount: (
               trainerManagementState.templateExercisesByTemplateId[String(templateId)] || []
             ).length,
@@ -14037,7 +14071,37 @@ const renderTrainerManagementPanel = () => {
             const inactiveAssignmentsCount = Math.max(0, Number(row && row.inactiveAssignmentsCount) || 0);
             const studentsLabel = studentsCount === 1 ? '1 aluno' : `${studentsCount} alunos`;
             const assignmentsLabel = assignmentsCount === 1 ? '1 vínculo' : `${assignmentsCount} vínculos`;
-            const definitionActionsMarkup = '<span class="admin-overview-action-muted">Use a designação para entregar ao aluno</span>';
+            const deactivateDefinitionMarkup = templateId > 0 && statusLabel !== 'Inativo'
+              ? `
+                  <button
+                    class="student-progress-action-btn trainer-action-warning"
+                    type="button"
+                    data-trainer-workout-definition-deactivate
+                    data-template-id="${safeCell(templateId)}"
+                    data-definition-name="${safeCell(definitionName)}"
+                  >
+                    Desativar
+                  </button>
+                `
+              : '';
+            const deleteDefinitionMarkup = templateId > 0 && statusLabel === 'Inativo'
+              ? `
+                  <button
+                    class="student-progress-action-btn trainer-action-danger"
+                    type="button"
+                    data-trainer-workout-definition-delete
+                    data-template-id="${safeCell(templateId)}"
+                    data-definition-name="${safeCell(definitionName)}"
+                  >
+                    Excluir
+                  </button>
+                `
+              : '';
+            const definitionActionsMarkup = `
+              <div class="trainer-table-actions">
+                ${deactivateDefinitionMarkup || deleteDefinitionMarkup || '<span class="admin-overview-action-muted">Sem ações disponíveis</span>'}
+              </div>
+            `;
 
             return `
               <tr class="trainer-managed-workout-row is-definition" data-workout-id="${safeCell(templateId || '')}">
@@ -14068,7 +14132,7 @@ const renderTrainerManagementPanel = () => {
           const objectiveLabel = String(workout && (workout.objective || workout.objetivo) || '').trim() || '-';
           const isActiveWorkout = isWorkoutActive(workout);
           const statusLabel = isActiveWorkout ? 'Ativo' : 'Inativo';
-          const statusClass = isActiveWorkout ? 'is-success' : '';
+          const statusClass = isActiveWorkout ? 'is-success' : 'is-disabled';
           const toggleAriaLabel = 'Visualizar detalhes do treino';
           const deleteActionMarkup = !isActiveWorkout
             ? `
@@ -16099,56 +16163,51 @@ const handleTrainerWorkoutsTableActions = async (event) => {
 
   const definitionDeactivateButton = target.closest('[data-trainer-workout-definition-deactivate]');
   if (definitionDeactivateButton && definitionDeactivateButton instanceof HTMLButtonElement) {
-    const definitionKey = String(definitionDeactivateButton.dataset.definitionKey || '').trim();
+    const templateId = Number(definitionDeactivateButton.dataset.templateId || 0) || 0;
     const definitionName = String(definitionDeactivateButton.dataset.definitionName || 'Treino').trim() || 'Treino';
-    if (!definitionKey) return;
+    if (!templateId) return;
 
-    const linkedWorkouts = listTrainerWorkoutsByDefinitionKey(definitionKey);
-    const activeWorkouts = linkedWorkouts.filter((workout) => isWorkoutActive(workout));
-    if (!activeWorkouts.length) {
-      setTrainerManagementFeedback('Esse treino já está com todos os vínculos inativos.', false);
+    const template = getTrainerTemplateById(templateId);
+    if (!template) {
+      setTrainerManagementFeedback('Treino em si não encontrado.', false);
+      return;
+    }
+    if (template.isActive === false) {
+      setTrainerManagementFeedback('Esse treino em si já está inativo.', false);
       return;
     }
 
     const confirmed = await requestSiteConfirm({
       title: 'Desativar treino em si',
       identification: definitionName,
-      message: `Desativar ${activeWorkouts.length} vínculo(s) ativo(s) de "${definitionName}"?`,
-      confirmLabel: 'Desativar todos',
+      message: `Tem certeza que deseja desativar o treino em si "${definitionName}"? Ele deixará de aparecer para novas designações.`,
+      confirmLabel: 'Desativar',
       cancelLabel: 'Cancelar',
       triggerButton: definitionDeactivateButton
     });
     if (!confirmed) return;
 
     definitionDeactivateButton.disabled = true;
-    setTrainerManagementFeedback('Desativando vínculos do treino...', false);
+    setTrainerManagementFeedback('Desativando treino em si...', false);
     try {
-      let lastWorkoutId = 0;
-      for (const workout of activeWorkouts) {
-        const workoutId = Number(workout && workout.id) || 0;
-        if (!workoutId) continue;
-        lastWorkoutId = workoutId;
-        await requestInstructorWorkoutDeactivate(workoutId, { workout });
-      }
-
-      if (lastWorkoutId > 0) trainerExerciseTargetWorkoutId = lastWorkoutId;
+      await requestWorkoutTemplateDeactivate(templateId);
       await loadTrainerManagementData(true);
       await loadTrainerProgressData(true);
       await syncWorkoutsFromBackend({ silent: true });
       if (isGeneralAdminUser()) await fetchAdminOverview(true);
 
-      const refreshedWorkouts = listTrainerWorkoutsByDefinitionKey(definitionKey);
-      if (refreshedWorkouts.some((workout) => isWorkoutActive(workout))) {
-        throw new Error('Nem todos os vínculos puderam ser desativados. Tente novamente.');
+      const refreshedTemplate = getTrainerTemplateById(templateId);
+      if (refreshedTemplate && refreshedTemplate.isActive !== false) {
+        throw new Error('Não foi possível confirmar a desativação. Atualize os dados e tente novamente.');
       }
 
-      const successMessage = `${activeWorkouts.length} vínculo(s) desativado(s) em "${definitionName}".`;
+      const successMessage = `Treino em si "${definitionName}" desativado com sucesso.`;
       setTrainerManagementFeedback(successMessage, true);
       setTrainerExerciseFeedback(successMessage, true);
     } catch (error) {
       const errorMessage = error && error.message
         ? error.message
-        : 'Falha ao desativar vínculos desse treino.';
+        : 'Falha ao desativar treino em si.';
       setTrainerManagementFeedback(errorMessage, false);
       setTrainerExerciseFeedback(errorMessage, false);
     } finally {
@@ -16159,60 +16218,50 @@ const handleTrainerWorkoutsTableActions = async (event) => {
 
   const definitionDeleteButton = target.closest('[data-trainer-workout-definition-delete]');
   if (definitionDeleteButton && definitionDeleteButton instanceof HTMLButtonElement) {
-    const definitionKey = String(definitionDeleteButton.dataset.definitionKey || '').trim();
+    const templateId = Number(definitionDeleteButton.dataset.templateId || 0) || 0;
     const definitionName = String(definitionDeleteButton.dataset.definitionName || 'Treino').trim() || 'Treino';
-    if (!definitionKey) return;
+    if (!templateId) return;
 
-    const linkedWorkouts = listTrainerWorkoutsByDefinitionKey(definitionKey);
-    const activeWorkouts = linkedWorkouts.filter((workout) => isWorkoutActive(workout));
-    if (activeWorkouts.length) {
-      setTrainerManagementFeedback('Desative os vínculos ativos antes de excluir esse treino em si.', false);
+    const template = getTrainerTemplateById(templateId);
+    if (!template) {
+      setTrainerManagementFeedback('Treino em si não encontrado.', false);
       return;
     }
-
-    const inactiveWorkouts = linkedWorkouts.filter((workout) => isWorkoutInactive(workout));
-    if (!inactiveWorkouts.length) {
-      setTrainerManagementFeedback('Não há vínculos inativos para excluir nesse treino.', false);
+    if (template.isActive !== false) {
+      setTrainerManagementFeedback('Desative o treino em si antes de excluir.', false);
       return;
     }
 
     const confirmed = await requestSiteConfirm({
       title: 'Excluir treino em si',
       identification: definitionName,
-      message: `Excluir ${inactiveWorkouts.length} vínculo(s) inativo(s) de "${definitionName}"? Essa ação não pode ser desfeita.`,
-      confirmLabel: 'Excluir todos',
+      message: `Tem certeza que deseja excluir o treino em si "${definitionName}"? Os treinos já atribuídos aos alunos serão mantidos.`,
+      confirmLabel: 'Excluir treino',
       cancelLabel: 'Cancelar',
       triggerButton: definitionDeleteButton
     });
     if (!confirmed) return;
 
     definitionDeleteButton.disabled = true;
-    setTrainerManagementFeedback('Excluindo vínculos inativos do treino...', false);
+    setTrainerManagementFeedback('Excluindo treino em si...', false);
     try {
-      const deletedWorkoutIds = [];
-      for (const workout of inactiveWorkouts) {
-        const workoutId = Number(workout && workout.id) || 0;
-        if (!workoutId) continue;
-        await requestInstructorWorkoutDelete(workoutId);
-        deletedWorkoutIds.push(workoutId);
-      }
-
-      if (deletedWorkoutIds.includes(Number(trainerExerciseTargetWorkoutId) || 0)) {
-        trainerExerciseTargetWorkoutId = 0;
-      }
-
+      await requestWorkoutTemplateDelete(templateId);
+      const deletedTemplateId = String(templateId);
+      if (trainerTemplateExerciseSelectedId === deletedTemplateId) trainerTemplateExerciseSelectedId = '';
+      if (trainerExerciseComposerSelectedId === deletedTemplateId) trainerExerciseComposerSelectedId = '';
+      if (trainerTemplateEditorSelectedId === deletedTemplateId) trainerTemplateEditorSelectedId = '';
       await loadTrainerManagementData(true);
       await loadTrainerProgressData(true);
       await syncWorkoutsFromBackend({ silent: true });
       if (isGeneralAdminUser()) await fetchAdminOverview(true);
 
-      const successMessage = `${inactiveWorkouts.length} vínculo(s) excluído(s) de "${definitionName}".`;
+      const successMessage = `Treino em si "${definitionName}" excluído com sucesso.`;
       setTrainerManagementFeedback(successMessage, true);
       setTrainerExerciseFeedback(successMessage, true);
     } catch (error) {
       const errorMessage = error && error.message
         ? error.message
-        : 'Falha ao excluir vínculos desse treino.';
+        : 'Falha ao excluir treino em si.';
       setTrainerManagementFeedback(errorMessage, false);
       setTrainerExerciseFeedback(errorMessage, false);
     } finally {
