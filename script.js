@@ -10271,17 +10271,35 @@ const handleTrainerWorkoutModalLibraryActions = async (event) => {
       }
     });
 
-    trainerExerciseTargetWorkoutId = workoutId;
-    await loadTrainerManagementData(true);
-    await loadTrainerProgressData(true);
-    await syncWorkoutsFromBackend({ silent: true });
-    if (isGeneralAdminUser()) await fetchAdminOverview(true);
+    const createdExercise = response && response.exercise ? response.exercise : null;
+    if (createdExercise) {
+      const workoutKey = String(workoutId);
+      const currentExercises = Array.isArray(trainerManagementState.exercisesByWorkoutId[workoutKey])
+        ? trainerManagementState.exercisesByWorkoutId[workoutKey].slice()
+        : [];
+      currentExercises.push(createdExercise);
+      currentExercises.sort((first, second) => {
+        const firstOrder = Number(first && first.order) || 0;
+        const secondOrder = Number(second && second.order) || 0;
+        if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+        return (Number(first && first.id) || 0) - (Number(second && second.id) || 0);
+      });
+      trainerManagementState.exercisesByWorkoutId[workoutKey] = currentExercises;
+    }
 
+    trainerExerciseTargetWorkoutId = workoutId;
     const successMessage = (response && response.message) || 'Exercício adicionado ao treino.';
     setTrainerWorkoutModalFeedback(successMessage, true);
     setTrainerManagementFeedback(successMessage, true);
     setTrainerExerciseFeedback(successMessage, true);
     renderTrainerWorkoutModalLibraryGuide();
+
+    void Promise.allSettled([
+      loadTrainerManagementData(true),
+      loadTrainerProgressData(true),
+      syncWorkoutsFromBackend({ silent: true }),
+      isGeneralAdminUser() ? fetchAdminOverview(true) : Promise.resolve(null)
+    ]);
   } catch (error) {
     addButton.disabled = false;
     addButton.textContent = initialButtonLabel;

@@ -1,4 +1,6 @@
 function createExercisesRepository({ prisma }) {
+  let workoutExerciseObservationColumnPromise = null;
+
   function nowIso() {
     return new Date().toISOString();
   }
@@ -111,10 +113,17 @@ function createExercisesRepository({ prisma }) {
   }
 
   async function ensureWorkoutExerciseObservationColumn() {
-    await prisma.$executeRawUnsafe(`
+    if (!workoutExerciseObservationColumnPromise) {
+      workoutExerciseObservationColumnPromise = prisma.$executeRawUnsafe(`
 ALTER TABLE workout_exercise
   ADD COLUMN IF NOT EXISTS observation text NOT NULL DEFAULT '';
-    `);
+      `).catch((error) => {
+        workoutExerciseObservationColumnPromise = null;
+        throw error;
+      });
+    }
+
+    await workoutExerciseObservationColumnPromise;
   }
 
   async function createExercise(data) {
