@@ -2049,14 +2049,20 @@ Core"
 
                 <p class="student-form-error trainer-workout-error" data-trainer-workout-error aria-live="polite"></p>
 
-                <article class="admin-overview-table-card trainer-template-create-card">
-                  <header class="admin-overview-table-head">
+                <article class="admin-overview-table-card trainer-template-create-card" data-trainer-template-create-card>
+                  <header class="admin-overview-table-head admin-overview-table-head--collapsible">
                     <div class="admin-overview-table-head-row">
                       <h5>Criar Treino em Si</h5>
+                      <button
+                        class="admin-overview-collapse-btn"
+                        type="button"
+                        data-trainer-template-create-toggle
+                        aria-expanded="true"
+                      >Minimizar caixa</button>
                     </div>
                     <p class="trainer-card-subtitle">Salve um treino exclusivo do instrutor antes de designar ao aluno.</p>
                   </header>
-                  <div>
+                  <div data-trainer-template-create-body>
                     <form class="trainer-workout-form" data-trainer-template-form novalidate>
                       <div class="trainer-workout-form-grid trainer-workout-form-grid--model">
                         <label class="trainer-field-full">

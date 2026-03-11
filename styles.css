@@ -10368,7 +10368,6 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   gap: 14px;
 }
 
-/* Mantem a Biblioteca de Exercicios como primeiro bloco de conteudo do painel. */
 .trainer-workout-screen .trainer-workout-head {
   order: -3;
 }
@@ -10377,7 +10376,7 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   order: -2;
 }
 
-.trainer-workout-screen .trainer-exercise-create-card {
+.trainer-workout-screen .trainer-template-create-card {
   order: -1;
 }
 
@@ -12516,6 +12515,10 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
 }
 
 [data-trainer-workout-create-card].is-collapsed {
+  padding-bottom: 10px;
+}
+
+[data-trainer-template-create-card].is-collapsed {
   padding-bottom: 10px;
 }
 
