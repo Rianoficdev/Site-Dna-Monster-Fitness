@@ -9828,6 +9828,19 @@ const setTrainerWorkoutModalFeedback = (message, isSuccess = false) => {
   setInlineFeedback(trainerWorkoutModalFeedback, message, isSuccess);
 };
 
+const hydrateTrainerWorkoutExercises = async (workoutId, { silent = true } = {}) => {
+  const normalizedWorkoutId = Number(workoutId) || 0;
+  if (!normalizedWorkoutId) return [];
+
+  const response = await requestStudentApi(`/workouts/${encodeURIComponent(String(normalizedWorkoutId))}/exercises`);
+  const exercises = Array.isArray(response && response.exercises) ? response.exercises : [];
+  trainerManagementState.exercisesByWorkoutId[String(normalizedWorkoutId)] = exercises
+    .slice()
+    .sort((first, second) => (Number(first && first.order) || 0) - (Number(second && second.order) || 0));
+
+  return exercises;
+};
+
 const setTrainerWorkoutModalMode = ({ readOnly = false } = {}) => {
   trainerWorkoutModalReadOnly = Boolean(readOnly);
 
@@ -10377,6 +10390,25 @@ const openTrainerWorkoutModal = (workout, triggerButton = null, { readOnly = fal
   }
   syncTrainerWorkoutModalGroupOptions(workout);
   renderTrainerWorkoutModalLibraryGuide();
+
+  const loadedExercises = trainerManagementState.exercisesByWorkoutId[String(trainerWorkoutEditingId)] || [];
+  const expectedExercisesCount = Math.max(0, Number(workout && workout.totalExercises) || 0);
+  if (!loadedExercises.length && expectedExercisesCount > 0) {
+    setTrainerWorkoutModalFeedback('Carregando exercícios do treino...', false);
+    void hydrateTrainerWorkoutExercises(trainerWorkoutEditingId)
+      .then(() => {
+        if (Number(trainerWorkoutEditingId) !== Number(workout && workout.id)) return;
+        renderTrainerWorkoutModalLibraryGuide();
+        setTrainerWorkoutModalFeedback('', false);
+      })
+      .catch((error) => {
+        if (Number(trainerWorkoutEditingId) !== Number(workout && workout.id)) return;
+        setTrainerWorkoutModalFeedback(
+          error && error.message ? error.message : 'Não foi possível carregar os exercícios deste treino.',
+          false
+        );
+      });
+  }
 
   if (trainerWorkoutModalSubmitButton) {
     trainerWorkoutModalSubmitButton.disabled = false;
@@ -14238,6 +14270,9 @@ const renderTrainerManagementPanel = () => {
           const workoutName = String((workout && (workout.title || workout.name)) || `Treino ${workoutId || '-'}`).trim() || '-';
           const student = usersById.get(Number(workout && workout.studentId));
           const exercises = trainerManagementState.exercisesByWorkoutId[String(workout && workout.id)] || [];
+          const exercisesCount = Array.isArray(exercises) && exercises.length
+            ? exercises.length
+            : Math.max(0, Number(workout && workout.totalExercises) || 0);
           const objectiveLabel = String(workout && (workout.objective || workout.objetivo) || '').trim() || '-';
           const isActiveWorkout = isWorkoutActive(workout);
           const statusLabel = isActiveWorkout ? 'Ativo' : 'Inativo';
@@ -14288,7 +14323,7 @@ const renderTrainerManagementPanel = () => {
               <td data-label="Aluno">${safeCell(student ? student.name : `ID ${workout.studentId || '-'}`)}</td>
               <td data-label="Objetivo">${safeCell(objectiveLabel)}</td>
               <td data-label="Status"><span class="trainer-status-chip ${statusClass}">${safeCell(statusLabel)}</span></td>
-              <td data-label="Exercícios">${safeCell(exercises.length)}</td>
+              <td data-label="Exercícios">${safeCell(exercisesCount)}</td>
               <td data-label="Criado em">${safeCell(formatAdminDate(workout.createdAt))}</td>
               <td data-label="Ações">
                 <div class="trainer-table-actions">
@@ -15203,9 +15238,14 @@ const handleTrainerWorkoutSubmit = async (event) => {
     return;
   }
 
+  const templatesById = new Map(
+    (Array.isArray(trainerManagementState.templates) ? trainerManagementState.templates : [])
+      .map((template) => [Number(template && template.id) || 0, template])
+      .filter(([templateId]) => templateId > 0)
+  );
   const explicitDayAssignments = getTrainerWeekdayAssignmentsForSelectedDays(weekDays);
   const unresolvedDays = [];
-  const groupedAssignmentsMap = new Map();
+  const dayAssignments = [];
   weekDays.forEach((day) => {
     const resolvedTemplateId = Number(explicitDayAssignments[day]) || 0;
     if (!resolvedTemplateId) {
@@ -15213,13 +15253,15 @@ const handleTrainerWorkoutSubmit = async (event) => {
       return;
     }
 
-    if (!groupedAssignmentsMap.has(resolvedTemplateId)) {
-      groupedAssignmentsMap.set(resolvedTemplateId, []);
-    }
-    groupedAssignmentsMap.get(resolvedTemplateId).push(day);
+    const matchedTemplate = templatesById.get(resolvedTemplateId) || null;
+    dayAssignments.push({
+      day,
+      templateId: resolvedTemplateId,
+      templateName: String((matchedTemplate && matchedTemplate.name) || '').trim()
+    });
   });
 
-  if (!groupedAssignmentsMap.size || unresolvedDays.length) {
+  if (!dayAssignments.length || unresolvedDays.length) {
     const unresolvedMessage = unresolvedDays.length
       ? `Selecione um treino para ${unresolvedDays.join(', ')}.`
       : 'Defina um treino para cada dia selecionado.';
@@ -15239,11 +15281,6 @@ const handleTrainerWorkoutSubmit = async (event) => {
     return;
   }
 
-  const groupedAssignments = Array.from(groupedAssignmentsMap.entries()).map(([groupTemplateId, days]) => ({
-    templateId: Number(groupTemplateId) || 0,
-    weekDays: Array.isArray(days) ? days.slice() : []
-  }));
-
   trainerWorkoutCreateInFlight = true;
   setButtonLoading(trainerWorkoutSubmitButton, 'Designando...');
   setTrainerManagementFeedback('Designando treino ao aluno...', false);
@@ -15252,19 +15289,20 @@ const handleTrainerWorkoutSubmit = async (event) => {
     const createdWorkoutIds = [];
     const responses = [];
     const failedAssignments = [];
-    const multipleAssignments = groupedAssignments.length > 1;
+    const createdWorkoutsPayloads = [];
+    const multipleAssignments = dayAssignments.length > 1;
 
-    for (const assignment of groupedAssignments) {
+    for (const assignment of dayAssignments) {
       const assignmentTemplateId = Number(assignment && assignment.templateId) || 0;
-      const assignmentWeekDays = Array.isArray(assignment && assignment.weekDays)
-        ? assignment.weekDays.map((day) => String(day || '').trim()).filter(Boolean)
-        : [];
-      if (!assignmentTemplateId || !assignmentWeekDays.length) continue;
+      const assignmentDay = String(assignment && assignment.day || '').trim();
+      if (!assignmentTemplateId || !assignmentDay) continue;
 
       const assignmentName = multipleAssignments
         ? assignedWorkoutName
-          ? `${assignedWorkoutName} - ${assignmentWeekDays.join('/')}`
-          : ''
+          ? `${assignedWorkoutName} - ${assignmentDay}`
+          : assignment && assignment.templateName
+            ? `${assignment.templateName} - ${assignmentDay}`
+            : `Treino - ${assignmentDay}`
         : assignedWorkoutName;
       try {
         const response = await requestStudentApi('/workout/from-template', {
@@ -15277,7 +15315,7 @@ const handleTrainerWorkoutSubmit = async (event) => {
             objective,
             description,
             status,
-            weekDays: assignmentWeekDays
+            weekDays: [assignmentDay]
           }
         });
         responses.push(response);
@@ -15285,11 +15323,15 @@ const handleTrainerWorkoutSubmit = async (event) => {
         const createdWorkoutId = resolveCreatedWorkoutIdFromResponse(response);
         if (createdWorkoutId > 0) {
           createdWorkoutIds.push(createdWorkoutId);
+          createdWorkoutsPayloads.push({
+            workoutId: createdWorkoutId,
+            exercises: Array.isArray(response && response.exercises) ? response.exercises.slice() : []
+          });
         }
       } catch (error) {
         failedAssignments.push({
           templateId: assignmentTemplateId,
-          weekDays: assignmentWeekDays,
+          weekDays: [assignmentDay],
           message: error && error.message ? error.message : 'Falha ao designar treino.'
         });
       }
@@ -15321,6 +15363,16 @@ const handleTrainerWorkoutSubmit = async (event) => {
     await syncWorkoutsFromBackend({ silent: true });
     if (isGeneralAdminUser()) await fetchAdminOverview(true);
 
+    createdWorkoutsPayloads.forEach(({ workoutId, exercises }) => {
+      const workoutKey = String(Number(workoutId) || 0);
+      if (!workoutKey || !Array.isArray(exercises) || !exercises.length) return;
+      const currentExercises = trainerManagementState.exercisesByWorkoutId[workoutKey];
+      if (Array.isArray(currentExercises) && currentExercises.length) return;
+      trainerManagementState.exercisesByWorkoutId[workoutKey] = exercises
+        .slice()
+        .sort((first, second) => (Number(first && first.order) || 0) - (Number(second && second.order) || 0));
+    });
+
     const lastResponse = responses.length ? responses[responses.length - 1] : null;
     const createdWorkoutId = resolveCreatedWorkoutIdFromResponse(lastResponse);
     if (createdWorkoutId) {
@@ -15328,7 +15380,7 @@ const handleTrainerWorkoutSubmit = async (event) => {
       trainerExerciseTargetWorkoutId = createdWorkoutId;
     }
     const selectedTemplateAfterSubmit = String(
-      (groupedAssignments[0] && groupedAssignments[0].templateId) || ''
+      (dayAssignments[0] && dayAssignments[0].templateId) || ''
     );
     trainerTemplateExerciseSelectedId = selectedTemplateAfterSubmit;
     trainerExerciseComposerSelectedId = selectedTemplateAfterSubmit;
@@ -15336,8 +15388,8 @@ const handleTrainerWorkoutSubmit = async (event) => {
       ? 'Treino salvo como Inativo para o aluno.'
       : 'Treino já disponível para o aluno.';
     const successMessage = selectedStudentName
-      ? groupedAssignments.length > 1
-        ? `${groupedAssignments.length} treinos foram designados ao aluno ${selectedStudentName}. ${visibilityHint}`
+      ? dayAssignments.length > 1
+        ? `${dayAssignments.length} treinos foram designados ao aluno ${selectedStudentName}. ${visibilityHint}`
         : `Treino designado ao aluno ${selectedStudentName}. ${visibilityHint}`
       : visibilityHint;
     const finalSuccessMessage = trainerWorkoutPendingCoverFile && !coverAutoApplied

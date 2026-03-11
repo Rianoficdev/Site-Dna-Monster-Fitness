@@ -301,6 +301,12 @@ async function main() {
     assert(assignAResponse.status === 201, `designacao do template A falhou (${assignAResponse.status})`);
     const workoutAId = Number(assignAResponse.body && assignAResponse.body.workout && assignAResponse.body.workout.id) || 0;
     assert(workoutAId > 0, "treino criado a partir do template A invalido");
+    const assignAExercises = getResponseList(assignAResponse, "exercises");
+    assert(assignAExercises.length === 1, `resposta do treino A deveria conter 1 exercicio e retornou ${assignAExercises.length}`);
+    assert(
+      Number(assignAResponse.body && assignAResponse.body.workout && assignAResponse.body.workout.totalExercises) === 1,
+      "treino A deveria retornar totalExercises=1 na resposta"
+    );
     createdWorkoutIds.push(workoutAId);
 
     console.log("[test:designacao-template] criando treino do aluno a partir do template B");
@@ -321,7 +327,41 @@ async function main() {
     assert(assignBResponse.status === 201, `designacao do template B falhou (${assignBResponse.status})`);
     const workoutBId = Number(assignBResponse.body && assignBResponse.body.workout && assignBResponse.body.workout.id) || 0;
     assert(workoutBId > 0, "treino criado a partir do template B invalido");
+    const assignBExercises = getResponseList(assignBResponse, "exercises");
+    assert(assignBExercises.length === 1, `resposta do treino B deveria conter 1 exercicio e retornou ${assignBExercises.length}`);
+    assert(
+      Number(assignBResponse.body && assignBResponse.body.workout && assignBResponse.body.workout.totalExercises) === 1,
+      "treino B deveria retornar totalExercises=1 na resposta"
+    );
     createdWorkoutIds.push(workoutBId);
+
+    console.log("[test:designacao-template] criando um segundo treino do aluno com o template A em outro dia");
+    const assignASecondDayResponse = await requestJson({
+      port,
+      method: "POST",
+      path: "/api/workout/from-template",
+      token: instructorToken,
+      body: {
+        templateId: templateAId,
+        studentId: student.id,
+        name: `Aluno ${suffix} - Qua`,
+        objective: "Hipertrofia",
+        status: "ATIVO",
+        weekDays: ["Qua"],
+      },
+    });
+    assert(
+      assignASecondDayResponse.status === 201,
+      `segunda designacao do template A falhou (${assignASecondDayResponse.status})`
+    );
+    const workoutASecondDayId = Number(
+      assignASecondDayResponse.body &&
+      assignASecondDayResponse.body.workout &&
+      assignASecondDayResponse.body.workout.id
+    ) || 0;
+    assert(workoutASecondDayId > 0, "segundo treino criado a partir do template A invalido");
+    assert(workoutASecondDayId !== workoutAId, "template A em outro dia deveria criar um novo treino");
+    createdWorkoutIds.push(workoutASecondDayId);
 
     console.log("[test:designacao-template] validando exercícios copiados em cada treino");
     const workoutAExercisesResponse = await requestJson({
@@ -363,8 +403,10 @@ async function main() {
     const instructorWorkouts = getResponseList(workoutsResponse, "workouts");
     const workoutA = findWorkoutByTemplateAndDays(instructorWorkouts, templateAId, ["Seg"]);
     const workoutB = findWorkoutByTemplateAndDays(instructorWorkouts, templateBId, ["Ter"]);
+    const workoutASecondDay = findWorkoutByTemplateAndDays(instructorWorkouts, templateAId, ["Qua"]);
     assert(workoutA, "treino A nao apareceu corretamente vinculado ao template A");
     assert(workoutB, "treino B nao apareceu corretamente vinculado ao template B");
+    assert(workoutASecondDay, "segundo treino do template A nao apareceu corretamente vinculado ao dia Qua");
 
     console.log("[ok] fluxo de template por dia validado com sucesso");
   } finally {
