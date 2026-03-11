@@ -2651,7 +2651,7 @@ function syncTrainerExerciseComposerUi({ focus = false, scroll = false } = {}) {
 function openTrainerWorkoutCreateFromExerciseField() {
   if (!isTrainerManagerUser()) return false;
 
-  const infoMessage = 'Crie e salve o treino em si antes de adicionar exercícios.';
+  const infoMessage = 'Crie e salve a nomeclatura de treino antes de adicionar exercícios.';
   setTrainerManagementFeedback(infoMessage, true);
   setTrainerExerciseFeedback(infoMessage, true);
   if (typeof setTrainerWorkoutCreatePanelCollapsed === 'function') {
@@ -9784,7 +9784,7 @@ const requestInstructorWorkoutDelete = async (workoutId) => {
 const requestWorkoutTemplateUpdate = async ({ templateId, body }) => {
   const normalizedTemplateId = Number(templateId) || 0;
   if (!normalizedTemplateId) {
-    throw new Error('Treino em si inválido para atualização.');
+    throw new Error('Nomeclatura de treino inválida para atualização.');
   }
 
   return requestStudentApi(
@@ -9806,7 +9806,7 @@ const requestWorkoutTemplateDeactivate = async (templateId) => {
 const requestWorkoutTemplateDelete = async (templateId) => {
   const normalizedTemplateId = Number(templateId) || 0;
   if (!normalizedTemplateId) {
-    throw new Error('Treino em si inválido para exclusão.');
+    throw new Error('Nomeclatura de treino inválida para exclusão.');
   }
 
   return requestStudentApi(
@@ -11806,7 +11806,7 @@ const isMobileSelectPickerCandidate = (select) => {
 };
 
 const getMobileSelectPickerTitle = (select) => {
-  if (select === trainerExerciseWorkoutSelect) return 'Treino em si';
+  if (select === trainerExerciseWorkoutSelect) return 'Nomeclatura de treino';
   const labelEl = select.closest('label');
   const rawTitle = labelEl
     ? String((labelEl.querySelector('span') && labelEl.querySelector('span').textContent) || '')
@@ -12016,14 +12016,14 @@ const openMobileSelectPicker = (select) => {
       label.className = 'student-mobile-select-picker-option-copy';
       const title = document.createElement('strong');
       title.className = 'student-mobile-select-picker-option-title';
-      title.textContent = isCreateWorkoutOption ? 'Novo treino' : 'Treino';
+      title.textContent = isCreateWorkoutOption ? 'Nova nomeclatura' : 'Nomeclatura';
       const subtitle = document.createElement('small');
       subtitle.className = 'student-mobile-select-picker-option-subtitle';
       subtitle.textContent = isCreateWorkoutOption
-        ? 'Criar treino em si agora'
+        ? 'Criar nomeclatura de treino agora'
         : optionText
-          ? `Treino em si: ${optionText}`
-          : 'Treino em si';
+          ? `Nomeclatura de treino: ${optionText}`
+          : 'Nomeclatura de treino';
       label.appendChild(title);
       label.appendChild(subtitle);
     } else {
@@ -12302,8 +12302,8 @@ async function openTrainerExerciseLibraryPicker({ focusSearch = false } = {}) {
     if (shouldOpenTrainerWorkoutQuickCreate(rawWorkoutValue)) {
       await createTrainerWorkoutFromExerciseField();
     } else {
-      setTrainerManagementFeedback('Selecione o treino em si salvo antes de abrir a biblioteca geral.', false);
-      setTrainerExerciseFeedback('Selecione o treino em si salvo antes de abrir a biblioteca geral.', false);
+      setTrainerManagementFeedback('Selecione a nomeclatura de treino salva antes de abrir a biblioteca geral.', false);
+      setTrainerExerciseFeedback('Selecione a nomeclatura de treino salva antes de abrir a biblioteca geral.', false);
     }
     return false;
   }
@@ -12367,7 +12367,7 @@ function renderTrainerExerciseLibraryPicker() {
     trainerExerciseLibraryPickerList.innerHTML = '';
     trainerExerciseLibraryPickerEmpty.hidden = false;
     trainerExerciseLibraryPickerEmpty.textContent =
-      'Selecione o treino em si salvo para adicionar exercícios.';
+      'Selecione a nomeclatura de treino salva para adicionar exercícios.';
     return;
   }
 
@@ -12421,7 +12421,7 @@ function renderTrainerExerciseLibraryPicker() {
       const existingCount = Number(existingExerciseCounts[exerciseId]) || 0;
       const existingCountLabel =
         existingCount > 0
-          ? ` | já no treino em si: ${existingCount}`
+          ? ` | já na nomeclatura de treino: ${existingCount}`
           : '';
       const pendingCount = Number(pendingExerciseCounts[exerciseId]) || 0;
       const metadataLabel = `${groupLabel} | ${repetitions} reps | desc ${formatSecondsLabel(restSeconds)}${existingCountLabel}`;
@@ -13801,7 +13801,7 @@ const renderTrainerManagementPanel = () => {
       `<option value="${TRAINER_WORKOUT_CREATE_OPTION_VALUE}">+ Criar treino agora</option>`;
     if (!activeTemplates.length) {
       trainerExerciseWorkoutSelect.innerHTML = [
-        '<option value="">Selecione o treino em si</option>',
+        '<option value="">Selecione a nomeclatura de treino</option>',
         createWorkoutOptionMarkup
       ].join('');
       trainerExerciseWorkoutSelect.value = '';
@@ -13822,7 +13822,7 @@ const renderTrainerManagementPanel = () => {
         )
         .join('');
       trainerExerciseWorkoutSelect.innerHTML = [
-        '<option value="">Selecione o treino em si</option>',
+        '<option value="">Selecione a nomeclatura de treino</option>',
         createWorkoutOptionMarkup,
         workoutOptionsMarkup
       ].join('');
@@ -14039,7 +14039,7 @@ const renderTrainerManagementPanel = () => {
     if (!rowsForDisplay.length) {
       trainerManagedWorkoutExpandedIds.clear();
       trainerWorkoutsTableBody.innerHTML = isDefinitionView
-        ? '<tr><td colspan="8">Nenhum treino em si criado.</td></tr>'
+        ? '<tr><td colspan="8">Nenhuma nomeclatura de treino criada.</td></tr>'
         : '<tr><td colspan="8">Nenhum treino atribuído ao aluno.</td></tr>';
     } else {
       const visibleManagedRows = rowsForDisplay.slice(0, TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT);
@@ -14110,7 +14110,7 @@ const renderTrainerManagementPanel = () => {
                   <div class="trainer-managed-workout-summary">
                     <div class="trainer-managed-workout-summary-main">
                       <strong>${safeCell(definitionName)}</strong>
-                      <small class="trainer-managed-workout-kind is-definition">Treino em si</small>
+                      <small class="trainer-managed-workout-kind is-definition">Nomeclatura de treino</small>
                     </div>
                   </div>
                 </td>
@@ -15081,7 +15081,7 @@ const handleTrainerWorkoutSubmit = async (event) => {
     : Number(studentData.userId) || 0;
 
   if (!templateId) {
-    setTrainerManagementFeedback('Selecione o treino em si antes de designar ao aluno.', false);
+    setTrainerManagementFeedback('Selecione a nomeclatura de treino antes de designar ao aluno.', false);
     if (trainerTemplateSelect) {
       try {
         trainerTemplateSelect.focus({ preventScroll: true });
@@ -15306,7 +15306,7 @@ const handleTrainerTemplateFormSubmit = async (event) => {
       }
       isTrainerExerciseComposerOpen = true;
       syncTrainerExerciseComposerUi({ scroll: true, focus: false });
-      setTrainerExerciseFeedback('Treino em si criado. Agora adicione os exercícios.', true);
+      setTrainerExerciseFeedback('Nomeclatura de treino criada. Agora adicione os exercícios.', true);
     }
     setTrainerManagementFeedback(
       (response && response.message) || 'Template criado com sucesso.',
@@ -15781,7 +15781,7 @@ const handleTrainerExerciseSubmit = async (event) => {
     : '';
 
   if (!templateId) {
-    const validationMessage = 'Selecione o treino em si salvo para adicionar o exercício.';
+    const validationMessage = 'Selecione a nomeclatura de treino salva para adicionar o exercício.';
     setTrainerManagementFeedback(validationMessage);
     setTrainerExerciseFeedback(validationMessage);
     return;
@@ -15810,7 +15810,7 @@ const handleTrainerExerciseSubmit = async (event) => {
   setButtonLoading(trainerExerciseSubmitButton, 'Salvando...');
   const savingMessage = hasPendingQueue
     ? `Salvando ${pendingExerciseIds.length} exercício(s) da fila...`
-    : 'Adicionando exercício ao treino em si...';
+    : 'Adicionando exercício à nomeclatura de treino...';
   setTrainerManagementFeedback(savingMessage, false);
   setTrainerExerciseFeedback(savingMessage, false);
 
@@ -15822,7 +15822,7 @@ const handleTrainerExerciseSubmit = async (event) => {
     let nextOrder = templateExercises.reduce((maxOrder, exerciseItem) => {
       return Math.max(maxOrder, Number(exerciseItem && exerciseItem.order) || 0);
     }, 0) + 1;
-    let successMessage = 'Exercício adicionado ao treino em si com sucesso.';
+    let successMessage = 'Exercício adicionado à nomeclatura de treino com sucesso.';
     let isPartialSave = false;
 
     if (hasPendingQueue) {
@@ -15929,7 +15929,7 @@ const handleTrainerExerciseSubmit = async (event) => {
         }
       );
 
-      successMessage = (response && response.message) || 'Exercício adicionado ao treino em si com sucesso.';
+      successMessage = (response && response.message) || 'Exercício adicionado à nomeclatura de treino com sucesso.';
     }
 
     if (trainerExerciseForm) {
@@ -15963,7 +15963,7 @@ const handleTrainerExerciseSubmit = async (event) => {
     setTrainerExerciseFeedback(successMessage, !isPartialSave);
     renderTrainerExerciseLibraryPicker();
   } catch (error) {
-    const errorMessage = error && error.message ? error.message : 'Falha ao adicionar exercício ao treino em si.';
+    const errorMessage = error && error.message ? error.message : 'Falha ao adicionar exercício à nomeclatura de treino.';
     setTrainerManagementFeedback(errorMessage, false);
     setTrainerExerciseFeedback(errorMessage, false);
   } finally {
@@ -16169,18 +16169,18 @@ const handleTrainerWorkoutsTableActions = async (event) => {
 
     const template = getTrainerTemplateById(templateId);
     if (!template) {
-      setTrainerManagementFeedback('Treino em si não encontrado.', false);
+      setTrainerManagementFeedback('Nomeclatura de treino não encontrada.', false);
       return;
     }
     if (template.isActive === false) {
-      setTrainerManagementFeedback('Esse treino em si já está inativo.', false);
+      setTrainerManagementFeedback('Essa nomeclatura de treino já está inativa.', false);
       return;
     }
 
     const confirmed = await requestSiteConfirm({
-      title: 'Desativar treino em si',
+      title: 'Desativar nomeclatura de treino',
       identification: definitionName,
-      message: `Tem certeza que deseja desativar o treino em si "${definitionName}"? Ele deixará de aparecer para novas designações.`,
+      message: `Tem certeza que deseja desativar a nomeclatura de treino "${definitionName}"? Ela deixará de aparecer para novas designações.`,
       confirmLabel: 'Desativar',
       cancelLabel: 'Cancelar',
       triggerButton: definitionDeactivateButton
@@ -16188,7 +16188,7 @@ const handleTrainerWorkoutsTableActions = async (event) => {
     if (!confirmed) return;
 
     definitionDeactivateButton.disabled = true;
-    setTrainerManagementFeedback('Desativando treino em si...', false);
+    setTrainerManagementFeedback('Desativando nomeclatura de treino...', false);
     try {
       await requestWorkoutTemplateDeactivate(templateId);
       await loadTrainerManagementData(true);
@@ -16201,13 +16201,13 @@ const handleTrainerWorkoutsTableActions = async (event) => {
         throw new Error('Não foi possível confirmar a desativação. Atualize os dados e tente novamente.');
       }
 
-      const successMessage = `Treino em si "${definitionName}" desativado com sucesso.`;
+      const successMessage = `Nomeclatura de treino "${definitionName}" desativada com sucesso.`;
       setTrainerManagementFeedback(successMessage, true);
       setTrainerExerciseFeedback(successMessage, true);
     } catch (error) {
       const errorMessage = error && error.message
         ? error.message
-        : 'Falha ao desativar treino em si.';
+        : 'Falha ao desativar nomeclatura de treino.';
       setTrainerManagementFeedback(errorMessage, false);
       setTrainerExerciseFeedback(errorMessage, false);
     } finally {
@@ -16224,18 +16224,18 @@ const handleTrainerWorkoutsTableActions = async (event) => {
 
     const template = getTrainerTemplateById(templateId);
     if (!template) {
-      setTrainerManagementFeedback('Treino em si não encontrado.', false);
+      setTrainerManagementFeedback('Nomeclatura de treino não encontrada.', false);
       return;
     }
     if (template.isActive !== false) {
-      setTrainerManagementFeedback('Desative o treino em si antes de excluir.', false);
+      setTrainerManagementFeedback('Desative a nomeclatura de treino antes de excluir.', false);
       return;
     }
 
     const confirmed = await requestSiteConfirm({
-      title: 'Excluir treino em si',
+      title: 'Excluir nomeclatura de treino',
       identification: definitionName,
-      message: `Tem certeza que deseja excluir o treino em si "${definitionName}"? Os treinos já atribuídos aos alunos serão mantidos.`,
+      message: `Tem certeza que deseja excluir a nomeclatura de treino "${definitionName}"? Os treinos já atribuídos aos alunos serão mantidos.`,
       confirmLabel: 'Excluir treino',
       cancelLabel: 'Cancelar',
       triggerButton: definitionDeleteButton
@@ -16243,7 +16243,7 @@ const handleTrainerWorkoutsTableActions = async (event) => {
     if (!confirmed) return;
 
     definitionDeleteButton.disabled = true;
-    setTrainerManagementFeedback('Excluindo treino em si...', false);
+    setTrainerManagementFeedback('Excluindo nomeclatura de treino...', false);
     try {
       await requestWorkoutTemplateDelete(templateId);
       const deletedTemplateId = String(templateId);
@@ -16255,13 +16255,13 @@ const handleTrainerWorkoutsTableActions = async (event) => {
       await syncWorkoutsFromBackend({ silent: true });
       if (isGeneralAdminUser()) await fetchAdminOverview(true);
 
-      const successMessage = `Treino em si "${definitionName}" excluído com sucesso.`;
+      const successMessage = `Nomeclatura de treino "${definitionName}" excluída com sucesso.`;
       setTrainerManagementFeedback(successMessage, true);
       setTrainerExerciseFeedback(successMessage, true);
     } catch (error) {
       const errorMessage = error && error.message
         ? error.message
-        : 'Falha ao excluir treino em si.';
+        : 'Falha ao excluir nomeclatura de treino.';
       setTrainerManagementFeedback(errorMessage, false);
       setTrainerExerciseFeedback(errorMessage, false);
     } finally {
@@ -17559,7 +17559,7 @@ const initStudentArea = () => {
       if (trainerExerciseSearchInput) trainerExerciseSearchInput.value = '';
       closeTrainerExerciseLibraryPicker({ clearSearch: true });
       setTrainerManagementFeedback(
-        'Formulário aberto. Selecione o treino em si, o grupo e o exercício da biblioteca.',
+        'Formulário aberto. Selecione a nomeclatura de treino, o grupo e o exercício da biblioteca.',
         false
       );
       syncTrainerExerciseComposerUi({

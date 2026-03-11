@@ -2052,7 +2052,7 @@ Core"
                 <article class="admin-overview-table-card trainer-template-create-card" data-trainer-template-create-card>
                   <header class="admin-overview-table-head admin-overview-table-head--collapsible trainer-card-head--centered">
                     <div class="admin-overview-table-head-row">
-                      <h5>Criar Treino em Si</h5>
+                      <h5>Nomeclatura de treino</h5>
                       <button
                         class="admin-overview-collapse-btn"
                         type="button"
@@ -2060,7 +2060,7 @@ Core"
                         aria-expanded="true"
                       >Minimizar caixa</button>
                     </div>
-                    <p class="trainer-card-subtitle">Salve um treino exclusivo do instrutor antes de designar ao aluno.</p>
+                    <p class="trainer-card-subtitle">Salve uma nomeclatura de treino exclusiva do instrutor antes de designar ao aluno.</p>
                   </header>
                   <div data-trainer-template-create-body>
                     <form class="trainer-workout-form" data-trainer-template-form novalidate>
@@ -2076,7 +2076,7 @@ Core"
                           />
                         </label>
                         <label class="trainer-field-full">
-                          <span>Status do treino em si</span>
+                          <span>Status da nomeclatura de treino</span>
                           <select data-trainer-template-form-active>
                             <option value="true">Ativo</option>
                             <option value="false">Inativo</option>
@@ -2085,14 +2085,14 @@ Core"
                         <label class="trainer-field-full">
                           <span>Descrição</span>
                           <textarea
-                            placeholder="Adicione observações do treino em si para a sua biblioteca interna..."
+                            placeholder="Adicione observações da nomeclatura de treino para a sua biblioteca interna..."
                             data-trainer-template-form-description
                           ></textarea>
                         </label>
                       </div>
                       <div class="trainer-workout-actions">
                         <button class="student-login-btn trainer-workout-submit" type="submit" data-trainer-template-form-submit>
-                          <span>Salvar treino em si</span>
+                          <span>Salvar nomeclatura de treino</span>
                         </button>
                       </div>
                     </form>
@@ -2110,13 +2110,13 @@ Core"
                         aria-expanded="true"
                       >Minimizar caixa</button>
                     </div>
-                    <p class="trainer-card-subtitle">Escolha o treino em si e defina como ele será entregue ao aluno.</p>
+                    <p class="trainer-card-subtitle">Escolha a nomeclatura de treino e defina como ela será entregue ao aluno.</p>
                   </header>
                   <div data-trainer-workout-create-body>
                     <form class="trainer-workout-form" data-trainer-workout-form novalidate>
                       <div class="trainer-workout-form-grid trainer-workout-form-grid--model">
                       <label class="trainer-field-full">
-                        <span>Treino em si <small class="trainer-required-chip">Obrigatório</small></span>
+                        <span>Nomeclatura de treino <small class="trainer-required-chip">Obrigatório</small></span>
                         <select name="templateId" data-trainer-template-select required></select>
                         <small class="trainer-field-hint">Esse treino continua exclusivo até ser designado ao aluno.</small>
                       </label>
@@ -2201,7 +2201,7 @@ Core"
                   <header class="admin-overview-table-head trainer-exercise-create-head">
                     <div class="trainer-exercise-title-wrap">
                       <h5>Treino em construção</h5>
-                      <p>Selecione o treino em si e adicione exercícios da biblioteca geral.</p>
+                      <p>Selecione a nomeclatura de treino e adicione exercícios da biblioteca geral.</p>
                     </div>
                     <button class="trainer-exercise-add-btn" type="button" data-trainer-exercise-focus>
                       <span aria-hidden="true">+</span>
@@ -2211,10 +2211,10 @@ Core"
                   <form class="trainer-exercise-form" data-trainer-exercise-form novalidate hidden>
                     <div class="trainer-workout-form-grid trainer-workout-form-grid--model trainer-exercise-grid">
                       <label class="trainer-field-full">
-                        <span>Treino em si <small class="trainer-required-chip">Obrigatório</small></span>
+                        <span>Nomeclatura de treino <small class="trainer-required-chip">Obrigatório</small></span>
                         <div class="trainer-workout-select-actions">
                           <select name="workoutId" data-trainer-exercise-workout required>
-                            <option value="">Selecione o treino em si</option>
+                            <option value="">Selecione a nomeclatura de treino</option>
                           </select>
                           <button class="trainer-workout-select-action" type="button" data-trainer-exercise-workout-view aria-label="Visualizar treino" title="Visualizar treino" disabled>
                             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -2328,7 +2328,7 @@ Core"
                     <div class="admin-overview-support-toolbar trainer-managed-workouts-toolbar">
                       <div class="admin-overview-tabs trainer-managed-workouts-tabs" role="tablist" aria-label="Visualização dos treinos gerenciados">
                         <button class="admin-overview-tab is-active" type="button" role="tab" aria-selected="true" data-trainer-managed-workouts-view="assigned">Treinos dos alunos</button>
-                        <button class="admin-overview-tab" type="button" role="tab" aria-selected="false" data-trainer-managed-workouts-view="definition">Treino em si</button>
+                        <button class="admin-overview-tab" type="button" role="tab" aria-selected="false" data-trainer-managed-workouts-view="definition">Nomeclatura de treino</button>
                       </div>
                     </div>
                     <div class="admin-overview-table-wrap">
