@@ -11431,7 +11431,7 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
 
 .trainer-weekday-assignment-wrap {
   display: grid;
-  gap: 8px;
+  gap: 14px;
   justify-items: center;
   text-align: center;
 }
@@ -11458,28 +11458,29 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
 .trainer-weekday-assignment-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 8px;
+  gap: 14px;
   width: 100%;
   margin-inline: auto;
 }
 
 .trainer-weekday-assignment-field {
   display: grid;
-  gap: 4px;
+  gap: 8px;
   justify-items: center;
   text-align: center;
 }
 
 .trainer-weekday-assignment-field > span {
   color: #436556;
-  font-size: 0.76rem;
+  font-size: 0.9rem;
   font-weight: 700;
   width: 100%;
   text-align: center;
 }
 
 .trainer-weekday-assignment-field select {
-  min-height: 34px;
+  width: 100%;
+  min-height: 44px;
   border-radius: 10px;
   text-align: center;
   text-align-last: center;
@@ -15742,9 +15743,9 @@ body.theme-dark .trainer-action-warning {
   }
 
   .student-app-panel[data-student-app-panel="admin-treinos"] .trainer-weekday-assignment-list {
-    width: min(100%, 262px);
+    width: min(100%, 320px);
     grid-template-columns: 1fr;
-    gap: 6px;
+    gap: 12px;
   }
 
   .student-app-panel[data-student-app-panel="admin-treinos"] .trainer-weekday-assignment-field {
@@ -15755,12 +15756,12 @@ body.theme-dark .trainer-action-warning {
   .student-app-panel[data-student-app-panel="admin-treinos"] .trainer-weekday-assignment-field > span {
     width: 100%;
     text-align: center;
-    font-size: 0.74rem;
+    font-size: 0.96rem;
   }
 
   .student-app-panel[data-student-app-panel="admin-treinos"] .trainer-weekday-assignment-field select {
     width: 100%;
-    min-height: 34px;
+    min-height: 46px;
     text-align: center;
     text-align-last: center;
   }
