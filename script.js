@@ -10035,7 +10035,10 @@ const renderTrainerWorkoutModalLibraryGuide = () => {
   }
 
   const workoutId = Number(trainerWorkoutEditingId) || 0;
-  const workoutExercises = trainerManagementState.exercisesByWorkoutId[String(workoutId)] || [];
+  const workout = getTrainerWorkoutById(workoutId);
+  const workoutExercises = workout
+    ? getTrainerWorkoutExercisesWithTemplateFallback(workout)
+    : trainerManagementState.exercisesByWorkoutId[String(workoutId)] || [];
 
   if (trainerWorkoutModalReadOnly) {
     trainerWorkoutModalLibraryWrap.hidden = false;
@@ -10391,9 +10394,9 @@ const openTrainerWorkoutModal = (workout, triggerButton = null, { readOnly = fal
   syncTrainerWorkoutModalGroupOptions(workout);
   renderTrainerWorkoutModalLibraryGuide();
 
-  const loadedExercises = trainerManagementState.exercisesByWorkoutId[String(trainerWorkoutEditingId)] || [];
+  const loadedExercises = getTrainerWorkoutExercisesWithTemplateFallback(workout);
   const expectedExercisesCount = Math.max(0, Number(workout && workout.totalExercises) || 0);
-  if (!loadedExercises.length && expectedExercisesCount > 0) {
+  if (!loadedExercises.length && (expectedExercisesCount > 0 || Number(workout && workout.originTemplateId) > 0)) {
     setTrainerWorkoutModalFeedback('Carregando exercícios do treino...', false);
     void hydrateTrainerWorkoutExercises(trainerWorkoutEditingId)
       .then(() => {
@@ -11315,24 +11318,21 @@ function getTrainerTemplateById(templateId) {
   return templates.find((template) => Number(template && template.id) === normalizedTemplateId) || null;
 }
 
-function buildTrainerTemplatePreviewWorkout(templateId) {
+function mapTrainerTemplateExercisesToWorkoutExercises(templateId, workoutId) {
   const normalizedTemplateId = Number(templateId) || 0;
-  if (!normalizedTemplateId) return null;
-
-  const template = getTrainerTemplateById(normalizedTemplateId);
-  if (!template) return null;
+  const normalizedWorkoutId = Number(workoutId) || 0;
+  if (!normalizedTemplateId || !normalizedWorkoutId) return [];
 
   const templateExercises =
     trainerManagementState.templateExercisesByTemplateId[String(normalizedTemplateId)] || [];
-  const previewWorkoutId = TRAINER_TEMPLATE_PREVIEW_ID_OFFSET + normalizedTemplateId;
-  const mappedExercises = templateExercises
+  return templateExercises
     .slice()
     .sort((first, second) => (Number(first && first.order) || 0) - (Number(second && second.order) || 0))
     .map((item, index) => {
       const exercise = item && item.exercise ? item.exercise : null;
       return {
-        id: previewWorkoutId * 1000 + index + 1,
-        workoutId: previewWorkoutId,
+        id: normalizedWorkoutId * 1000 + index + 1,
+        workoutId: normalizedWorkoutId,
         exerciseId: Number(item && item.exerciseId) || 0,
         libraryExerciseId: Number(item && item.exerciseId) || 0,
         order: Math.max(1, Number(item && item.order) || index + 1),
@@ -11361,6 +11361,40 @@ function buildTrainerTemplatePreviewWorkout(templateId) {
         ),
       };
     });
+}
+
+function getTrainerWorkoutExercisesWithTemplateFallback(workout) {
+  const normalizedWorkoutId = Number(workout && workout.id) || 0;
+  if (!normalizedWorkoutId) return [];
+
+  const currentExercises = trainerManagementState.exercisesByWorkoutId[String(normalizedWorkoutId)] || [];
+  if (Array.isArray(currentExercises) && currentExercises.length) return currentExercises;
+
+  const originTemplateId = Number(workout && workout.originTemplateId) || 0;
+  if (!originTemplateId) return [];
+
+  const mappedExercises = mapTrainerTemplateExercisesToWorkoutExercises(
+    originTemplateId,
+    normalizedWorkoutId
+  );
+  if (mappedExercises.length) {
+    trainerManagementState.exercisesByWorkoutId[String(normalizedWorkoutId)] = mappedExercises;
+  }
+  return mappedExercises;
+}
+
+function buildTrainerTemplatePreviewWorkout(templateId) {
+  const normalizedTemplateId = Number(templateId) || 0;
+  if (!normalizedTemplateId) return null;
+
+  const template = getTrainerTemplateById(normalizedTemplateId);
+  if (!template) return null;
+
+  const previewWorkoutId = TRAINER_TEMPLATE_PREVIEW_ID_OFFSET + normalizedTemplateId;
+  const mappedExercises = mapTrainerTemplateExercisesToWorkoutExercises(
+    normalizedTemplateId,
+    previewWorkoutId
+  );
 
   trainerManagementState.exercisesByWorkoutId[String(previewWorkoutId)] = mappedExercises;
 
@@ -14269,7 +14303,7 @@ const renderTrainerManagementPanel = () => {
           const workoutId = Number(workout && workout.id) || 0;
           const workoutName = String((workout && (workout.title || workout.name)) || `Treino ${workoutId || '-'}`).trim() || '-';
           const student = usersById.get(Number(workout && workout.studentId));
-          const exercises = trainerManagementState.exercisesByWorkoutId[String(workout && workout.id)] || [];
+          const exercises = getTrainerWorkoutExercisesWithTemplateFallback(workout);
           const exercisesCount = Array.isArray(exercises) && exercises.length
             ? exercises.length
             : Math.max(0, Number(workout && workout.totalExercises) || 0);
