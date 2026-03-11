@@ -1174,6 +1174,12 @@ html.student-area-open {
   cursor: pointer;
 }
 
+.student-progress-action-btn:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+  filter: saturate(0.78);
+}
+
 .student-progress-block .student-progress-card-head h5 {
   font-size: 1.12rem;
 }

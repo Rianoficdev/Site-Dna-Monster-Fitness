@@ -13260,6 +13260,15 @@ const renderTrainerManagementPanel = () => {
   syncTrainerManagedWorkoutsPanelCollapseUi();
   syncTrainerManagedWorkoutsViewUi();
   const showPanelData = isTrainerManagerUser();
+
+  if (trainerWorkoutRefreshButton) {
+    trainerWorkoutRefreshButton.disabled = trainerManagementState.loading;
+    trainerWorkoutRefreshButton.textContent = trainerManagementState.loading
+      ? 'Atualizando...'
+      : 'Atualizar dados';
+    trainerWorkoutRefreshButton.setAttribute('aria-busy', trainerManagementState.loading ? 'true' : 'false');
+  }
+
   if (!showPanelData) {
     closeTrainerExerciseLibraryPicker({ clearSearch: true });
     isTrainerLinkedExercisesExpanded = false;
