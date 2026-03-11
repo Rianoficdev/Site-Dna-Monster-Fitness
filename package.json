@@ -10,6 +10,8 @@
     "backup:projeto": "node scripts/backup-project.js",
     "backup:boa-noite": "node scripts/backup-project.js --label=boa-noite",
     "db:migrate:sql": "node scripts/apply-sql-migrations.js",
+    "storage:bootstrap": "node scripts/bootstrap-supabase-storage.js",
+    "migrate:storage": "node scripts/migrate-media-to-supabase-storage.js",
     "check:rotina": "node scripts/check-rotina.js",
     "test:designacao": "node scripts/test-designacao.js",
     "test:concorrencia": "node scripts/test-concorrencia.js",
