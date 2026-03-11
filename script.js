@@ -13789,7 +13789,7 @@ const renderTrainerManagementPanel = () => {
     }
   }
 
-  renderTrainerWeekdayAssignmentSelectors([]);
+  renderTrainerWeekdayAssignmentSelectors(visibleWorkouts);
 
   if (trainerWorkoutCreateCard) {
     trainerWorkoutCreateCard.hidden = false;
