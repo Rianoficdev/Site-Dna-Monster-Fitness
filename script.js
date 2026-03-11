@@ -15057,7 +15057,6 @@ const handleTrainerWorkoutSubmit = async (event) => {
   if (!isTrainerManagerUser()) return;
   if (trainerWorkoutCreateInFlight) return;
 
-  const templateId = Number(trainerTemplateSelect ? trainerTemplateSelect.value : 0) || 0;
   const assignedWorkoutName = trainerTemplateNameInput
     ? String(trainerTemplateNameInput.value || '').trim()
     : '';
@@ -15102,7 +15101,7 @@ const handleTrainerWorkoutSubmit = async (event) => {
   const unresolvedDays = [];
   const groupedAssignmentsMap = new Map();
   weekDays.forEach((day) => {
-    const resolvedTemplateId = Number(explicitDayAssignments[day]) || templateId;
+    const resolvedTemplateId = Number(explicitDayAssignments[day]) || 0;
     if (!resolvedTemplateId) {
       unresolvedDays.push(day);
       return;
@@ -15116,8 +15115,8 @@ const handleTrainerWorkoutSubmit = async (event) => {
 
   if (!groupedAssignmentsMap.size || unresolvedDays.length) {
     const unresolvedMessage = unresolvedDays.length
-      ? `Selecione um treino para ${unresolvedDays.join(', ')} ou escolha uma nomeclatura principal.`
-      : 'Selecione a nomeclatura de treino principal ou defina um treino para cada dia.';
+      ? `Selecione um treino para ${unresolvedDays.join(', ')}.`
+      : 'Defina um treino para cada dia selecionado.';
     setTrainerManagementFeedback(unresolvedMessage, false);
 
     const firstUnresolvedDay = unresolvedDays[0] || '';
@@ -15126,10 +15125,9 @@ const handleTrainerWorkoutSubmit = async (event) => {
         trainerWeekdayAssignmentList.querySelectorAll('[data-trainer-weekday-assignment-select]')
       ).find((select) => String(select && select.dataset.day || '').trim() === firstUnresolvedDay) || null
       : null;
-    const focusTarget = unresolvedSelect instanceof HTMLSelectElement ? unresolvedSelect : trainerTemplateSelect;
-    if (focusTarget) {
+    if (unresolvedSelect instanceof HTMLSelectElement) {
       try {
-        focusTarget.focus({ preventScroll: true });
+        unresolvedSelect.focus({ preventScroll: true });
       } catch (_) {}
     }
     return;
@@ -15195,11 +15193,9 @@ const handleTrainerWorkoutSubmit = async (event) => {
     }
 
     if (trainerWorkoutForm) {
-      const preservedTemplateId = String(templateId || (groupedAssignments[0] && groupedAssignments[0].templateId) || '');
       trainerWorkoutForm.reset();
       trainerWorkoutDayAssignments = {};
       trainerWorkoutStudentConfirmed = false;
-      if (trainerTemplateSelect) trainerTemplateSelect.value = preservedTemplateId;
     }
     await loadTrainerManagementData(true);
     await loadTrainerProgressData(true);
@@ -15213,7 +15209,7 @@ const handleTrainerWorkoutSubmit = async (event) => {
       trainerExerciseTargetWorkoutId = createdWorkoutId;
     }
     const selectedTemplateAfterSubmit = String(
-      templateId || (groupedAssignments[0] && groupedAssignments[0].templateId) || ''
+      (groupedAssignments[0] && groupedAssignments[0].templateId) || ''
     );
     trainerTemplateExerciseSelectedId = selectedTemplateAfterSubmit;
     trainerExerciseComposerSelectedId = selectedTemplateAfterSubmit;
