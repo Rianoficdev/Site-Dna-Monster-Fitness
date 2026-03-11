@@ -2047,10 +2047,54 @@ Core"
 
                 <p class="student-form-error trainer-workout-error" data-trainer-workout-error aria-live="polite"></p>
 
+                <article class="admin-overview-table-card trainer-template-create-card">
+                  <header class="admin-overview-table-head">
+                    <div class="admin-overview-table-head-row">
+                      <h5>Criar Treino em Si</h5>
+                    </div>
+                    <p class="trainer-card-subtitle">Salve um treino exclusivo do instrutor antes de designar ao aluno.</p>
+                  </header>
+                  <div>
+                    <form class="trainer-workout-form" data-trainer-template-form novalidate>
+                      <div class="trainer-workout-form-grid trainer-workout-form-grid--model">
+                        <label class="trainer-field-full">
+                          <span>Nome do treino <small class="trainer-required-chip">Obrigatório</small></span>
+                          <input
+                            type="text"
+                            placeholder="Ex: Treino A - Peito e tríceps"
+                            data-trainer-template-form-name
+                            maxlength="120"
+                            required
+                          />
+                        </label>
+                        <label class="trainer-field-full">
+                          <span>Status do treino em si</span>
+                          <select data-trainer-template-form-active>
+                            <option value="true">Ativo</option>
+                            <option value="false">Inativo</option>
+                          </select>
+                        </label>
+                        <label class="trainer-field-full">
+                          <span>Descrição</span>
+                          <textarea
+                            placeholder="Adicione observações do treino em si para a sua biblioteca interna..."
+                            data-trainer-template-form-description
+                          ></textarea>
+                        </label>
+                      </div>
+                      <div class="trainer-workout-actions">
+                        <button class="student-login-btn trainer-workout-submit" type="submit" data-trainer-template-form-submit>
+                          <span>Salvar treino em si</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </article>
+
                 <article class="admin-overview-table-card trainer-workout-create-card" data-trainer-workout-create-card>
                   <header class="admin-overview-table-head admin-overview-table-head--collapsible">
                     <div class="admin-overview-table-head-row">
-                      <h5>Informações do Treino</h5>
+                      <h5>Designar Treino ao Aluno</h5>
                       <button
                         class="admin-overview-collapse-btn"
                         type="button"
@@ -2058,11 +2102,26 @@ Core"
                         aria-expanded="true"
                       >Minimizar caixa</button>
                     </div>
-                    <p class="trainer-card-subtitle">Preencha os dados básicos do treino</p>
+                    <p class="trainer-card-subtitle">Escolha o treino em si e defina como ele será entregue ao aluno.</p>
                   </header>
                   <div data-trainer-workout-create-body>
                     <form class="trainer-workout-form" data-trainer-workout-form novalidate>
                       <div class="trainer-workout-form-grid trainer-workout-form-grid--model">
+                      <label class="trainer-field-full">
+                        <span>Treino em si <small class="trainer-required-chip">Obrigatório</small></span>
+                        <select name="templateId" data-trainer-template-select required></select>
+                        <small class="trainer-field-hint">Esse treino continua exclusivo até ser designado ao aluno.</small>
+                      </label>
+                      <label class="trainer-field-full">
+                        <span>Nome para o aluno</span>
+                        <input
+                          type="text"
+                          name="name"
+                          placeholder="Se quiser, personalize o nome deste treino para o aluno"
+                          data-trainer-template-name
+                          maxlength="120"
+                        />
+                      </label>
                       <label class="trainer-student-field">
                         <span>Aluno <small class="trainer-required-chip">Obrigatório</small></span>
                         <div class="trainer-select-search">
@@ -2134,7 +2193,7 @@ Core"
                   <header class="admin-overview-table-head trainer-exercise-create-head">
                     <div class="trainer-exercise-title-wrap">
                       <h5>Treino em construção</h5>
-                      <p>Selecione o treino e adicione exercícios da biblioteca geral.</p>
+                      <p>Selecione o treino em si e adicione exercícios da biblioteca geral.</p>
                     </div>
                     <button class="trainer-exercise-add-btn" type="button" data-trainer-exercise-focus>
                       <span aria-hidden="true">+</span>
@@ -2144,10 +2203,10 @@ Core"
                   <form class="trainer-exercise-form" data-trainer-exercise-form novalidate hidden>
                     <div class="trainer-workout-form-grid trainer-workout-form-grid--model trainer-exercise-grid">
                       <label class="trainer-field-full">
-                        <span>Treino <small class="trainer-required-chip">Obrigatório</small></span>
+                        <span>Treino em si <small class="trainer-required-chip">Obrigatório</small></span>
                         <div class="trainer-workout-select-actions">
                           <select name="workoutId" data-trainer-exercise-workout required>
-                            <option value="">Selecione o treino</option>
+                            <option value="">Selecione o treino em si</option>
                           </select>
                           <button class="trainer-workout-select-action" type="button" data-trainer-exercise-workout-view aria-label="Visualizar treino" title="Visualizar treino" disabled>
                             <svg viewBox="0 0 24 24" aria-hidden="true">

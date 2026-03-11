@@ -740,6 +740,10 @@ function createWorkoutsService({
     studentId,
     instructorId,
     name,
+    objective,
+    description,
+    coverImageUrl,
+    status,
     isActive,
     startDate,
     endDate,
@@ -807,12 +811,16 @@ function createWorkoutsService({
 
     const createdWorkout = await workoutsRepository.createWorkout({
       name: normalizeString(name) || template.name,
-      objective: "",
-      description: normalizeString(template.description),
+      objective: normalizeString(objective),
+      description: normalizeString(description) || normalizeString(template.description),
+      coverImageUrl: normalizeString(coverImageUrl),
       studentId: Number(student.id),
       createdBy: Number(instructor.id),
       originTemplateId: Number(template.id),
-      isActive: normalizeBoolean(isActive, true),
+      isActive:
+        isActive !== undefined
+          ? normalizeBoolean(isActive, true)
+          : normalizeStatusToActive(status, true),
       startDate: normalizeDate(startDate, "startDate"),
       endDate: normalizeDate(endDate, "endDate"),
       weekDays: normalizeWeekDays(weekDays),

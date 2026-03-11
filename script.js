@@ -2618,10 +2618,9 @@ function syncTrainerExerciseComposerUi({ focus = false, scroll = false } = {}) {
   }
 
   if (trainerExerciseWorkoutSelect) {
-    const targetValue = String(trainerExerciseTargetWorkoutId || '').trim();
+    const targetValue = String(trainerTemplateExerciseSelectedId || '').trim();
     if (targetValue && Array.from(trainerExerciseWorkoutSelect.options).some((option) => option.value === targetValue)) {
       trainerExerciseWorkoutSelect.value = targetValue;
-      trainerExerciseTargetWorkoutId = 0;
     }
   }
   syncTrainerExerciseWorkoutQuickActions();
@@ -2646,21 +2645,26 @@ function syncTrainerExerciseComposerUi({ focus = false, scroll = false } = {}) {
 function openTrainerWorkoutCreateFromExerciseField() {
   if (!isTrainerManagerUser()) return false;
 
-  const infoMessage = 'Crie um treino em "Informacoes do Treino" para continuar.';
+  const infoMessage = 'Crie e salve o treino em si antes de adicionar exercícios.';
   setTrainerManagementFeedback(infoMessage, true);
   setTrainerExerciseFeedback(infoMessage, true);
-  setTrainerWorkoutCreatePanelCollapsed(false);
+  if (typeof setTrainerWorkoutCreatePanelCollapsed === 'function') {
+    setTrainerWorkoutCreatePanelCollapsed(false);
+  }
 
-  const scrollTarget = trainerWorkoutCreateCard || trainerWorkoutForm;
+  const scrollTarget =
+    (trainerTemplateForm && trainerTemplateForm.closest('article')) ||
+    trainerWorkoutCreateCard ||
+    trainerWorkoutForm;
   if (scrollTarget && typeof scrollTarget.scrollIntoView === 'function') {
     scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   const focusTarget =
-    trainerWorkoutPredefinedSelect ||
-    trainerWorkoutStudentSearchInput ||
-    trainerWorkoutStudentSelect ||
-    trainerWorkoutObjectiveSelect;
+    trainerTemplateFormNameInput ||
+    trainerTemplateFormDescriptionInput ||
+    trainerTemplateFormActiveSelect ||
+    trainerTemplateSelect;
   if (focusTarget && typeof focusTarget.focus === 'function') {
     window.requestAnimationFrame(() => {
       focusTarget.focus({ preventScroll: true });
@@ -2674,112 +2678,18 @@ async function createTrainerWorkoutFromExerciseField() {
   if (!isTrainerManagerUser()) return false;
   if (trainerExerciseQuickCreateInFlight) return false;
 
-  const studentId = Number(trainerWorkoutStudentSelect ? trainerWorkoutStudentSelect.value : 0) || 0;
-  const instructorId = isGeneralAdminUser()
-    ? Number(trainerWorkoutInstructorSelect ? trainerWorkoutInstructorSelect.value : 0) || 0
-    : Number(studentData.userId) || 0;
-
-  if (!studentId || !instructorId || !trainerWorkoutStudentConfirmed) {
-    setTrainerManagementFeedback('Selecione o aluno manualmente antes de criar o treino.', false);
-    setTrainerExerciseFeedback('Selecione o aluno manualmente antes de criar o treino.', false);
-    openTrainerWorkoutCreateFromExerciseField();
-    return false;
-  }
-
   const selectedGroups = getSelectedTrainerExerciseGroups();
   const selectedGroupsLabel = getTrainerExerciseGroupsLabel(selectedGroups, 'Geral');
   const suggestedWorkoutName = selectedGroups.length
     ? `Treino A - ${selectedGroupsLabel}`
     : 'Treino A - Peito e triceps';
-  const enteredName = String(
-    await requestTrainerWorkoutQuickCreate({
-      defaultName: suggestedWorkoutName,
-      triggerButton: trainerExerciseWorkoutSelect
-    })
-  ).trim();
-
-  if (!enteredName) {
-    if (trainerExerciseWorkoutSelect) trainerExerciseWorkoutSelect.value = '';
-    setTrainerExerciseFeedback('Criacao cancelada. Informe um nome para o treino.', false);
-    return false;
+  if (trainerTemplateFormNameInput && !String(trainerTemplateFormNameInput.value || '').trim()) {
+    trainerTemplateFormNameInput.value = suggestedWorkoutName;
   }
-
-  const objective = trainerWorkoutObjectiveSelect
-    ? String(trainerWorkoutObjectiveSelect.value || '').trim()
-    : '';
-  const status = trainerWorkoutStatusSelect
-    ? String(trainerWorkoutStatusSelect.value || 'ATIVO').trim().toUpperCase()
-    : 'ATIVO';
-  const description = trainerWorkoutDescriptionInput
-    ? String(trainerWorkoutDescriptionInput.value || '').trim()
-    : '';
-  const weekDays = Array.from(trainerWeekdayInputs || [])
-    .filter((input) => input && input.checked)
-    .map((input) => String(input.value || '').trim())
-    .filter(Boolean);
-
-  if (!weekDays.length) {
-    if (trainerExerciseWorkoutSelect) trainerExerciseWorkoutSelect.value = '';
-    setTrainerManagementFeedback('Selecione ao menos um dia da semana antes de criar o treino.', false);
-    setTrainerExerciseFeedback('Selecione ao menos um dia da semana antes de criar o treino.', false);
-    return false;
-  }
-
-  trainerExerciseQuickCreateInFlight = true;
-  if (trainerExerciseWorkoutSelect) trainerExerciseWorkoutSelect.disabled = true;
-  syncTrainerExerciseWorkoutQuickActions();
-  setTrainerManagementFeedback('Criando treino rapido...', false);
-  setTrainerExerciseFeedback('Criando treino rapido...', false);
-
-  try {
-    const response = await requestInstructorWorkoutCreate({
-      title: enteredName,
-      objective,
-      description,
-      status,
-      weekDays,
-      studentId,
-      instructorId,
-      exercises: []
-    });
-
-    await loadTrainerManagementData(true);
-    let createdWorkoutId = resolveCreatedWorkoutIdFromResponse(response);
-    if (!createdWorkoutId) {
-      createdWorkoutId = findTrainerWorkoutIdByTitle(enteredName, { studentId });
-    }
-    if (createdWorkoutId && !getTrainerWorkoutById(createdWorkoutId)) {
-      await loadTrainerManagementData(true);
-    }
-    await loadTrainerProgressData(true);
-    await syncWorkoutsFromBackend({ silent: true });
-    if (isGeneralAdminUser()) await fetchAdminOverview(true);
-
-    if (!createdWorkoutId) {
-      createdWorkoutId = findTrainerWorkoutIdByTitle(enteredName, { studentId });
-    }
-    if (createdWorkoutId) {
-      unhideTrainerWorkoutById(createdWorkoutId);
-      trainerExerciseTargetWorkoutId = createdWorkoutId;
-    }
-    isTrainerExerciseComposerOpen = true;
-    syncTrainerExerciseComposerUi({ focus: false, scroll: false });
-
-    const successMessage = `Treino "${enteredName}" criado com sucesso.`;
-    setTrainerManagementFeedback(successMessage, true);
-    setTrainerExerciseFeedback('Treino criado. Agora adicione os exercicios.', true);
-    return true;
-  } catch (error) {
-    if (trainerExerciseWorkoutSelect) trainerExerciseWorkoutSelect.value = '';
-    const fallbackMessage = error && error.message ? error.message : 'Falha ao criar treino rapido.';
-    setTrainerManagementFeedback(fallbackMessage, false);
-    setTrainerExerciseFeedback(fallbackMessage, false);
-    return false;
-  } finally {
-    trainerExerciseQuickCreateInFlight = false;
-    if (trainerExerciseWorkoutSelect) trainerExerciseWorkoutSelect.disabled = false;
-    syncTrainerExerciseWorkoutQuickActions();
-  }
+  trainerExerciseTargetWorkoutId = 0;
+  if (trainerExerciseWorkoutSelect) trainerExerciseWorkoutSelect.value = '';
+  openTrainerWorkoutCreateFromExerciseField();
+  return false;
 }
 
 const applyRoleBasedUiMode = () => {
@@ -11261,9 +11171,38 @@ function getSelectedTrainerExerciseWorkoutId() {
   return Number(workoutValue) || 0;
 }
 
+function getSelectedTrainerExerciseTemplateId() {
+  return getSelectedTrainerExerciseWorkoutId();
+}
+
+function getTrainerTemplateById(templateId) {
+  const normalizedTemplateId = Number(templateId) || 0;
+  if (!normalizedTemplateId) return null;
+  const templates = Array.isArray(trainerManagementState.templates)
+    ? trainerManagementState.templates
+    : [];
+  return templates.find((template) => Number(template && template.id) === normalizedTemplateId) || null;
+}
+
+function shouldOpenTrainerWorkoutQuickCreate(rawWorkoutValue = '') {
+  const normalizedWorkoutValue = String(rawWorkoutValue || '').trim();
+  if (normalizedWorkoutValue === TRAINER_WORKOUT_CREATE_OPTION_VALUE) return true;
+  if (!trainerExerciseWorkoutSelect) return false;
+
+  const hasRealWorkoutOptions = Array.from(trainerExerciseWorkoutSelect.options || []).some(
+    (option) => (Number(option && option.value) || 0) > 0
+  );
+  return !hasRealWorkoutOptions;
+}
+
 function getTrainerWorkoutCoverStageTitle(selectedWorkout) {
   if (selectedWorkout) {
     return String((selectedWorkout.title || selectedWorkout.name || 'Treino') || '').trim() || 'Treino';
+  }
+
+  const selectedTemplate = getTrainerTemplateById(getSelectedTrainerExerciseTemplateId());
+  if (selectedTemplate) {
+    return String((selectedTemplate && selectedTemplate.name) || '').trim() || 'Treino em construção';
   }
 
   const selectedDefinition = getSelectedTrainerWorkoutDefinition();
@@ -11281,6 +11220,10 @@ function getTrainerWorkoutCoverStageMeta(selectedWorkout) {
     return dayLabel || 'Plano ativo';
   }
 
+  if (getSelectedTrainerExerciseTemplateId()) {
+    return 'A capa será aplicada quando esse treino for designado ao aluno.';
+  }
+
   if (trainerWorkoutPendingCoverFile) {
     return 'A capa será aplicada ao clicar em "Adicionar ao treino".';
   }
@@ -11291,7 +11234,7 @@ function getTrainerWorkoutCoverStageMeta(selectedWorkout) {
 function renderTrainerWorkoutCoverBuilder() {
   if (!trainerWorkoutCoverBuilder) return;
 
-  const selectedWorkoutId = getSelectedTrainerExerciseWorkoutId();
+  const selectedWorkoutId = Number(trainerExerciseTargetWorkoutId) || 0;
   const selectedWorkout = selectedWorkoutId ? getTrainerWorkoutById(selectedWorkoutId) : null;
   const savedCoverUrl = selectedWorkout ? resolveWorkoutCoverImageUrl(selectedWorkout) : '';
   const previewUrl = trainerWorkoutCoverPreviewObjectUrl || savedCoverUrl;
@@ -11376,7 +11319,7 @@ async function persistTrainerWorkoutCoverForWorkoutIds(workoutIds, file) {
 }
 
 async function handleTrainerWorkoutCoverSave({ workoutIds = null, successMessage = 'Capa do treino atualizada.' } = {}) {
-  const fallbackWorkoutId = getSelectedTrainerExerciseWorkoutId();
+  const fallbackWorkoutId = Number(trainerExerciseTargetWorkoutId) || 0;
   const targetWorkoutIds = Array.isArray(workoutIds)
     ? workoutIds
     : workoutIds
@@ -11424,8 +11367,7 @@ async function handleTrainerWorkoutCoverSave({ workoutIds = null, successMessage
 }
 
 function syncTrainerExerciseWorkoutQuickActions() {
-  const selectedWorkoutId = getSelectedTrainerExerciseWorkoutId();
-  const isActionDisabled = !selectedWorkoutId || trainerExerciseQuickCreateInFlight;
+  const isActionDisabled = true;
 
   if (trainerExerciseWorkoutViewButton) {
     trainerExerciseWorkoutViewButton.disabled = isActionDisabled;
@@ -11559,6 +11501,13 @@ function getTrainerWeekdayAssignmentsForSelectedDays(selectedWeekDays = []) {
 
 function renderTrainerWeekdayAssignmentSelectors(workouts = []) {
   if (!trainerWeekdayAssignmentWrap || !trainerWeekdayAssignmentList) return;
+
+  if (!Array.isArray(workouts) || !workouts.length) {
+    trainerWorkoutDayAssignments = {};
+    trainerWeekdayAssignmentList.innerHTML = '';
+    trainerWeekdayAssignmentWrap.hidden = true;
+    return;
+  }
 
   const selectedWeekDays = getSelectedTrainerWorkoutWeekDays();
   if (!selectedWeekDays.length) {
@@ -11781,7 +11730,7 @@ const isMobileSelectPickerCandidate = (select) => {
 };
 
 const getMobileSelectPickerTitle = (select) => {
-  if (select === trainerExerciseWorkoutSelect) return 'Treino';
+  if (select === trainerExerciseWorkoutSelect) return 'Treino em si';
   const labelEl = select.closest('label');
   const rawTitle = labelEl
     ? String((labelEl.querySelector('span') && labelEl.querySelector('span').textContent) || '')
@@ -11995,10 +11944,10 @@ const openMobileSelectPicker = (select) => {
       const subtitle = document.createElement('small');
       subtitle.className = 'student-mobile-select-picker-option-subtitle';
       subtitle.textContent = isCreateWorkoutOption
-        ? 'Criar treino agora'
+        ? 'Criar treino em si agora'
         : optionText
-          ? `Faca o seu treino: ${optionText}`
-          : 'Faca o seu treino';
+          ? `Treino em si: ${optionText}`
+          : 'Treino em si';
       label.appendChild(title);
       label.appendChild(subtitle);
     } else {
@@ -12264,18 +12213,22 @@ function closeTrainerExerciseLibraryPicker({ clearSearch = false } = {}) {
   document.body.classList.remove('trainer-exercise-library-picker-open');
 }
 
-function openTrainerExerciseLibraryPicker({ focusSearch = false } = {}) {
+async function openTrainerExerciseLibraryPicker({ focusSearch = false } = {}) {
   if (!trainerExerciseLibraryPicker) return false;
   if (!isTrainerManagerUser()) {
     setTrainerExerciseFeedback('Atalho de biblioteca geral disponível apenas para perfis de gestão.', false);
     return false;
   }
 
-  const workoutId = Number(trainerExerciseWorkoutSelect ? trainerExerciseWorkoutSelect.value : 0) || 0;
-  if (!workoutId) {
-    const validationMessage = 'Selecione o treino atribuído antes de abrir a biblioteca geral.';
-    setTrainerManagementFeedback(validationMessage, false);
-    setTrainerExerciseFeedback(validationMessage, false);
+  const rawWorkoutValue = String(trainerExerciseWorkoutSelect ? trainerExerciseWorkoutSelect.value : '').trim();
+  const templateId = getSelectedTrainerExerciseTemplateId();
+  if (!templateId) {
+    if (shouldOpenTrainerWorkoutQuickCreate(rawWorkoutValue)) {
+      await createTrainerWorkoutFromExerciseField();
+    } else {
+      setTrainerManagementFeedback('Selecione o treino em si salvo antes de abrir a biblioteca geral.', false);
+      setTrainerExerciseFeedback('Selecione o treino em si salvo antes de abrir a biblioteca geral.', false);
+    }
     return false;
   }
 
@@ -12311,8 +12264,8 @@ function renderTrainerExerciseLibraryPicker() {
       ? `Grupo: ${selectedGroupLabel}`
       : `Grupo selecionado: ${selectedGroupLabel}`;
   }
-  const workoutId = Number(trainerExerciseWorkoutSelect ? trainerExerciseWorkoutSelect.value : 0) || 0;
-  updateTrainerExerciseLibraryPickerPendingLabel(workoutId);
+  const templateId = getSelectedTrainerExerciseTemplateId();
+  updateTrainerExerciseLibraryPickerPendingLabel(templateId);
 
   const canRenderPicker =
     isTrainerExerciseComposerOpen &&
@@ -12334,22 +12287,23 @@ function renderTrainerExerciseLibraryPicker() {
     return;
   }
 
-  if (!workoutId) {
+  if (!templateId) {
     trainerExerciseLibraryPickerList.innerHTML = '';
     trainerExerciseLibraryPickerEmpty.hidden = false;
     trainerExerciseLibraryPickerEmpty.textContent =
-      'Selecione o treino atribuído para adicionar exercícios.';
+      'Selecione o treino em si salvo para adicionar exercícios.';
     return;
   }
 
-  const workoutExercises = trainerManagementState.exercisesByWorkoutId[String(workoutId)] || [];
-  const existingExerciseCounts = workoutExercises.reduce((acc, exercise) => {
+  const templateExercises =
+    trainerManagementState.templateExercisesByTemplateId[String(templateId)] || [];
+  const existingExerciseCounts = templateExercises.reduce((acc, exercise) => {
     const linkedExerciseId = getLinkedLibraryExerciseId(exercise);
     if (!linkedExerciseId) return acc;
     acc[linkedExerciseId] = (acc[linkedExerciseId] || 0) + 1;
     return acc;
   }, {});
-  const pendingExerciseCounts = getTrainerExercisePendingCountsByExerciseId(workoutId);
+  const pendingExerciseCounts = getTrainerExercisePendingCountsByExerciseId(templateId);
   const pickerExercises = getTrainerLibraryPickerExercises();
 
   if (!pickerExercises.length) {
@@ -12391,7 +12345,7 @@ function renderTrainerExerciseLibraryPicker() {
       const existingCount = Number(existingExerciseCounts[exerciseId]) || 0;
       const existingCountLabel =
         existingCount > 0
-          ? ` | já no treino: ${existingCount}`
+          ? ` | já no treino em si: ${existingCount}`
           : '';
       const pendingCount = Number(pendingExerciseCounts[exerciseId]) || 0;
       const metadataLabel = `${groupLabel} | ${repetitions} reps | desc ${formatSecondsLabel(restSeconds)}${existingCountLabel}`;
@@ -12477,7 +12431,7 @@ const handleTrainerExerciseLibraryPickerActions = (event) => {
     if (removeButton.disabled) return;
     if (!isInstructorUser()) return;
 
-    const workoutId = Number(trainerExerciseWorkoutSelect ? trainerExerciseWorkoutSelect.value : 0) || 0;
+    const workoutId = getSelectedTrainerExerciseTemplateId();
     const exerciseId = Number(removeButton.dataset.exerciseId || 0) || 0;
     if (!workoutId || !exerciseId) return;
     const remainingCount = dequeueTrainerExercisePendingExercise(workoutId, exerciseId);
@@ -12501,7 +12455,7 @@ const handleTrainerExerciseLibraryPickerActions = (event) => {
   if (addButton.disabled) return;
   if (!isInstructorUser()) return;
 
-  const workoutId = Number(trainerExerciseWorkoutSelect ? trainerExerciseWorkoutSelect.value : 0) || 0;
+  const workoutId = getSelectedTrainerExerciseTemplateId();
   const exerciseId = Number(addButton.dataset.exerciseId || 0) || 0;
   if (!workoutId || !exerciseId) return;
   const libraryExercise =
@@ -12557,15 +12511,6 @@ function syncTrainerAssignedWorkoutSelection(workoutId) {
   const targetValue = String(resolvedWorkoutId);
 
   trainerExerciseTargetWorkoutId = resolvedWorkoutId;
-
-  if (
-    trainerExerciseWorkoutSelect &&
-    Array.from(trainerExerciseWorkoutSelect.options || []).some(
-      (option) => String((option && option.value) || '').trim() === targetValue
-    )
-  ) {
-    trainerExerciseWorkoutSelect.value = targetValue;
-  }
 
   if (
     trainerExercisesFilterSelect &&
@@ -13679,9 +13624,7 @@ const renderTrainerManagementPanel = () => {
       }
     }
 
-    if ((Number(trainerWorkoutStudentSelect.value) || 0) <= 0) {
-      trainerWorkoutStudentConfirmed = false;
-    }
+    trainerWorkoutStudentConfirmed = (Number(trainerWorkoutStudentSelect.value) || 0) > 0;
   }
 
   if (trainerWorkoutInstructorWrap) {
@@ -13761,7 +13704,7 @@ const renderTrainerManagementPanel = () => {
     }
   }
 
-  renderTrainerWeekdayAssignmentSelectors(visibleWorkouts);
+  renderTrainerWeekdayAssignmentSelectors([]);
 
   if (trainerWorkoutCreateCard) {
     trainerWorkoutCreateCard.hidden = false;
@@ -13771,32 +13714,40 @@ const renderTrainerManagementPanel = () => {
     const previousValue = trainerExerciseWorkoutSelect.value;
     const createWorkoutOptionMarkup =
       `<option value="${TRAINER_WORKOUT_CREATE_OPTION_VALUE}">+ Criar treino agora</option>`;
-    if (!workoutsForSelection.length) {
+    if (!activeTemplates.length) {
       trainerExerciseWorkoutSelect.innerHTML = [
-        '<option value="">Selecione o treino</option>',
+        '<option value="">Selecione o treino em si</option>',
         createWorkoutOptionMarkup
       ].join('');
       trainerExerciseWorkoutSelect.value = '';
     } else {
-      const workoutOptionsMarkup = workoutsForSelection
+      const workoutOptionsMarkup = activeTemplates
+        .slice()
+        .sort((first, second) =>
+          String((first && first.name) || '').localeCompare(
+            String((second && second.name) || ''),
+            'pt-BR',
+            { numeric: true, sensitivity: 'base' }
+          )
+        )
         .map(
-          (workout) =>
-            `<option value="${safeCell(Number(workout.id) || 0)}">${safeCell(workout.title || `Treino ${workout.id}`)}</option>`
+          (template) =>
+            `<option value="${safeCell(Number(template.id) || 0)}">${safeCell(template.name || `Treino ${template.id}`)}</option>`
         )
         .join('');
       trainerExerciseWorkoutSelect.innerHTML = [
-        '<option value="">Selecione o treino</option>',
+        '<option value="">Selecione o treino em si</option>',
         createWorkoutOptionMarkup,
         workoutOptionsMarkup
       ].join('');
 
-      const targetValue = String(trainerExerciseTargetWorkoutId || '').trim();
-      if (targetValue && workoutsForSelection.some((workout) => String(workout.id) === targetValue)) {
+      const targetValue = String(trainerTemplateExerciseSelectedId || '').trim();
+      if (targetValue && activeTemplates.some((template) => String(template.id) === targetValue)) {
         trainerExerciseWorkoutSelect.value = targetValue;
-      } else if (previousValue && workoutsForSelection.some((workout) => String(workout.id) === String(previousValue))) {
+      } else if (previousValue && activeTemplates.some((template) => String(template.id) === String(previousValue))) {
         trainerExerciseWorkoutSelect.value = previousValue;
-      } else if (workoutsForSelection[0] && workoutsForSelection[0].id) {
-        trainerExerciseWorkoutSelect.value = String(workoutsForSelection[0].id);
+      } else {
+        trainerExerciseWorkoutSelect.value = '';
       }
     }
   }
@@ -13897,7 +13848,7 @@ const renderTrainerManagementPanel = () => {
 
   if (trainerWorkoutSubmitButton) {
     const submitLabelNode = trainerWorkoutSubmitButton.querySelector('span');
-    const submitLabel = 'Cadastrar treino';
+    const submitLabel = 'Designar ao aluno';
     if (submitLabelNode) {
       submitLabelNode.textContent = submitLabel;
     } else {
@@ -13907,6 +13858,7 @@ const renderTrainerManagementPanel = () => {
     const hasSelectableInstructor = !isGeneralAdminUser() || selectableInstructors.length > 0;
     trainerWorkoutSubmitButton.disabled =
       trainerManagementState.loading ||
+      !activeTemplates.length ||
       !selectableStudents.length ||
       !hasSelectableInstructor;
   }
@@ -13955,25 +13907,60 @@ const renderTrainerManagementPanel = () => {
     const isDefinitionView =
       normalizeTrainerManagedWorkoutsView(trainerManagedWorkoutsView) === 'definition';
 
-    if (!managedWorkoutsForDisplay.length) {
-      trainerManagedWorkoutExpandedIds.clear();
-      trainerWorkoutsTableBody.innerHTML = '';
-    } else {
-      const definitionRows = isDefinitionView
-        ? buildTrainerManagedWorkoutDefinitionRows({
-          workouts: managedWorkoutsForDisplay,
-          exercisesByWorkoutId: trainerManagementState.exercisesByWorkoutId
+    const definitionRows = isDefinitionView
+      ? templates
+        .slice()
+        .sort((first, second) =>
+          String((first && first.name) || '').localeCompare(
+            String((second && second.name) || ''),
+            'pt-BR',
+            { numeric: true, sensitivity: 'base' }
+          )
+        )
+        .map((template) => {
+          const templateId = Number(template && template.id) || 0;
+          const linkedWorkouts = visibleWorkouts.filter(
+            (workout) => Number(workout && workout.originTemplateId) === templateId
+          );
+          const studentIds = new Set(
+            linkedWorkouts
+              .map((workout) => Number(workout && workout.studentId) || 0)
+              .filter((studentId) => studentId > 0)
+          );
+          const activeAssignmentsCount = linkedWorkouts.filter((workout) => isWorkoutActive(workout)).length;
+          const inactiveAssignmentsCount = linkedWorkouts.filter((workout) => isWorkoutInactive(workout)).length;
+          return {
+            templateId,
+            name: String((template && template.name) || '').trim() || `Treino ${templateId || '-'}`,
+            statusLabel: template && template.isActive === false ? 'Inativo' : 'Ativo',
+            statusClass: template && template.isActive === false ? '' : 'is-success',
+            exercisesCount: (
+              trainerManagementState.templateExercisesByTemplateId[String(templateId)] || []
+            ).length,
+            studentsCount: studentIds.size,
+            assignmentsCount: linkedWorkouts.length,
+            activeAssignmentsCount,
+            inactiveAssignmentsCount,
+            createdAt: template && template.createdAt ? template.createdAt : null
+          };
         })
-        : [];
-      const rowsForDisplay = isDefinitionView
-        ? definitionRows
-        : managedWorkoutsForDisplay;
+      : [];
+    const rowsForDisplay = isDefinitionView
+      ? definitionRows
+      : managedWorkoutsForDisplay;
+
+    if (!rowsForDisplay.length) {
+      trainerManagedWorkoutExpandedIds.clear();
+      trainerWorkoutsTableBody.innerHTML = isDefinitionView
+        ? '<tr><td colspan="8">Nenhum treino em si criado.</td></tr>'
+        : '<tr><td colspan="8">Nenhum treino atribuído ao aluno.</td></tr>';
+    } else {
       const visibleManagedRows = rowsForDisplay.slice(0, TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT);
       const validWorkoutIds = new Set(
         visibleManagedRows
           .map((row) =>
             isDefinitionView
-              ? Number(row && row.sourceWorkoutId) || 0
+              ? Number(row && row.templateId) || 0
               : Number(row && row.id) || 0
           )
           .filter((id) => id > 0)
@@ -13985,10 +13972,9 @@ const renderTrainerManagementPanel = () => {
       trainerWorkoutsTableBody.innerHTML = visibleManagedRows
         .map((row) => {
           if (isDefinitionView) {
-            const sourceWorkoutId = Number(row && row.sourceWorkoutId) || 0;
-            const definitionName = String((row && row.name) || `Treino ${sourceWorkoutId || '-'}`).trim() || '-';
-            const definitionKey = String((row && row.key) || '').trim();
-            const objectiveLabel = String((row && row.objectiveLabel) || '').trim() || '-';
+            const templateId = Number(row && row.templateId) || 0;
+            const definitionName = String((row && row.name) || `Treino ${templateId || '-'}`).trim() || '-';
+            const objectiveLabel = '-';
             const statusLabel = String((row && row.statusLabel) || 'Inativo').trim() || 'Inativo';
             const statusClass = String((row && row.statusClass) || '').trim();
             const exercisesCount = Math.max(0, Number(row && row.exercisesCount) || 0);
@@ -13998,72 +13984,17 @@ const renderTrainerManagementPanel = () => {
             const inactiveAssignmentsCount = Math.max(0, Number(row && row.inactiveAssignmentsCount) || 0);
             const studentsLabel = studentsCount === 1 ? '1 aluno' : `${studentsCount} alunos`;
             const assignmentsLabel = assignmentsCount === 1 ? '1 vínculo' : `${assignmentsCount} vínculos`;
-            const toggleAriaLabel = 'Visualizar detalhes da definição';
-            const toggleButtonMarkup = sourceWorkoutId > 0
-              ? `
-                  <button
-                    class="trainer-linked-exercises-toggle trainer-managed-workout-toggle"
-                    type="button"
-                    data-trainer-workout-toggle-details
-                    data-workout-id="${safeCell(sourceWorkoutId)}"
-                    aria-label="${safeCell(toggleAriaLabel)}"
-                    aria-expanded="false"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  </button>
-                `
-              : '';
-            const canDeactivateDefinition = activeAssignmentsCount > 0;
-            const canDeleteDefinition = activeAssignmentsCount === 0 && inactiveAssignmentsCount > 0;
-            const deleteDefinitionTitle = canDeleteDefinition
-              ? 'Excluir todos os vínculos inativos desse treino'
-              : activeAssignmentsCount > 0
-                ? 'Desative os vínculos ativos antes de excluir'
-                : 'Nenhum vínculo inativo para excluir';
-            const definitionActionsMarkup = definitionKey
-              ? `
-                  <div class="trainer-table-actions">
-                    <button
-                      class="student-progress-action-btn trainer-action-danger"
-                      type="button"
-                      data-trainer-workout-definition-deactivate
-                      data-definition-key="${safeCell(definitionKey)}"
-                      data-definition-name="${safeCell(definitionName)}"
-                      ${canDeactivateDefinition ? '' : 'disabled'}
-                    >
-                      Desativar
-                    </button>
-                    <button
-                      class="student-progress-action-btn trainer-action-danger trainer-action-icon-btn"
-                      type="button"
-                      data-trainer-workout-definition-delete
-                      data-definition-key="${safeCell(definitionKey)}"
-                      data-definition-name="${safeCell(definitionName)}"
-                      aria-label="Excluir treino em si"
-                      title="${safeCell(deleteDefinitionTitle)}"
-                      ${canDeleteDefinition ? '' : 'disabled'}
-                    >
-                      <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M9 3h6m-8 3h10m-8 0v13a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V6m-8 0h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                      </svg>
-                    </button>
-                  </div>
-                `
-              : '<span class="admin-overview-action-muted">Sem ações</span>';
+            const definitionActionsMarkup = '<span class="admin-overview-action-muted">Use a designação para entregar ao aluno</span>';
 
             return `
-              <tr class="trainer-managed-workout-row is-definition" data-workout-id="${safeCell(sourceWorkoutId || '')}">
-                <td data-label="ID">${sourceWorkoutId ? safeCell(sourceWorkoutId) : '-'}</td>
+              <tr class="trainer-managed-workout-row is-definition" data-workout-id="${safeCell(templateId || '')}">
+                <td data-label="ID">${templateId ? safeCell(templateId) : '-'}</td>
                 <td class="trainer-managed-workout-summary-cell" data-label="Nome do treino">
                   <div class="trainer-managed-workout-summary">
                     <div class="trainer-managed-workout-summary-main">
                       <strong>${safeCell(definitionName)}</strong>
                       <small class="trainer-managed-workout-kind is-definition">Treino em si</small>
                     </div>
-                    ${toggleButtonMarkup}
                   </div>
                 </td>
                 <td data-label="Aluno">${safeCell(studentsLabel)}<small>${safeCell(assignmentsLabel)}</small></td>
@@ -15006,15 +14937,13 @@ const handleTrainerWorkoutSubmit = async (event) => {
   if (!isTrainerManagerUser()) return;
   if (trainerWorkoutCreateInFlight) return;
 
-  const selectedDefinition = getSelectedTrainerWorkoutDefinition();
-  const selectedDefinitionLabel = normalizeWorkoutDefinitionLabel(
-    selectedDefinition && selectedDefinition.label
-  );
-  const predefinedWorkoutId = Number(selectedDefinition && selectedDefinition.sourceWorkoutId) || 0;
+  const templateId = Number(trainerTemplateSelect ? trainerTemplateSelect.value : 0) || 0;
+  const assignedWorkoutName = trainerTemplateNameInput
+    ? String(trainerTemplateNameInput.value || '').trim()
+    : '';
   const objective = trainerWorkoutObjectiveSelect
     ? String(trainerWorkoutObjectiveSelect.value || '').trim()
     : '';
-  const title = selectedDefinitionLabel || `Treino - ${objective || 'Personalizado'}`;
   const status = trainerWorkoutStatusSelect
     ? String(trainerWorkoutStatusSelect.value || 'ATIVO').trim().toUpperCase()
     : 'ATIVO';
@@ -15034,8 +14963,18 @@ const handleTrainerWorkoutSubmit = async (event) => {
     ? Number(trainerWorkoutInstructorSelect ? trainerWorkoutInstructorSelect.value : 0) || 0
     : Number(studentData.userId) || 0;
 
+  if (!templateId) {
+    setTrainerManagementFeedback('Selecione o treino em si antes de designar ao aluno.', false);
+    if (trainerTemplateSelect) {
+      try {
+        trainerTemplateSelect.focus({ preventScroll: true });
+      } catch (_) {}
+    }
+    return;
+  }
+
   if (!studentId || !trainerWorkoutStudentConfirmed) {
-    setTrainerManagementFeedback('Selecione o aluno manualmente antes de cadastrar o treino.', false);
+    setTrainerManagementFeedback('Selecione o aluno manualmente antes de designar o treino.', false);
     if (trainerWorkoutStudentSelect) {
       try {
         trainerWorkoutStudentSelect.focus({ preventScroll: true });
@@ -15044,87 +14983,31 @@ const handleTrainerWorkoutSubmit = async (event) => {
     return;
   }
 
-  if (!title || !objective || !instructorId || !weekDays.length) {
+  if (!objective || !instructorId || !weekDays.length) {
     setTrainerManagementFeedback('Preencha objetivo, instrutor e ao menos um dia da semana.');
     return;
   }
 
-  const dayAssignments = getTrainerWeekdayAssignmentsForSelectedDays(weekDays);
-  const hasDayAssignments = Object.keys(dayAssignments).length > 0;
-  if (hasDayAssignments) {
-    const missingDays = weekDays.filter((day) => (Number(dayAssignments[day]) || 0) <= 0);
-    if (missingDays.length) {
-      setTrainerManagementFeedback(
-        `Defina o treino específico para todos os dias marcados. Faltando: ${missingDays.join(', ')}.`,
-        false
-      );
-      return;
-    }
-  }
-
   trainerWorkoutCreateInFlight = true;
-  setButtonLoading(trainerWorkoutSubmitButton, 'Criando...');
-  setTrainerManagementFeedback(
-    hasDayAssignments
-      ? 'Criando treinos semanais...'
-      : 'Criando treino...',
-    false
-  );
+  setButtonLoading(trainerWorkoutSubmitButton, 'Designando...');
+  setTrainerManagementFeedback('Designando treino ao aluno...', false);
 
   try {
-    const createdResponses = [];
-    if (hasDayAssignments) {
-      const groupedAssignmentsByWorkoutId = weekDays.reduce((acc, day) => {
-        const sourceWorkoutId = Number(dayAssignments[day]) || 0;
-        if (sourceWorkoutId <= 0) return acc;
-        if (!acc[sourceWorkoutId]) acc[sourceWorkoutId] = [];
-        acc[sourceWorkoutId].push(day);
-        return acc;
-      }, {});
-
-      for (const [sourceWorkoutIdRaw, assignedDays] of Object.entries(groupedAssignmentsByWorkoutId)) {
-        const sourceWorkoutId = Number(sourceWorkoutIdRaw) || 0;
-        if (!sourceWorkoutId) continue;
-
-        const sourceWorkout = getTrainerWorkoutById(sourceWorkoutId);
-        const sourceWorkoutTitle = String(
-          (sourceWorkout && (sourceWorkout.title || sourceWorkout.name)) || title
-        ).trim() || title;
-        const normalizedWorkoutTitle = sourceWorkoutTitle
-          .replace(/\s*-\s*(seg|ter|qua|qui|sex|sab|dom)\s*$/i, '')
-          .trim() || sourceWorkoutTitle;
-        const normalizedAssignedDays = WEEKDAY_LABELS.filter((day) => assignedDays.includes(day));
-        const exercisesPayload = buildTrainerWorkoutExercisesPayloadFromSourceWorkout(sourceWorkoutId);
-
-        const response = await requestInstructorWorkoutCreate({
-          title: normalizedWorkoutTitle,
-          objective,
-          description,
-          status,
-          weekDays: normalizedAssignedDays,
-          studentId,
-          instructorId,
-          exercises: exercisesPayload
-        });
-        createdResponses.push(response);
-      }
-    } else {
-      const exercisesPayload = buildTrainerWorkoutExercisesPayloadFromSourceWorkout(predefinedWorkoutId);
-      const response = await requestInstructorWorkoutCreate({
-        title,
+    const response = await requestStudentApi('/workout/from-template', {
+      method: 'POST',
+      body: {
+        templateId,
+        studentId,
+        instructorId,
+        name: assignedWorkoutName,
         objective,
         description,
         status,
-        weekDays,
-        studentId,
-        instructorId,
-        exercises: exercisesPayload
-      });
-      createdResponses.push(response);
-    }
+        weekDays
+      }
+    });
 
-    const createdWorkoutIds = createdResponses
-      .map((response) => resolveCreatedWorkoutIdFromResponse(response))
+    const createdWorkoutIds = [resolveCreatedWorkoutIdFromResponse(response)]
       .filter((value) => value > 0);
     createdWorkoutIds.forEach((workoutId) => {
       unhideTrainerWorkoutById(workoutId);
@@ -15134,45 +15017,34 @@ const handleTrainerWorkoutSubmit = async (event) => {
     if (trainerWorkoutPendingCoverFile && createdWorkoutIds.length) {
       coverAutoApplied = await handleTrainerWorkoutCoverSave({
         workoutIds: createdWorkoutIds,
-        successMessage: createdWorkoutIds.length > 1
-          ? 'Capas dos treinos salvas com sucesso.'
-          : 'Capa do treino salva com sucesso.'
+        successMessage: 'Capa do treino salva com sucesso.'
       });
     }
 
     if (trainerWorkoutForm) {
+      const preservedTemplateId = String(templateId);
       trainerWorkoutForm.reset();
       trainerWorkoutDayAssignments = {};
       trainerWorkoutStudentConfirmed = false;
+      if (trainerTemplateSelect) trainerTemplateSelect.value = preservedTemplateId;
     }
     await loadTrainerManagementData(true);
     await loadTrainerProgressData(true);
     await syncWorkoutsFromBackend({ silent: true });
     if (isGeneralAdminUser()) await fetchAdminOverview(true);
 
-    const createdWorkoutId = resolveCreatedWorkoutIdFromResponse(createdResponses[0]);
+    const createdWorkoutId = resolveCreatedWorkoutIdFromResponse(response);
     if (createdWorkoutId) {
       unhideTrainerWorkoutById(createdWorkoutId);
       trainerExerciseTargetWorkoutId = createdWorkoutId;
     }
-    isTrainerExerciseComposerOpen = true;
-    syncTrainerExerciseComposerUi({ scroll: true, focus: true });
-
+    trainerTemplateExerciseSelectedId = String(templateId);
     const visibilityHint = status === 'INATIVO'
-      ? 'Treino salvo como Inativo (não aparecerá para o aluno até ativar).'
-      : 'Já disponível nos treinos do aluno.';
-    const createdCount = createdResponses.length;
-    const successTargetMessage = hasDayAssignments
-      ? selectedStudentName
-        ? `${createdCount} treinos semanais vinculados ao aluno ${selectedStudentName}. ${visibilityHint}`
-        : `${createdCount} treinos semanais criados. ${visibilityHint}`
-      : selectedStudentName
-        ? `Treino vinculado ao aluno ${selectedStudentName}. ${visibilityHint}`
-        : visibilityHint;
-    const firstResponse = createdResponses[0] || null;
-    const successMessage = hasDayAssignments
-      ? successTargetMessage
-      : (firstResponse && firstResponse.message) || successTargetMessage;
+      ? 'Treino salvo como Inativo para o aluno.'
+      : 'Treino já disponível para o aluno.';
+    const successMessage = selectedStudentName
+      ? `Treino designado ao aluno ${selectedStudentName}. ${visibilityHint}`
+      : visibilityHint;
     const finalSuccessMessage = trainerWorkoutPendingCoverFile && !coverAutoApplied
       ? `${successMessage} A capa ficou pendente; ela será salva ao clicar em "Adicionar ao treino".`
       : coverAutoApplied
@@ -15185,12 +15057,12 @@ const handleTrainerWorkoutSubmit = async (event) => {
     );
   } catch (error) {
     setTrainerManagementFeedback(
-      error && error.message ? error.message : 'Falha ao criar treino.',
+      error && error.message ? error.message : 'Falha ao designar treino ao aluno.',
       false
     );
   } finally {
     trainerWorkoutCreateInFlight = false;
-    clearButtonLoading(trainerWorkoutSubmitButton, 'Cadastrar treino');
+    clearButtonLoading(trainerWorkoutSubmitButton, 'Designar ao aluno');
   }
 };
 
@@ -15302,6 +15174,21 @@ const handleTrainerTemplateFormSubmit = async (event) => {
     if (trainerTemplateFormActiveSelect) trainerTemplateFormActiveSelect.value = 'true';
 
     await loadTrainerManagementData(true);
+    const createdTemplateId = Number(response && response.template && response.template.id) || 0;
+    if (createdTemplateId) {
+      trainerTemplateExerciseSelectedId = String(createdTemplateId);
+      trainerTemplateEditorSelectedId = String(createdTemplateId);
+      trainerExerciseTargetWorkoutId = 0;
+      if (trainerExerciseWorkoutSelect) {
+        trainerExerciseWorkoutSelect.value = String(createdTemplateId);
+      }
+      if (trainerTemplateSelect) {
+        trainerTemplateSelect.value = String(createdTemplateId);
+      }
+      isTrainerExerciseComposerOpen = true;
+      syncTrainerExerciseComposerUi({ scroll: true, focus: false });
+      setTrainerExerciseFeedback('Treino em si criado. Agora adicione os exercícios.', true);
+    }
     setTrainerManagementFeedback(
       (response && response.message) || 'Template criado com sucesso.',
       true
@@ -15425,6 +15312,7 @@ const handleTrainerTemplateExerciseSubmit = async (event) => {
     );
 
     trainerTemplateExerciseSelectedId = String(templateId);
+    trainerExerciseTargetWorkoutId = 0;
     await loadTrainerManagementData(true);
 
     if (trainerTemplateExerciseTemplateSelect) {
@@ -15714,11 +15602,19 @@ const handleTrainerExerciseSubmit = async (event) => {
   }
   setTrainerExerciseFeedback('', false);
 
-  const workoutId = Number(trainerExerciseWorkoutSelect ? trainerExerciseWorkoutSelect.value : 0) || 0;
-  const pendingExerciseIds = getTrainerExercisePendingQueue(workoutId);
+  const rawWorkoutValue = String(trainerExerciseWorkoutSelect ? trainerExerciseWorkoutSelect.value : '').trim();
+  let templateId = getSelectedTrainerExerciseTemplateId();
+  if (!templateId && shouldOpenTrainerWorkoutQuickCreate(rawWorkoutValue)) {
+    await createTrainerWorkoutFromExerciseField();
+    return;
+  }
+  const pendingExerciseIds = getTrainerExercisePendingQueue(templateId);
   const hasPendingQueue = pendingExerciseIds.length > 0;
   const selectedLibraryExerciseId = Number(trainerExerciseLibrarySelect ? trainerExerciseLibrarySelect.value : 0) || 0;
   const selectedLibraryExercise = getSelectedLibraryExercise();
+  const availableLibraryExercises = Array.isArray(trainerManagementState.library)
+    ? trainerManagementState.library
+    : [];
   const selectedGroups = getSelectedTrainerExerciseGroups();
   const selectedGroup = normalizeLibraryGroupKey(
     (selectedLibraryExercise && selectedLibraryExercise.group) || selectedGroups[0],
@@ -15762,10 +15658,9 @@ const handleTrainerExerciseSubmit = async (event) => {
   const observation = trainerExerciseObservationInput
     ? String(trainerExerciseObservationInput.value || '').trim()
     : '';
-  const shouldTrySavePendingCover = Boolean(trainerWorkoutPendingCoverFile);
 
-  if (!workoutId) {
-    const validationMessage = 'Selecione o treino atribuído para adicionar o exercício.';
+  if (!templateId) {
+    const validationMessage = 'Selecione o treino em si salvo para adicionar o exercício.';
     setTrainerManagementFeedback(validationMessage);
     setTrainerExerciseFeedback(validationMessage);
     return;
@@ -15779,7 +15674,7 @@ const handleTrainerExerciseSubmit = async (event) => {
   }
 
   if (!hasPendingQueue && selectedLibraryExerciseId) {
-    const exerciseStillAvailable = libraryExercises.some(
+    const exerciseStillAvailable = availableLibraryExercises.some(
       (exerciseItem) => Number(exerciseItem && exerciseItem.id) === selectedLibraryExerciseId
     );
     if (!exerciseStillAvailable) {
@@ -15794,23 +15689,20 @@ const handleTrainerExerciseSubmit = async (event) => {
   setButtonLoading(trainerExerciseSubmitButton, 'Salvando...');
   const savingMessage = hasPendingQueue
     ? `Salvando ${pendingExerciseIds.length} exercício(s) da fila...`
-    : 'Adicionando exercício ao treino...';
+    : 'Adicionando exercício ao treino em si...';
   setTrainerManagementFeedback(savingMessage, false);
   setTrainerExerciseFeedback(savingMessage, false);
 
   try {
-    const libraryExercises = Array.isArray(trainerManagementState.library)
-      ? trainerManagementState.library
-      : [];
-    const workoutExercises = trainerManagementState.exercisesByWorkoutId[String(workoutId)] || [];
+    const libraryExercises = availableLibraryExercises;
+    const templateExercises =
+      trainerManagementState.templateExercisesByTemplateId[String(templateId)] || [];
     let nextOrderForForm = order + 1;
-    let nextOrder = workoutExercises.reduce((maxOrder, exerciseItem) => {
+    let nextOrder = templateExercises.reduce((maxOrder, exerciseItem) => {
       return Math.max(maxOrder, Number(exerciseItem && exerciseItem.order) || 0);
     }, 0) + 1;
-    let successMessage = 'Exercício adicionado ao treino com sucesso.';
+    let successMessage = 'Exercício adicionado ao treino em si com sucesso.';
     let isPartialSave = false;
-    let coverSaveAttempted = false;
-    let coverSaved = false;
 
     if (hasPendingQueue) {
       const pendingFailures = [];
@@ -15851,18 +15743,20 @@ const handleTrainerExerciseSubmit = async (event) => {
         );
 
         try {
-          await requestStudentApi('/exercises', {
-            method: 'POST',
-            body: {
-              workoutId,
-              exerciseId: pendingExerciseId,
-              series: queuedSeries,
-              repeticoes: queuedRepetitions,
-              carga: queuedLoad,
-              descanso: queuedRest,
-              order: nextOrder
+          await requestStudentApi(
+            `/workouts/templates/${encodeURIComponent(String(templateId))}/exercises`,
+            {
+              method: 'POST',
+              body: {
+                exerciseId: pendingExerciseId,
+                order: nextOrder,
+                series: queuedSeries,
+                reps: queuedRepetitions,
+                defaultLoad: queuedLoad,
+                restTime: queuedRest
+              }
             }
-          });
+          );
           savedCount += 1;
           nextOrder += 1;
         } catch (error) {
@@ -15873,7 +15767,7 @@ const handleTrainerExerciseSubmit = async (event) => {
         }
       }
 
-      setTrainerExercisePendingQueue(workoutId, pendingFailures);
+      setTrainerExercisePendingQueue(templateId, pendingFailures);
 
       if (!savedCount && pendingFailures.length) {
         throw new Error(firstFailureMessage || 'Não foi possível salvar os exercícios pendentes.');
@@ -15899,33 +15793,26 @@ const handleTrainerExerciseSubmit = async (event) => {
       }
       nextOrderForForm = nextOrder;
     } else {
-      const response = await requestStudentApi('/exercises', {
-        method: 'POST',
-        body: {
-          workoutId,
-          exerciseId: selectedLibraryExerciseId,
-          series,
-          repeticoes: repetitions,
-          carga: loadKg,
-          descanso: restSeconds,
-          observation,
-          order
+      const response = await requestStudentApi(
+        `/workouts/templates/${encodeURIComponent(String(templateId))}/exercises`,
+        {
+          method: 'POST',
+          body: {
+            exerciseId: selectedLibraryExerciseId,
+            order,
+            series,
+            reps: repetitions,
+            defaultLoad: loadKg,
+            restTime: restSeconds
+          }
         }
-      });
+      );
 
-      successMessage = (response && response.message) || 'Exercício adicionado ao treino com sucesso.';
-    }
-
-    if (shouldTrySavePendingCover) {
-      coverSaveAttempted = true;
-      coverSaved = await handleTrainerWorkoutCoverSave({
-        workoutIds: [workoutId],
-        successMessage: 'Capa do treino salva com sucesso.'
-      });
+      successMessage = (response && response.message) || 'Exercício adicionado ao treino em si com sucesso.';
     }
 
     if (trainerExerciseForm) {
-      const preservedWorkoutId = String(workoutId);
+      const preservedWorkoutId = String(templateId);
       const preservedGroups = selectedGroups.length
         ? selectedGroups
         : selectedGroup
@@ -15945,26 +15832,16 @@ const handleTrainerExerciseSubmit = async (event) => {
       syncTrainerExerciseGroupDrivenUi();
     }
 
-    trainerExerciseTargetWorkoutId = workoutId;
+    trainerTemplateExerciseSelectedId = String(templateId);
     await loadTrainerManagementData(true);
-    await loadTrainerProgressData(true);
-    await syncWorkoutsFromBackend({ silent: true });
-    if (isGeneralAdminUser()) await fetchAdminOverview(true);
     isTrainerExerciseComposerOpen = true;
     syncTrainerExerciseComposerUi();
 
-    const hasCoverFailure = coverSaveAttempted && !coverSaved;
-    const finalSuccessMessage = hasCoverFailure
-      ? `${successMessage} Exercício salvo, mas não foi possível salvar a capa do treino.`
-      : coverSaveAttempted && coverSaved
-        ? `${successMessage} Capa do treino salva com sucesso.`
-        : successMessage;
-
-    setTrainerManagementFeedback(finalSuccessMessage, !isPartialSave && !hasCoverFailure);
-    setTrainerExerciseFeedback(finalSuccessMessage, !isPartialSave && !hasCoverFailure);
+    setTrainerManagementFeedback(successMessage, !isPartialSave);
+    setTrainerExerciseFeedback(successMessage, !isPartialSave);
     renderTrainerExerciseLibraryPicker();
   } catch (error) {
-    const errorMessage = error && error.message ? error.message : 'Falha ao adicionar exercício ao treino.';
+    const errorMessage = error && error.message ? error.message : 'Falha ao adicionar exercício ao treino em si.';
     setTrainerManagementFeedback(errorMessage, false);
     setTrainerExerciseFeedback(errorMessage, false);
   } finally {
@@ -17567,7 +17444,7 @@ const initStudentArea = () => {
       if (trainerExerciseSearchInput) trainerExerciseSearchInput.value = '';
       closeTrainerExerciseLibraryPicker({ clearSearch: true });
       setTrainerManagementFeedback(
-        'Formulário aberto. Selecione treino, grupo e exercício da biblioteca.',
+        'Formulário aberto. Selecione o treino em si, o grupo e o exercício da biblioteca.',
         false
       );
       syncTrainerExerciseComposerUi({
@@ -17774,11 +17651,9 @@ const initStudentArea = () => {
       }
 
       const selectedWorkoutId = Number(selectedWorkoutValue) || 0;
-      trainerExerciseTargetWorkoutId = selectedWorkoutId;
+      trainerTemplateExerciseSelectedId = selectedWorkoutId ? String(selectedWorkoutId) : '';
+      trainerExerciseTargetWorkoutId = 0;
       isTrainerLinkedExercisesExpanded = false;
-      if (trainerExercisesFilterSelect) {
-        trainerExercisesFilterSelect.value = selectedWorkoutId ? String(selectedWorkoutId) : '';
-      }
       renderTrainerManagementPanel();
     });
   }
@@ -17800,15 +17675,7 @@ const initStudentArea = () => {
     trainerExerciseWorkoutViewButton.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const selectedWorkoutId = getSelectedTrainerExerciseWorkoutId();
-      if (!selectedWorkoutId) {
-        setTrainerExerciseFeedback('Selecione um treino para visualizar.', false);
-        return;
-      }
-      const opened = openAssignedWorkoutPreview(selectedWorkoutId, trainerExerciseWorkoutViewButton);
-      if (!opened) {
-        setTrainerExerciseFeedback('Não foi possível abrir o treino selecionado.', false);
-      }
+      setTrainerExerciseFeedback('A visualização completa fica disponível depois que o treino for designado ao aluno.', false);
     });
   }
 
@@ -17906,11 +17773,6 @@ const initStudentArea = () => {
     trainerExercisesFilterSelect.addEventListener('change', () => {
       trainerExerciseTargetWorkoutId = Number(trainerExercisesFilterSelect.value) || 0;
       isTrainerLinkedExercisesExpanded = false;
-      if (trainerExerciseWorkoutSelect) {
-        trainerExerciseWorkoutSelect.value = trainerExerciseTargetWorkoutId
-          ? String(trainerExerciseTargetWorkoutId)
-          : '';
-      }
       renderTrainerManagementPanel();
     });
   }
