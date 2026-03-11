@@ -12429,7 +12429,7 @@ const handleTrainerExerciseLibraryPickerActions = (event) => {
   const removeButton = target.closest('[data-trainer-exercise-library-picker-remove]');
   if (removeButton && removeButton instanceof HTMLButtonElement) {
     if (removeButton.disabled) return;
-    if (!isInstructorUser()) return;
+    if (!isTrainerManagerUser()) return;
 
     const workoutId = getSelectedTrainerExerciseTemplateId();
     const exerciseId = Number(removeButton.dataset.exerciseId || 0) || 0;
@@ -12453,7 +12453,7 @@ const handleTrainerExerciseLibraryPickerActions = (event) => {
   const addButton = target.closest('[data-trainer-exercise-library-picker-add]');
   if (!addButton || !(addButton instanceof HTMLButtonElement)) return;
   if (addButton.disabled) return;
-  if (!isInstructorUser()) return;
+  if (!isTrainerManagerUser()) return;
 
   const workoutId = getSelectedTrainerExerciseTemplateId();
   const exerciseId = Number(addButton.dataset.exerciseId || 0) || 0;
