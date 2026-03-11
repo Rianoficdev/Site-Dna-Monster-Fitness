@@ -26,6 +26,15 @@ function createExercisesRepository({ prisma }) {
     return parsed.toISOString();
   }
 
+  function isObservationArgumentUnsupported(error) {
+    const message = String((error && error.message) || "").trim().toLowerCase();
+    return (
+      String((error && error.name) || "").trim() === "PrismaClientValidationError" &&
+      message.includes("unknown argument") &&
+      message.includes("observation")
+    );
+  }
+
   function mapFromLibraryExercise(exercise) {
     if (!exercise) return null;
     return {
@@ -111,26 +120,41 @@ ALTER TABLE workout_exercise
   async function createExercise(data) {
     await ensureWorkoutExerciseObservationColumn();
 
-    const created = await prisma.workoutExercise.create({
-      data: {
-        workoutId: Number(data && data.workoutId) || 0,
-        exerciseId: Number(data && data.exerciseId) || 0,
-        order: Math.max(1, normalizeInteger(data && data.order, 1)),
-        series: Math.max(1, normalizeInteger(data && data.series, 3)),
-        reps: Math.max(1, normalizeInteger(data && (data.reps || data.repetitions), 10)),
-        load: Math.max(0, normalizeDecimal(data && (data.load || data.loadKg), 0)),
-        restTime: Math.max(0, normalizeInteger(data && (data.restTime || data.restSeconds), 30)),
-        completed: Boolean(data && data.completed),
-        replacedFromExerciseId:
-          data && data.replacedFromExerciseId !== null && data.replacedFromExerciseId !== undefined
-            ? Number(data.replacedFromExerciseId) || null
-            : null,
-        observation: normalizeString(data && (data.observation || data.observacao || data.note || data.notes)),
-      },
-      include: {
-        exercise: true,
-      },
-    });
+    const payload = {
+      workoutId: Number(data && data.workoutId) || 0,
+      exerciseId: Number(data && data.exerciseId) || 0,
+      order: Math.max(1, normalizeInteger(data && data.order, 1)),
+      series: Math.max(1, normalizeInteger(data && data.series, 3)),
+      reps: Math.max(1, normalizeInteger(data && (data.reps || data.repetitions), 10)),
+      load: Math.max(0, normalizeDecimal(data && (data.load || data.loadKg), 0)),
+      restTime: Math.max(0, normalizeInteger(data && (data.restTime || data.restSeconds), 30)),
+      completed: Boolean(data && data.completed),
+      replacedFromExerciseId:
+        data && data.replacedFromExerciseId !== null && data.replacedFromExerciseId !== undefined
+          ? Number(data.replacedFromExerciseId) || null
+          : null,
+      observation: normalizeString(data && (data.observation || data.observacao || data.note || data.notes)),
+    };
+
+    let created;
+    try {
+      created = await prisma.workoutExercise.create({
+        data: payload,
+        include: {
+          exercise: true,
+        },
+      });
+    } catch (error) {
+      if (!isObservationArgumentUnsupported(error)) throw error;
+
+      const { observation, ...fallbackPayload } = payload;
+      created = await prisma.workoutExercise.create({
+        data: fallbackPayload,
+        include: {
+          exercise: true,
+        },
+      });
+    }
 
     return withWorkoutExerciseCompatibility(created);
   }
@@ -293,6 +317,22 @@ ALTER TABLE workout_exercise
       if (Number(updated.workoutId) !== normalizedWorkoutId) return null;
       return withWorkoutExerciseCompatibility(updated);
     } catch (error) {
+      if (isObservationArgumentUnsupported(error) && Object.prototype.hasOwnProperty.call(payload, "observation")) {
+        const { observation, ...fallbackPayload } = payload;
+        const updated = await prisma.workoutExercise.update({
+          where: {
+            id: normalizedWorkoutExerciseId,
+          },
+          data: fallbackPayload,
+          include: {
+            exercise: true,
+          },
+        });
+
+        if (Number(updated.workoutId) !== normalizedWorkoutId) return null;
+        return withWorkoutExerciseCompatibility(updated);
+      }
+
       const code = String((error && error.code) || "").toUpperCase();
       if (code === "P2025") return null;
       throw error;
