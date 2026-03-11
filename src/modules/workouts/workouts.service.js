@@ -848,7 +848,17 @@ function createWorkoutsService({
       });
     }
 
-    const createdWorkout = await workoutsRepository.createWorkout({
+    const templateExercises = await workoutsRepository.listTemplateExercises(template.id);
+    if (!templateExercises.length) {
+      throw new AppError(
+        "A nomeclatura de treino selecionada não possui exercícios cadastrados.",
+        400,
+        "TEMPLATE_WITHOUT_EXERCISES"
+      );
+    }
+
+    let createdWorkout = null;
+    createdWorkout = await workoutsRepository.createWorkout({
       name: normalizeString(name) || template.name,
       objective: normalizeString(objective),
       description: normalizeString(description) || normalizeString(template.description),
@@ -865,8 +875,8 @@ function createWorkoutsService({
       weekDays: normalizeWeekDays(weekDays),
     });
 
-    const templateExercises = await workoutsRepository.listTemplateExercises(template.id);
     const copiedExercises = [];
+    try {
     for (const item of templateExercises) {
       const libraryExercise = libraryRepository.findById(item.exerciseId, { includeInactive: true });
       const copiedExercise = await exercisesRepository.createExercise({
@@ -894,6 +904,14 @@ function createWorkoutsService({
         durationSeconds: libraryExercise ? Number(libraryExercise.durationSeconds) || 60 : 60,
       });
       copiedExercises.push(copiedExercise);
+    }
+    } catch (error) {
+      if (createdWorkout && createdWorkout.id) {
+        try {
+          await workoutsRepository.deleteWorkout(createdWorkout.id);
+        } catch (_cleanupError) {}
+      }
+      throw error;
     }
 
     return {

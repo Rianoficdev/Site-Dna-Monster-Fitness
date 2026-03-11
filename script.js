@@ -1248,6 +1248,7 @@ let adminTeamPanelCollapsed = false;
 let siteTeamMembersCache = [];
 let siteTeamSyncInFlight = false;
 let adminTeamSavingInFlight = false;
+const TRAINER_TEMPLATE_PREVIEW_ID_OFFSET = 900000000;
 let adminExerciseEditingId = 0;
 let adminExerciseEditTriggerButton = null;
 let adminExerciseModalReadOnly = false;
@@ -10339,7 +10340,11 @@ const openTrainerWorkoutModal = (workout, triggerButton = null, { readOnly = fal
   trainerWorkoutEditTriggerButton = triggerButton || null;
   setTrainerWorkoutModalMode({ readOnly: isReadOnly });
   if (trainerWorkoutModalIdentification) {
-    trainerWorkoutModalIdentification.textContent = `Treino #${Number(workout.id) || '-'}`;
+    trainerWorkoutModalIdentification.textContent = String(
+      workout && workout.previewIdLabel
+        ? workout.previewIdLabel
+        : `Treino #${Number(workout.id) || '-'}`
+    ).trim();
   }
   if (trainerWorkoutModalNameInput) {
     trainerWorkoutModalNameInput.value = String(workout.title || workout.name || '').trim();
@@ -11260,6 +11265,67 @@ function getTrainerTemplateById(templateId) {
   return templates.find((template) => Number(template && template.id) === normalizedTemplateId) || null;
 }
 
+function buildTrainerTemplatePreviewWorkout(templateId) {
+  const normalizedTemplateId = Number(templateId) || 0;
+  if (!normalizedTemplateId) return null;
+
+  const template = getTrainerTemplateById(normalizedTemplateId);
+  if (!template) return null;
+
+  const templateExercises =
+    trainerManagementState.templateExercisesByTemplateId[String(normalizedTemplateId)] || [];
+  const previewWorkoutId = TRAINER_TEMPLATE_PREVIEW_ID_OFFSET + normalizedTemplateId;
+  const mappedExercises = templateExercises
+    .slice()
+    .sort((first, second) => (Number(first && first.order) || 0) - (Number(second && second.order) || 0))
+    .map((item, index) => {
+      const exercise = item && item.exercise ? item.exercise : null;
+      return {
+        id: previewWorkoutId * 1000 + index + 1,
+        workoutId: previewWorkoutId,
+        exerciseId: Number(item && item.exerciseId) || 0,
+        libraryExerciseId: Number(item && item.exerciseId) || 0,
+        order: Math.max(1, Number(item && item.order) || index + 1),
+        series: Math.max(1, Number(item && item.series) || 3),
+        reps: Math.max(1, Number(item && item.reps) || 10),
+        repetitions: Math.max(1, Number(item && item.reps) || 10),
+        load: Math.max(0, Number(item && item.defaultLoad) || 0),
+        loadKg: Math.max(0, Number(item && item.defaultLoad) || 0),
+        restTime: Math.max(0, Number(item && item.restTime) || 30),
+        restSeconds: Math.max(0, Number(item && item.restTime) || 30),
+        completed: false,
+        name: String((exercise && exercise.name) || `Exercício ${Number(item && item.exerciseId) || index + 1}`).trim(),
+        description: String((exercise && exercise.description) || '').trim(),
+        imageUrl: String((exercise && exercise.imageUrl) || '').trim(),
+        videoUrl: String((exercise && exercise.videoUrl) || '').trim(),
+        animationUrl: String((exercise && exercise.animationUrl) || '').trim(),
+        tutorialText: String((exercise && exercise.tutorialText) || '').trim(),
+        durationSeconds: Math.max(10, Number(exercise && exercise.durationSeconds) || 60),
+        group: normalizeLibraryGroupKey(
+          exercise && (exercise.group || exercise.muscleGroup || exercise.muscle_group),
+          ''
+        ),
+        muscleGroup: normalizeLibraryGroupKey(
+          exercise && (exercise.group || exercise.muscleGroup || exercise.muscle_group),
+          ''
+        ),
+      };
+    });
+
+  trainerManagementState.exercisesByWorkoutId[String(previewWorkoutId)] = mappedExercises;
+
+  return {
+    id: previewWorkoutId,
+    previewIdLabel: `Nomeclatura #${normalizedTemplateId}`,
+    title: String((template && template.name) || `Nomeclatura ${normalizedTemplateId}`).trim(),
+    name: String((template && template.name) || `Nomeclatura ${normalizedTemplateId}`).trim(),
+    objective: 'Hipertrofia',
+    description: String((template && template.description) || '').trim(),
+    status: template && template.isActive === false ? 'INATIVO' : 'ATIVO',
+    isActive: !(template && template.isActive === false),
+  };
+}
+
 function shouldOpenTrainerWorkoutQuickCreate(rawWorkoutValue = '') {
   const normalizedWorkoutValue = String(rawWorkoutValue || '').trim();
   if (normalizedWorkoutValue === TRAINER_WORKOUT_CREATE_OPTION_VALUE) return true;
@@ -11634,13 +11700,29 @@ function renderTrainerWeekdayAssignmentSelectors(templates = []) {
       return `
         <label class="trainer-weekday-assignment-field">
           <span>${escapeAdminCell(assignmentLabel)}</span>
-          <select
-            data-trainer-weekday-assignment-select
-            data-day="${escapeAdminCell(day)}"
-            ${hasAssignableWorkouts ? '' : 'disabled'}
-          >
-            ${optionsMarkup}
-          </select>
+          <div class="trainer-workout-select-actions">
+            <select
+              data-trainer-weekday-assignment-select
+              data-day="${escapeAdminCell(day)}"
+              ${hasAssignableWorkouts ? '' : 'disabled'}
+            >
+              ${optionsMarkup}
+            </select>
+            <button
+              class="trainer-workout-select-action"
+              type="button"
+              data-trainer-weekday-assignment-view
+              data-day="${escapeAdminCell(day)}"
+              aria-label="Visualizar treino de ${escapeAdminCell(day)}"
+              title="Visualizar treino de ${escapeAdminCell(day)}"
+              disabled
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
         </label>
       `;
     })
@@ -11653,6 +11735,12 @@ function renderTrainerWeekdayAssignmentSelectors(templates = []) {
     const day = String(select.dataset.day || '').trim();
     const selectedWorkoutId = Number(trainerWorkoutDayAssignments[day]) || 0;
     select.value = selectedWorkoutId ? String(selectedWorkoutId) : '';
+    const viewButton = trainerWeekdayAssignmentList.querySelector(
+      `[data-trainer-weekday-assignment-view][data-day="${escapeAdminCell(day)}"]`
+    );
+    if (viewButton instanceof HTMLButtonElement) {
+      viewButton.disabled = !selectedWorkoutId;
+    }
   });
 }
 
@@ -15145,6 +15233,7 @@ const handleTrainerWorkoutSubmit = async (event) => {
   try {
     const createdWorkoutIds = [];
     const responses = [];
+    const failedAssignments = [];
     const multipleAssignments = groupedAssignments.length > 1;
 
     for (const assignment of groupedAssignments) {
@@ -15159,25 +15248,37 @@ const handleTrainerWorkoutSubmit = async (event) => {
           ? `${assignedWorkoutName} - ${assignmentWeekDays.join('/')}`
           : ''
         : assignedWorkoutName;
-      const response = await requestStudentApi('/workout/from-template', {
-        method: 'POST',
-        body: {
-          templateId: assignmentTemplateId,
-          studentId,
-          instructorId,
-          name: assignmentName,
-          objective,
-          description,
-          status,
-          weekDays: assignmentWeekDays
-        }
-      });
-      responses.push(response);
+      try {
+        const response = await requestStudentApi('/workout/from-template', {
+          method: 'POST',
+          body: {
+            templateId: assignmentTemplateId,
+            studentId,
+            instructorId,
+            name: assignmentName,
+            objective,
+            description,
+            status,
+            weekDays: assignmentWeekDays
+          }
+        });
+        responses.push(response);
 
-      const createdWorkoutId = resolveCreatedWorkoutIdFromResponse(response);
-      if (createdWorkoutId > 0) {
-        createdWorkoutIds.push(createdWorkoutId);
+        const createdWorkoutId = resolveCreatedWorkoutIdFromResponse(response);
+        if (createdWorkoutId > 0) {
+          createdWorkoutIds.push(createdWorkoutId);
+        }
+      } catch (error) {
+        failedAssignments.push({
+          templateId: assignmentTemplateId,
+          weekDays: assignmentWeekDays,
+          message: error && error.message ? error.message : 'Falha ao designar treino.'
+        });
       }
+    }
+
+    if (!createdWorkoutIds.length && failedAssignments.length) {
+      throw new Error(failedAssignments[0].message);
     }
 
     createdWorkoutIds.forEach((workoutId) => {
@@ -15226,11 +15327,23 @@ const handleTrainerWorkoutSubmit = async (event) => {
       : coverAutoApplied
         ? `${successMessage} A capa do treino também foi salva.`
         : successMessage;
+    const failedAssignmentsMessage = failedAssignments.length
+      ? ` Dias com falha: ${failedAssignments
+        .map((item) => item.weekDays.join('/'))
+        .filter(Boolean)
+        .join(', ')}.`
+      : '';
 
     setTrainerManagementFeedback(
-      finalSuccessMessage,
+      `${finalSuccessMessage}${failedAssignmentsMessage}`.trim(),
       true
     );
+    if (failedAssignments.length) {
+      setTrainerExerciseFeedback(
+        failedAssignments[0].message,
+        false
+      );
+    }
   } catch (error) {
     setTrainerManagementFeedback(
       error && error.message ? error.message : 'Falha ao designar treino ao aluno.',
@@ -15648,6 +15761,21 @@ const openAssignedWorkoutPreview = (workoutId, triggerButton = null) => {
   const opened = openTrainerWorkoutModal(workout, triggerButton, { readOnly: true });
   if (!opened) {
     setTrainerManagementFeedback('Não foi possível abrir a visualização do treino.', false);
+    return false;
+  }
+  return true;
+};
+
+const openTrainerTemplatePreview = (templateId, triggerButton = null) => {
+  const previewWorkout = buildTrainerTemplatePreviewWorkout(templateId);
+  if (!previewWorkout) {
+    setTrainerManagementFeedback('Nomeclatura selecionada não encontrada para visualização.', false);
+    return false;
+  }
+
+  const opened = openTrainerWorkoutModal(previewWorkout, triggerButton, { readOnly: true });
+  if (!opened) {
+    setTrainerManagementFeedback('Não foi possível abrir a visualização da nomeclatura.', false);
     return false;
   }
   return true;
@@ -17740,6 +17868,31 @@ const initStudentArea = () => {
       } else {
         delete trainerWorkoutDayAssignments[day];
       }
+
+      const viewButton = trainerWeekdayAssignmentList.querySelector(
+        `[data-trainer-weekday-assignment-view][data-day="${escapeAdminCell(day)}"]`
+      );
+      if (viewButton instanceof HTMLButtonElement) {
+        viewButton.disabled = workoutId <= 0;
+      }
+    });
+
+    trainerWeekdayAssignmentList.addEventListener('click', (event) => {
+      const target = event && event.target;
+      if (!(target instanceof Element)) return;
+      const viewButton = target.closest('[data-trainer-weekday-assignment-view]');
+      if (!(viewButton instanceof HTMLButtonElement)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      const day = String(viewButton.dataset.day || '').trim();
+      const templateId = Number(trainerWorkoutDayAssignments[day]) || 0;
+      if (!templateId) {
+        setTrainerManagementFeedback(`Selecione um treino para ${day} antes de visualizar.`, false);
+        return;
+      }
+
+      openTrainerTemplatePreview(templateId, viewButton);
     });
   }
 
