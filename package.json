@@ -14,6 +14,7 @@
     "migrate:storage": "node scripts/migrate-media-to-supabase-storage.js",
     "check:rotina": "node scripts/check-rotina.js",
     "test:designacao": "node scripts/test-designacao.js",
+    "test:designacao:template": "node scripts/test-designacao-template.js",
     "test:concorrencia": "node scripts/test-concorrencia.js",
     "prelaunch:full": "node scripts/prelaunch-full.js",
     "pm2:start": "pm2 start ecosystem.config.cjs --env production",
