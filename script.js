@@ -1221,6 +1221,7 @@ let trainerExerciseSearchTerm = '';
 let trainerWorkoutStudentConfirmed = false;
 let trainerTemplateEditorSelectedId = '';
 let trainerTemplateExerciseSelectedId = '';
+let trainerExerciseComposerSelectedId = '';
 let trainerWorkoutEditingId = 0;
 let trainerWorkoutEditTriggerButton = null;
 let trainerWorkoutModalReadOnly = false;
@@ -2623,7 +2624,7 @@ function syncTrainerExerciseComposerUi({ focus = false, scroll = false } = {}) {
   }
 
   if (trainerExerciseWorkoutSelect) {
-    const targetValue = String(trainerTemplateExerciseSelectedId || '').trim();
+    const targetValue = String(trainerExerciseComposerSelectedId || '').trim();
     if (targetValue && Array.from(trainerExerciseWorkoutSelect.options).some((option) => option.value === targetValue)) {
       trainerExerciseWorkoutSelect.value = targetValue;
     }
@@ -2692,6 +2693,7 @@ async function createTrainerWorkoutFromExerciseField() {
     trainerTemplateFormNameInput.value = suggestedWorkoutName;
   }
   trainerExerciseTargetWorkoutId = 0;
+  trainerExerciseComposerSelectedId = '';
   if (trainerExerciseWorkoutSelect) trainerExerciseWorkoutSelect.value = '';
   openTrainerWorkoutCreateFromExerciseField();
   return false;
@@ -9516,6 +9518,7 @@ const resetTrainerManagementState = () => {
   trainerExerciseSearchTerm = '';
   trainerTemplateEditorSelectedId = '';
   trainerTemplateExerciseSelectedId = '';
+  trainerExerciseComposerSelectedId = '';
   trainerWorkoutStudentConfirmed = false;
   trainerWorkoutEditingId = 0;
   trainerWorkoutExerciseEditingState = null;
@@ -13768,6 +13771,7 @@ const renderTrainerManagementPanel = () => {
         createWorkoutOptionMarkup
       ].join('');
       trainerExerciseWorkoutSelect.value = '';
+      trainerExerciseComposerSelectedId = '';
     } else {
       const workoutOptionsMarkup = activeTemplates
         .slice()
@@ -13789,7 +13793,7 @@ const renderTrainerManagementPanel = () => {
         workoutOptionsMarkup
       ].join('');
 
-      const targetValue = String(trainerTemplateExerciseSelectedId || '').trim();
+      const targetValue = String(trainerExerciseComposerSelectedId || '').trim();
       if (targetValue && activeTemplates.some((template) => String(template.id) === targetValue)) {
         trainerExerciseWorkoutSelect.value = targetValue;
       } else if (previousValue && activeTemplates.some((template) => String(template.id) === String(previousValue))) {
@@ -13797,6 +13801,7 @@ const renderTrainerManagementPanel = () => {
       } else {
         trainerExerciseWorkoutSelect.value = '';
       }
+      trainerExerciseComposerSelectedId = String(trainerExerciseWorkoutSelect.value || '').trim();
     }
   }
   syncTrainerExerciseWorkoutQuickActions();
@@ -15087,6 +15092,7 @@ const handleTrainerWorkoutSubmit = async (event) => {
       trainerExerciseTargetWorkoutId = createdWorkoutId;
     }
     trainerTemplateExerciseSelectedId = String(templateId);
+    trainerExerciseComposerSelectedId = String(templateId);
     const visibilityHint = status === 'INATIVO'
       ? 'Treino salvo como Inativo para o aluno.'
       : 'Treino já disponível para o aluno.';
@@ -15225,6 +15231,7 @@ const handleTrainerTemplateFormSubmit = async (event) => {
     const createdTemplateId = Number(response && response.template && response.template.id) || 0;
     if (createdTemplateId) {
       trainerTemplateExerciseSelectedId = String(createdTemplateId);
+      trainerExerciseComposerSelectedId = String(createdTemplateId);
       trainerTemplateEditorSelectedId = String(createdTemplateId);
       trainerExerciseTargetWorkoutId = 0;
       if (trainerExerciseWorkoutSelect) {
@@ -15296,6 +15303,7 @@ const handleTrainerTemplateEditorSubmit = async (event) => {
 
     trainerTemplateEditorSelectedId = String(templateId);
     trainerTemplateExerciseSelectedId = String(templateId);
+    trainerExerciseComposerSelectedId = String(templateId);
     await loadTrainerManagementData(true);
 
     if (trainerTemplateExercisesFilterSelect) {
@@ -15360,6 +15368,7 @@ const handleTrainerTemplateExerciseSubmit = async (event) => {
     );
 
     trainerTemplateExerciseSelectedId = String(templateId);
+    trainerExerciseComposerSelectedId = String(templateId);
     trainerExerciseTargetWorkoutId = 0;
     await loadTrainerManagementData(true);
 
@@ -15881,6 +15890,7 @@ const handleTrainerExerciseSubmit = async (event) => {
     }
 
     trainerTemplateExerciseSelectedId = String(templateId);
+    trainerExerciseComposerSelectedId = String(templateId);
     await loadTrainerManagementData(true);
     isTrainerExerciseComposerOpen = true;
     syncTrainerExerciseComposerUi();
@@ -17707,7 +17717,7 @@ const initStudentArea = () => {
       }
 
       const selectedWorkoutId = Number(selectedWorkoutValue) || 0;
-      trainerTemplateExerciseSelectedId = selectedWorkoutId ? String(selectedWorkoutId) : '';
+      trainerExerciseComposerSelectedId = selectedWorkoutId ? String(selectedWorkoutId) : '';
       trainerExerciseTargetWorkoutId = 0;
       isTrainerLinkedExercisesExpanded = false;
       renderTrainerManagementPanel();
