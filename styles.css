@@ -11059,6 +11059,8 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
 .trainer-select-search input[type="search"] {
   width: 100%;
   min-height: 50px;
+  appearance: none;
+  -webkit-appearance: none;
   border-radius: 12px;
   border: 1px solid rgba(95, 109, 136, 0.24);
   background: #ffffff;
