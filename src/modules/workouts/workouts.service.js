@@ -403,9 +403,9 @@ function createWorkoutsService({
       throw new AppError("Role inválida.", 400, "VALIDATION_ERROR");
     }
 
-    if (!managementRoles.has(normalizedRole)) {
+    if (normalizedRole !== studentRole && !managementRoles.has(normalizedRole)) {
       throw new AppError(
-        "Somente Administrador Geral e Instrutor podem criar treinos.",
+        "Somente Aluno, Administrador Geral e Instrutor podem criar treinos.",
         403,
         "FORBIDDEN"
       );
@@ -425,6 +425,17 @@ function createWorkoutsService({
       throw new AppError("Não é possível atribuir treino para aluno desabilitado.", 400, "STUDENT_DISABLED");
     }
 
+    let resolvedCreatorId = actorId;
+
+    if (normalizedRole === studentRole) {
+      if (actorId !== Number(student.id)) {
+        throw new AppError(
+          "Aluno so pode criar treino para si mesmo.",
+          403,
+          "FORBIDDEN"
+        );
+      }
+    } else {
     const resolvedInstructorId = normalizedRole === "INSTRUTOR"
       ? actorId
       : requestedInstructorId || actorId;
@@ -449,6 +460,8 @@ function createWorkoutsService({
         studentId: Number(student.id),
       });
     }
+      resolvedCreatorId = Number(instructor.id);
+    }
 
     const resolvedIsActive =
       isActive !== undefined
@@ -462,7 +475,7 @@ function createWorkoutsService({
       coverImageUrl: normalizedCoverImageUrl,
       weekDays: normalizedWeekDays,
       studentId: Number(student.id),
-      createdBy: Number(instructor.id),
+      createdBy: resolvedCreatorId,
       originTemplateId: normalizeId(originTemplateId) || null,
       isActive: resolvedIsActive,
       startDate: normalizedStartDate,

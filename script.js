@@ -983,6 +983,16 @@ const trainerProgressHistoryBody = document.querySelector('[data-trainer-progres
 const openWorkoutsButton = document.querySelector('[data-student-open-workouts]');
 const openWorkoutsListButton = document.querySelector('[data-student-open-workouts-list]');
 const allWorkoutsList = document.querySelector('[data-student-all-workouts-list]');
+let studentSelfWorkoutCard = null;
+let studentSelfWorkoutForm = null;
+let studentSelfWorkoutNameInput = null;
+let studentSelfWorkoutObjectiveSelect = null;
+let studentSelfWorkoutGroupSelect = null;
+let studentSelfWorkoutExerciseSelect = null;
+let studentSelfWorkoutAddButton = null;
+let studentSelfWorkoutPendingList = null;
+let studentSelfWorkoutFeedback = null;
+let studentSelfWorkoutSubmitButton = null;
 const workoutsStartButton = document.querySelector('[data-student-workout-start]');
 const workoutsBackButton = document.querySelector('[data-student-workouts-back]');
 const libraryBackButton = document.querySelector('[data-student-library-back]');
@@ -1215,6 +1225,11 @@ let mobileSelectPickerTapIntent = null;
 let mobileSelectPickerSuppressClickUntil = 0;
 let mobileSelectPickerIgnoreCloseUntil = 0;
 let activeProfileAction = '';
+let studentSelfWorkoutPendingExercises = [];
+let studentSelfWorkoutSelectedGroup = '';
+let studentSelfWorkoutLoading = false;
+let studentSelfWorkoutFeedbackMessage = '';
+let studentSelfWorkoutFeedbackSuccess = false;
 let trainerStudentSearchTerm = '';
 let trainerInstructorSearchTerm = '';
 let trainerExerciseSearchTerm = '';
@@ -4599,6 +4614,306 @@ const getDashboardObjectiveTitle = () => {
   return objective || 'Objetivo definido pelo instrutor';
 };
 
+const STUDENT_SELF_WORKOUT_OBJECTIVES = ['Hipertrofia', 'Emagrecimento', 'Resistência', 'Força'];
+
+const ensureStudentSelfWorkoutCard = () => {
+  if (studentSelfWorkoutCard && document.body.contains(studentSelfWorkoutCard)) return true;
+
+  const anchorCard = allWorkoutsList ? allWorkoutsList.closest('.student-all-workouts-card') : null;
+  const dashboardPanel = anchorCard && anchorCard.parentElement ? anchorCard.parentElement : null;
+  if (!dashboardPanel) return false;
+
+  const template = document.createElement('template');
+  template.innerHTML = `
+    <article class="student-app-card student-self-workout-card" data-student-self-workout-card hidden>
+      <div class="student-self-workout-head">
+        <div>
+          <h5>Monte seu próprio treino</h5>
+          <p>Escolha exercícios da biblioteca e crie um treino pessoal para você.</p>
+        </div>
+      </div>
+      <form class="student-self-workout-form" data-student-self-workout-form>
+        <label class="student-self-workout-field">
+          <span>Nome do treino</span>
+          <input type="text" data-student-self-workout-name placeholder="Ex: Meu treino de peito e costas" maxlength="80" />
+        </label>
+        <label class="student-self-workout-field">
+          <span>Objetivo</span>
+          <select data-student-self-workout-objective>
+            ${STUDENT_SELF_WORKOUT_OBJECTIVES
+              .map((objective) => `<option value="${escapeAdminCell(objective)}">${escapeAdminCell(objective)}</option>`)
+              .join('')}
+          </select>
+        </label>
+        <div class="student-self-workout-picker-grid">
+          <label class="student-self-workout-field">
+            <span>Grupo muscular</span>
+            <select data-student-self-workout-group></select>
+          </label>
+          <label class="student-self-workout-field">
+            <span>Exercício da biblioteca</span>
+            <select data-student-self-workout-exercise></select>
+          </label>
+        </div>
+        <div class="student-self-workout-actions">
+          <button class="student-self-workout-add" type="button" data-student-self-workout-add>
+            <span>Adicionar exercício</span>
+          </button>
+          <button class="student-cta-inline" type="submit" data-student-self-workout-submit>
+            <span>Criar meu treino</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l8 7-8 7"/><path d="M16 12H4"/></svg>
+          </button>
+        </div>
+        <div class="student-self-workout-pending" data-student-self-workout-pending-list></div>
+        <p class="student-self-workout-feedback" data-student-self-workout-feedback></p>
+      </form>
+    </article>
+  `.trim();
+
+  const card = template.content.firstElementChild;
+  if (!(card instanceof HTMLElement)) return false;
+
+  dashboardPanel.insertBefore(card, anchorCard);
+
+  studentSelfWorkoutCard = card;
+  studentSelfWorkoutForm = card.querySelector('[data-student-self-workout-form]');
+  studentSelfWorkoutNameInput = card.querySelector('[data-student-self-workout-name]');
+  studentSelfWorkoutObjectiveSelect = card.querySelector('[data-student-self-workout-objective]');
+  studentSelfWorkoutGroupSelect = card.querySelector('[data-student-self-workout-group]');
+  studentSelfWorkoutExerciseSelect = card.querySelector('[data-student-self-workout-exercise]');
+  studentSelfWorkoutAddButton = card.querySelector('[data-student-self-workout-add]');
+  studentSelfWorkoutPendingList = card.querySelector('[data-student-self-workout-pending-list]');
+  studentSelfWorkoutFeedback = card.querySelector('[data-student-self-workout-feedback]');
+  studentSelfWorkoutSubmitButton = card.querySelector('[data-student-self-workout-submit]');
+
+  return true;
+};
+
+const setStudentSelfWorkoutFeedback = (message = '', isSuccess = false) => {
+  studentSelfWorkoutFeedbackMessage = String(message || '').trim();
+  studentSelfWorkoutFeedbackSuccess = Boolean(studentSelfWorkoutFeedbackMessage) && Boolean(isSuccess);
+
+  if (!studentSelfWorkoutFeedback) return;
+  studentSelfWorkoutFeedback.textContent = studentSelfWorkoutFeedbackMessage;
+  studentSelfWorkoutFeedback.classList.toggle('is-success', studentSelfWorkoutFeedbackSuccess);
+};
+
+const getStudentSelfWorkoutLibraryExercises = () =>
+  (Array.isArray(studentData.library) ? studentData.library : [])
+    .filter((exercise) => exercise && Number(exercise.id) > 0 && normalizeLibraryGroupKey(exercise.group, ''))
+    .slice()
+    .sort((first, second) =>
+      String((first && first.name) || '').localeCompare(
+        String((second && second.name) || ''),
+        'pt-BR',
+        { numeric: true, sensitivity: 'base' }
+      )
+    );
+
+const renderStudentSelfWorkoutBuilder = () => {
+  if (!ensureStudentSelfWorkoutCard()) return;
+
+  const canRender = normalizeRole(studentData.userRole) === 'ALUNO';
+  studentSelfWorkoutCard.hidden = !canRender;
+  if (!canRender) return;
+
+  const libraryExercises = getStudentSelfWorkoutLibraryExercises();
+  const availableGroups = getAvailableLibraryGroupKeys(libraryExercises, {
+    includeKnownWhenEmpty: false
+  });
+
+  if (!availableGroups.includes(studentSelfWorkoutSelectedGroup)) {
+    studentSelfWorkoutSelectedGroup = availableGroups[0] || '';
+  }
+
+  if (studentSelfWorkoutGroupSelect) {
+    const previousValue = String(studentSelfWorkoutGroupSelect.value || '').trim();
+    studentSelfWorkoutGroupSelect.innerHTML = availableGroups.length
+      ? availableGroups
+        .map(
+          (groupKey) =>
+            `<option value="${escapeAdminCell(groupKey)}">${escapeAdminCell(getLibraryGroupLabel(groupKey, groupKey))}</option>`
+        )
+        .join('')
+      : '<option value="">Nenhum grupo disponível</option>';
+    if (previousValue && availableGroups.includes(previousValue)) {
+      studentSelfWorkoutGroupSelect.value = previousValue;
+      studentSelfWorkoutSelectedGroup = previousValue;
+    } else if (studentSelfWorkoutSelectedGroup) {
+      studentSelfWorkoutGroupSelect.value = studentSelfWorkoutSelectedGroup;
+    }
+    studentSelfWorkoutGroupSelect.disabled = studentSelfWorkoutLoading || !availableGroups.length;
+  }
+
+  const filteredExercises = studentSelfWorkoutSelectedGroup
+    ? libraryExercises.filter(
+      (exercise) => normalizeLibraryGroupKey(exercise && exercise.group, '') === studentSelfWorkoutSelectedGroup
+    )
+    : libraryExercises;
+
+  if (studentSelfWorkoutExerciseSelect) {
+    const previousValue = String(studentSelfWorkoutExerciseSelect.value || '').trim();
+    studentSelfWorkoutExerciseSelect.innerHTML = filteredExercises.length
+      ? [
+        '<option value="">Selecione um exercício</option>',
+        ...filteredExercises.map(
+          (exercise) =>
+            `<option value="${escapeAdminCell(exercise.id)}">${escapeAdminCell(exercise.name)}</option>`
+        )
+      ].join('')
+      : '<option value="">Nenhum exercício disponível</option>';
+    if (previousValue && filteredExercises.some((exercise) => String(exercise.id) === previousValue)) {
+      studentSelfWorkoutExerciseSelect.value = previousValue;
+    }
+    studentSelfWorkoutExerciseSelect.disabled = studentSelfWorkoutLoading || !filteredExercises.length;
+  }
+
+  if (studentSelfWorkoutAddButton) {
+    studentSelfWorkoutAddButton.disabled = studentSelfWorkoutLoading || !filteredExercises.length;
+  }
+
+  if (studentSelfWorkoutSubmitButton) {
+    studentSelfWorkoutSubmitButton.disabled = studentSelfWorkoutLoading || !studentSelfWorkoutPendingExercises.length;
+  }
+
+  if (studentSelfWorkoutPendingList) {
+    studentSelfWorkoutPendingList.innerHTML = studentSelfWorkoutPendingExercises.length
+      ? `
+          <div class="student-self-workout-pending-head">
+            <strong>${studentSelfWorkoutPendingExercises.length} exercício(s) selecionado(s)</strong>
+            <small>Você pode misturar grupos diferentes no mesmo treino.</small>
+          </div>
+          <div class="student-self-workout-pending-items">
+            ${studentSelfWorkoutPendingExercises
+              .map((exercise, index) => `
+                <div class="student-self-workout-pill">
+                  <div>
+                    <strong>${escapeAdminCell(exercise.name)}</strong>
+                    <small>${escapeAdminCell(getLibraryGroupLabel(exercise.group, exercise.group))} • ${escapeAdminCell(`${exercise.series}x${exercise.repetitions}`)}</small>
+                  </div>
+                  <button type="button" data-student-self-workout-remove="${escapeAdminCell(index)}" aria-label="Remover ${escapeAdminCell(exercise.name)}">Remover</button>
+                </div>
+              `)
+              .join('')}
+          </div>
+        `
+      : '<p class="student-self-workout-empty">Adicione exercícios da biblioteca para montar o seu treino.</p>';
+  }
+
+  setStudentSelfWorkoutFeedback(studentSelfWorkoutFeedbackMessage, studentSelfWorkoutFeedbackSuccess);
+};
+
+const resetStudentSelfWorkoutBuilder = ({ keepFeedback = false } = {}) => {
+  studentSelfWorkoutPendingExercises = [];
+  studentSelfWorkoutSelectedGroup = '';
+  if (studentSelfWorkoutForm) studentSelfWorkoutForm.reset();
+  if (!keepFeedback) {
+    studentSelfWorkoutFeedbackMessage = '';
+    studentSelfWorkoutFeedbackSuccess = false;
+  }
+  renderStudentSelfWorkoutBuilder();
+};
+
+const handleStudentSelfWorkoutAddExercise = () => {
+  if (normalizeRole(studentData.userRole) !== 'ALUNO') return;
+
+  const selectedExerciseId = Number(studentSelfWorkoutExerciseSelect ? studentSelfWorkoutExerciseSelect.value : 0) || 0;
+  if (!selectedExerciseId) {
+    setStudentSelfWorkoutFeedback('Selecione um exercício para adicionar.', false);
+    return;
+  }
+
+  const libraryExercise = getStudentSelfWorkoutLibraryExercises().find(
+    (exercise) => Number(exercise && exercise.id) === selectedExerciseId
+  );
+  if (!libraryExercise) {
+    setStudentSelfWorkoutFeedback('Exercício da biblioteca não encontrado.', false);
+    return;
+  }
+
+  if (studentSelfWorkoutPendingExercises.some((exercise) => Number(exercise.id) === selectedExerciseId)) {
+    setStudentSelfWorkoutFeedback('Esse exercício já foi adicionado ao treino.', false);
+    return;
+  }
+
+  studentSelfWorkoutPendingExercises.push({
+    id: Number(libraryExercise.id),
+    name: String(libraryExercise.name || '').trim() || 'Exercício',
+    group: normalizeLibraryGroupKey(libraryExercise.group, ''),
+    series: Math.max(1, Number(libraryExercise.seriesCount) || 3),
+    repetitions: Math.max(1, Number(libraryExercise.repetitions) || 10),
+    loadKg: Math.max(0, Number(libraryExercise.loadKg) || 0),
+    restSeconds: Math.max(0, Number(libraryExercise.restSeconds) || 30)
+  });
+
+  if (studentSelfWorkoutExerciseSelect) studentSelfWorkoutExerciseSelect.value = '';
+  setStudentSelfWorkoutFeedback(`${libraryExercise.name} adicionado ao seu treino.`, true);
+  renderStudentSelfWorkoutBuilder();
+};
+
+const handleStudentSelfWorkoutSubmit = async (event) => {
+  event.preventDefault();
+
+  if (normalizeRole(studentData.userRole) !== 'ALUNO') {
+    setStudentSelfWorkoutFeedback('Somente o aluno pode criar um treino próprio nessa área.', false);
+    return;
+  }
+
+  const workoutName = String(studentSelfWorkoutNameInput ? studentSelfWorkoutNameInput.value : '').trim();
+  const objective = String(studentSelfWorkoutObjectiveSelect ? studentSelfWorkoutObjectiveSelect.value : '').trim() || 'Hipertrofia';
+
+  if (!workoutName) {
+    setStudentSelfWorkoutFeedback('Informe um nome para o seu treino.', false);
+    return;
+  }
+
+  if (!studentSelfWorkoutPendingExercises.length) {
+    setStudentSelfWorkoutFeedback('Adicione pelo menos um exercício antes de criar o treino.', false);
+    return;
+  }
+
+  studentSelfWorkoutLoading = true;
+  setStudentSelfWorkoutFeedback('', false);
+  renderStudentSelfWorkoutBuilder();
+  setButtonLoading(studentSelfWorkoutSubmitButton, 'Criando...');
+
+  try {
+    await requestStudentApi('/workouts', {
+      method: 'POST',
+      body: {
+        name: workoutName,
+        objective,
+        description: 'Treino montado pelo próprio aluno.',
+        studentId: Number(studentData.userId) || 0,
+        exercises: studentSelfWorkoutPendingExercises.map((exercise, index) => ({
+          exerciseId: Number(exercise.id),
+          order: index + 1,
+          series: Math.max(1, Number(exercise.series) || 3),
+          repetitions: Math.max(1, Number(exercise.repetitions) || 10),
+          loadKg: Math.max(0, Number(exercise.loadKg) || 0),
+          restSeconds: Math.max(0, Number(exercise.restSeconds) || 30)
+        }))
+      }
+    });
+
+    await syncWorkoutsFromBackend({ silent: true });
+    renderStudentApp();
+    setStudentAppTab('dashboard', true);
+    resetStudentSelfWorkoutBuilder({ keepFeedback: true });
+    setStudentSelfWorkoutFeedback('Seu treino foi criado com sucesso e já entrou na sua lista.', true);
+    showSiteTopNotice('Treino próprio criado com sucesso.', true, { durationMs: 2400 });
+  } catch (error) {
+    setStudentSelfWorkoutFeedback(
+      error && error.message ? error.message : 'Não foi possível criar o seu treino agora.',
+      false
+    );
+  } finally {
+    studentSelfWorkoutLoading = false;
+    clearButtonLoading(studentSelfWorkoutSubmitButton, 'Criar meu treino');
+    renderStudentSelfWorkoutBuilder();
+  }
+};
+
 const renderDashboard = () => {
   const summary = getWorkoutSummary();
   const completionPercent = summary.total ? Math.round((summary.done / summary.total) * 100) : 0;
@@ -4668,6 +4983,7 @@ const renderDashboard = () => {
     dashboardGoalPercent.innerHTML = `<span class="student-goal-percent-number">${completionPercent}%</span> concluído`;
   }
   if (dashboardPerformance) dashboardPerformance.textContent = `${studentData.performance}%`;
+  renderStudentSelfWorkoutBuilder();
   hydrateLoopCheckIcons();
 };
 
@@ -17824,6 +18140,35 @@ const initStudentArea = () => {
   }
   if (dashboardWeekGrid) {
     dashboardWeekGrid.addEventListener('click', handleWeekDayToggle);
+  }
+  if (ensureStudentSelfWorkoutCard()) {
+    if (studentSelfWorkoutForm) {
+      studentSelfWorkoutForm.addEventListener('submit', handleStudentSelfWorkoutSubmit);
+    }
+    if (studentSelfWorkoutGroupSelect) {
+      studentSelfWorkoutGroupSelect.addEventListener('change', () => {
+        studentSelfWorkoutSelectedGroup = String(studentSelfWorkoutGroupSelect.value || '').trim();
+        renderStudentSelfWorkoutBuilder();
+      });
+    }
+    if (studentSelfWorkoutAddButton) {
+      studentSelfWorkoutAddButton.addEventListener('click', handleStudentSelfWorkoutAddExercise);
+    }
+    if (studentSelfWorkoutPendingList) {
+      studentSelfWorkoutPendingList.addEventListener('click', (event) => {
+        const target = event.target instanceof HTMLElement
+          ? event.target.closest('[data-student-self-workout-remove]')
+          : null;
+        if (!(target instanceof HTMLButtonElement)) return;
+        const targetIndex = Number(target.dataset.studentSelfWorkoutRemove || -1);
+        if (targetIndex < 0) return;
+        studentSelfWorkoutPendingExercises = studentSelfWorkoutPendingExercises.filter(
+          (_, index) => index !== targetIndex
+        );
+        setStudentSelfWorkoutFeedback('Exercício removido do treino em montagem.', true);
+        renderStudentSelfWorkoutBuilder();
+      });
+    }
   }
   if (studentRegisterForm) studentRegisterForm.addEventListener('submit', handleRegisterSubmit);
   if (studentForgotRequestForm) studentForgotRequestForm.addEventListener('submit', handleForgotRequestSubmit);

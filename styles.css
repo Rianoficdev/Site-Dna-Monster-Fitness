@@ -4184,6 +4184,37 @@ body.theme-dark .student-dashboard-hero.has-image-cta {
   background: url("aba de img/botao-treino-hoje-3.svg") center/contain no-repeat;
 }
 
+body.theme-dark .student-self-workout-head p,
+body.theme-dark .student-self-workout-pending-head small,
+body.theme-dark .student-self-workout-empty,
+body.theme-dark .student-self-workout-pill small {
+  color: #9cb3aa;
+}
+
+body.theme-dark .student-self-workout-field span,
+body.theme-dark .student-self-workout-pending-head strong,
+body.theme-dark .student-self-workout-pill strong {
+  color: #edf5ef;
+}
+
+body.theme-dark .student-self-workout-field input,
+body.theme-dark .student-self-workout-field select {
+  background: linear-gradient(90deg, rgba(8, 31, 22, 0.94), rgba(9, 44, 32, 0.92));
+  border-color: rgba(68, 227, 146, 0.2);
+  color: #edf5ef;
+}
+
+body.theme-dark .student-self-workout-add {
+  background: rgba(68, 227, 146, 0.12);
+  border-color: rgba(68, 227, 146, 0.2);
+  color: #9df3c0;
+}
+
+body.theme-dark .student-self-workout-pill {
+  background: rgba(68, 227, 146, 0.08);
+  border-color: rgba(68, 227, 146, 0.14);
+}
+
 body.theme-dark .student-upcoming-item {
   background: #101915;
   border-color: rgba(146, 184, 163, 0.16);
@@ -6527,6 +6558,154 @@ body.theme-dark .student-rest-actions button[data-student-rest-add-time] {
   width: min(100%, 260px);
   margin-left: auto;
   margin-right: auto;
+}
+
+.student-self-workout-card {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.student-self-workout-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.student-self-workout-head h5 {
+  margin: 0 0 4px;
+}
+
+.student-self-workout-head p {
+  margin: 0;
+  color: #5b7569;
+  font-size: 0.92rem;
+}
+
+.student-self-workout-form {
+  display: grid;
+  gap: 12px;
+}
+
+.student-self-workout-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.student-self-workout-field {
+  display: grid;
+  gap: 6px;
+}
+
+.student-self-workout-field span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #355447;
+}
+
+.student-self-workout-field input,
+.student-self-workout-field select {
+  width: 100%;
+  min-height: 50px;
+  border-radius: 16px;
+  border: 1px solid rgba(18, 126, 74, 0.24);
+  background: rgba(255, 255, 255, 0.86);
+  color: #13271f;
+  padding: 0 16px;
+  font: inherit;
+}
+
+.student-self-workout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.student-self-workout-add,
+.student-self-workout-actions .student-cta-inline {
+  min-height: 48px;
+}
+
+.student-self-workout-add {
+  border: 1px solid rgba(18, 126, 74, 0.24);
+  background: rgba(18, 126, 74, 0.1);
+  color: #127e4a;
+  border-radius: 16px;
+  padding: 0 18px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.student-self-workout-add:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.student-self-workout-pending {
+  display: grid;
+  gap: 10px;
+}
+
+.student-self-workout-pending-head {
+  display: grid;
+  gap: 2px;
+}
+
+.student-self-workout-pending-head strong {
+  color: #13271f;
+}
+
+.student-self-workout-pending-head small,
+.student-self-workout-empty {
+  color: #5b7569;
+}
+
+.student-self-workout-pending-items {
+  display: grid;
+  gap: 8px;
+}
+
+.student-self-workout-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(18, 126, 74, 0.08);
+  border: 1px solid rgba(18, 126, 74, 0.16);
+}
+
+.student-self-workout-pill strong,
+.student-self-workout-pill small {
+  display: block;
+}
+
+.student-self-workout-pill small {
+  color: #5b7569;
+}
+
+.student-self-workout-pill button {
+  border: 0;
+  background: transparent;
+  color: #b4234f;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.student-self-workout-feedback {
+  min-height: 20px;
+  margin: 0;
+  color: #b4234f;
+  font-size: 0.9rem;
+}
+
+.student-self-workout-feedback.is-success {
+  color: #127e4a;
 }
 
 .student-status-level {
@@ -9614,6 +9793,24 @@ body.theme-dark .avaliacao-title-image-dark {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 11px;
     row-gap: 13px;
+  }
+
+  .student-self-workout-picker-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-self-workout-actions {
+    flex-direction: column;
+  }
+
+  .student-self-workout-actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .student-self-workout-pill {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .student-app-bottom-nav {
