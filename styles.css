@@ -4181,7 +4181,7 @@ body.theme-dark .student-dashboard-hero p {
 }
 
 body.theme-dark .student-dashboard-hero.has-image-cta {
-  background: url("aba de img/botao-treino-hoje-1.png") center/contain no-repeat;
+  background: url("aba de img/botao-treino-hoje-3.svg") center/contain no-repeat;
 }
 
 body.theme-dark .student-upcoming-item {
@@ -4504,7 +4504,7 @@ body.theme-dark .student-exercise-detail-stepper button {
   margin-bottom: 16px;
   padding: 0;
   border: 0;
-  background: url("aba de img/botao-treino-hoje-3.svg") center/contain no-repeat;
+  background: url("aba de img/botao-treino-hoje-1.svg") center/contain no-repeat;
   box-shadow: 0 12px 28px rgba(8, 35, 20, 0.08);
   overflow: hidden;
   aspect-ratio: 320 / 143;
