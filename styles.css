@@ -11056,7 +11056,8 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   display: block;
 }
 
-.trainer-select-search input[type="search"] {
+.trainer-select-search input[type="search"],
+.trainer-select-search input[type="text"] {
   width: 100%;
   min-height: 50px;
   appearance: none;
@@ -11069,7 +11070,8 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   padding: 10px 14px 10px 40px;
 }
 
-.trainer-select-search input[type="search"]::placeholder {
+.trainer-select-search input[type="search"]::placeholder,
+.trainer-select-search input[type="text"]::placeholder {
   color: #6b7788;
 }
 
@@ -11080,7 +11082,8 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   -webkit-appearance: none;
 }
 
-.trainer-select-search input[type="search"]:focus-visible {
+.trainer-select-search input[type="search"]:focus-visible,
+.trainer-select-search input[type="text"]:focus-visible {
   outline: none;
   border-color: rgba(22, 163, 74, 0.72);
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
@@ -14728,13 +14731,15 @@ body.theme-dark .trainer-select-search-icon {
   color: rgba(176, 213, 192, 0.82);
 }
 
-body.theme-dark .trainer-select-search input[type="search"] {
+body.theme-dark .trainer-select-search input[type="search"],
+body.theme-dark .trainer-select-search input[type="text"] {
   background: rgba(22, 40, 31, 0.62);
   border-color: rgba(116, 162, 138, 0.34);
   color: #ecf7f1;
 }
 
-body.theme-dark .trainer-select-search input[type="search"]::placeholder {
+body.theme-dark .trainer-select-search input[type="search"]::placeholder,
+body.theme-dark .trainer-select-search input[type="text"]::placeholder {
   color: rgba(184, 215, 197, 0.7);
 }
 
@@ -15608,7 +15613,9 @@ body.theme-dark .trainer-action-warning {
   }
 
   .student-app-panel[data-student-app-panel="admin-treinos"] [data-trainer-workout-form] .trainer-student-field .trainer-select-search input[type="search"],
-  .student-app-panel[data-student-app-panel="admin-treinos"] [data-trainer-workout-form] .trainer-instructor-field .trainer-select-search input[type="search"] {
+  .student-app-panel[data-student-app-panel="admin-treinos"] [data-trainer-workout-form] .trainer-student-field .trainer-select-search input[type="text"],
+  .student-app-panel[data-student-app-panel="admin-treinos"] [data-trainer-workout-form] .trainer-instructor-field .trainer-select-search input[type="search"],
+  .student-app-panel[data-student-app-panel="admin-treinos"] [data-trainer-workout-form] .trainer-instructor-field .trainer-select-search input[type="text"] {
     text-align: left;
     text-align-last: left;
   }
