@@ -48,7 +48,7 @@ function createWorkoutsRoutes({ workoutsController, authMiddleware, roleMiddlewa
   router.post(
     "/workouts",
     authMiddleware,
-    roleMiddleware(roles.ALUNO, roles.INSTRUTOR, roles.ADMIN_GERAL),
+    roleMiddleware(roles.INSTRUTOR, roles.ADMIN_GERAL),
     workoutsController.createWorkout
   );
 
