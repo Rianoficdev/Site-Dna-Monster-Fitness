@@ -12115,7 +12115,7 @@ const getMobileSelectPickerSelectFromEvent = (event) => {
   const target = event && event.target;
   if (!(target instanceof Element)) return null;
   if (target instanceof HTMLSelectElement) return target;
-  return target.closest('select');
+  return null;
 };
 
 const isMobileSelectPickerCandidate = (select) => {
@@ -12498,13 +12498,6 @@ const handleMobileSelectPickerPointerDown = (event) => {
   if (document.activeElement === select && typeof select.blur === 'function') {
     select.blur();
   }
-
-  const opened = openMobileSelectPicker(select);
-  if (!opened) return;
-  mobileSelectPickerTapIntent = null;
-  if (event.cancelable) event.preventDefault();
-  event.stopPropagation();
-  mobileSelectPickerSuppressClickUntil = Date.now() + 450;
 };
 
 const handleMobileSelectPickerPointerMove = (event) => {
@@ -12592,22 +12585,7 @@ const handleMobileSelectPickerKeydown = (event) => {
 };
 
 const handleMobileSelectPickerFocusIn = (event) => {
-  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-  if (!window.matchMedia('(max-width: 760px)').matches) return;
-
-  const select = getMobileSelectPickerSelectFromEvent(event);
-  if (!isMobileSelectPickerCandidate(select)) return;
-  if (!shouldUseMobileSelectPicker(select)) return;
-
-  window.requestAnimationFrame(() => {
-    if (!(select instanceof HTMLSelectElement) || !select.isConnected) return;
-    if (mobileSelectPickerActiveSelect !== select) {
-      openMobileSelectPicker(select);
-    }
-    if (document.activeElement === select && typeof select.blur === 'function') {
-      select.blur();
-    }
-  });
+  return;
 };
 
 function closeTrainerExerciseLibraryPicker({ clearSearch = false } = {}) {
