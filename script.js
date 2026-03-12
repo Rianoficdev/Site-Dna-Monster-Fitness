@@ -9181,15 +9181,13 @@ const fetchAdminOverview = async (forceReload = false) => {
       libraryExercises = [];
     }
 
-    if (!Array.isArray(overview && overview.supportTickets)) {
-      try {
-        const supportResponse = await requestStudentApi('/admin/support-tickets');
-        supportTickets = Array.isArray(supportResponse && supportResponse.tickets)
-          ? supportResponse.tickets
-          : [];
-      } catch (_) {
-        supportTickets = [];
-      }
+    try {
+      const supportResponse = await requestStudentApi('/admin/support-tickets?archived=all&limit=500');
+      supportTickets = Array.isArray(supportResponse && supportResponse.tickets)
+        ? supportResponse.tickets
+        : supportTickets;
+    } catch (_) {
+      supportTickets = Array.isArray(supportTickets) ? supportTickets : [];
     }
 
     adminOverviewState.stats = {
@@ -9399,6 +9397,9 @@ const exportAdminOverviewPdf = async () => {
   const stats = adminOverviewState.stats || {};
   const users = Array.isArray(adminOverviewState.users) ? adminOverviewState.users : [];
   const workouts = Array.isArray(adminOverviewState.workouts) ? adminOverviewState.workouts : [];
+  const supportTickets = Array.isArray(adminOverviewState.supportTickets)
+    ? adminOverviewState.supportTickets
+    : [];
   const generatedAt = new Date();
   const fileNameDate = generatedAt.toISOString().slice(0, 10);
 
@@ -9450,6 +9451,59 @@ const exportAdminOverviewPdf = async () => {
     });
     cursorY += 84;
 
+    const supportStatusCounts = {
+      open: supportTickets.filter((ticket) => normalizeSupportTicketStatus(ticket && ticket.status) === 'OPEN').length,
+      resolved: supportTickets.filter((ticket) => {
+        const status = normalizeSupportTicketStatus(ticket && ticket.status);
+        return status === 'RESOLVED' || status === 'APPROVED';
+      }).length,
+      rejected: supportTickets.filter((ticket) => normalizeSupportTicketStatus(ticket && ticket.status) === 'REJECTED').length,
+      archived: supportTickets.filter((ticket) => isSupportTicketArchived(ticket)).length
+    };
+    const supportTypeCounts = Array.from(
+      supportTickets.reduce((accumulator, ticket) => {
+        const typeLabel = getSupportTicketTypeLabel(ticket && ticket.type);
+        accumulator.set(typeLabel, (accumulator.get(typeLabel) || 0) + 1);
+        return accumulator;
+      }, new Map())
+    )
+      .sort((first, second) => {
+        if (second[1] !== first[1]) return second[1] - first[1];
+        return String(first[0]).localeCompare(String(second[0]), 'pt-BR', { sensitivity: 'base' });
+      })
+      .slice(0, 6);
+    const supportSummaryLines = [
+      ['Total de chamados', supportTickets.length],
+      ['Chamados em aberto', supportStatusCounts.open],
+      ['Resolvidos / liberados', supportStatusCounts.resolved],
+      ['Rejeitados', supportStatusCounts.rejected],
+      ['Arquivados', supportStatusCounts.archived]
+    ];
+    const supportTypeLines = supportTypeCounts.length
+      ? supportTypeCounts.map(([label, total]) => [`Tipo: ${label}`, total])
+      : [['Tipos de chamado', 0]];
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Chamados de suporte', marginX, cursorY);
+    cursorY += 16;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10.5);
+    const supportRows = Math.max(supportSummaryLines.length, supportTypeLines.length);
+    for (let index = 0; index < supportRows; index += 1) {
+      const leftItem = supportSummaryLines[index] || null;
+      const rightItem = supportTypeLines[index] || null;
+      const y = cursorY + index * 14;
+      if (leftItem) {
+        doc.text(`${leftItem[0]}: ${leftItem[1]}`, marginX, y);
+      }
+      if (rightItem) {
+        doc.text(`${rightItem[0]}: ${rightItem[1]}`, marginX + colGap, y);
+      }
+    }
+    cursorY += supportRows * 14 + 18;
+
     const hasAutoTable = typeof doc.autoTable === 'function';
     if (hasAutoTable) {
       doc.autoTable({
@@ -9499,6 +9553,32 @@ const exportAdminOverviewPdf = async () => {
           doc.text('Treinos cadastrados', marginX, cursorY - 6);
         }
       });
+
+      const workoutsEndY = Number(doc.lastAutoTable && doc.lastAutoTable.finalY) || cursorY + 120;
+      cursorY = workoutsEndY + 26;
+
+      doc.autoTable({
+        startY: cursorY,
+        margin: { left: marginX, right: marginX },
+        head: [['ID', 'Tipo', 'Solicitante', 'Status', 'Arquivado', 'Criado em']],
+        body: supportTickets.length
+          ? supportTickets.map((ticket) => [
+              `#${Number(ticket && ticket.id) || '-'}`,
+              getSupportTicketTypeLabel(ticket && ticket.type),
+              getSupportTicketRequesterName(ticket),
+              getSupportTicketStatusLabel(ticket && ticket.status),
+              isSupportTicketArchived(ticket) ? 'Sim' : 'Nao',
+              formatAdminDate(ticket && ticket.createdAt)
+            ])
+          : [['Nenhum chamado encontrado.', '', '', '', '', '']],
+        styles: { fontSize: 9, cellPadding: 4 },
+        headStyles: { fillColor: [176, 117, 10], textColor: 255 },
+        didDrawPage: () => {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(12);
+          doc.text('Chamados de suporte', marginX, cursorY - 6);
+        }
+      });
     } else {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
@@ -9535,6 +9615,28 @@ const exportAdminOverviewPdf = async () => {
         doc.text(
           `${workout.id || '-'} | ${workout.title || '-'} | ${workout.studentName || '-'} | ${
             workout.instructorName || '-'
+          }`,
+          marginX,
+          cursorY
+        );
+        cursorY += 12;
+      });
+      cursorY += 8;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Chamados de suporte', marginX, cursorY);
+      cursorY += 14;
+      doc.setFont('helvetica', 'normal');
+      const supportPreview = supportTickets.slice(0, 22);
+      supportPreview.forEach((ticket) => {
+        if (cursorY > 760) {
+          doc.addPage();
+          cursorY = 44;
+        }
+        doc.text(
+          `#${Number(ticket && ticket.id) || '-'} | ${getSupportTicketTypeLabel(ticket && ticket.type)} | ${
+            getSupportTicketRequesterName(ticket)
+          } | ${getSupportTicketStatusLabel(ticket && ticket.status)} | ${
+            isSupportTicketArchived(ticket) ? 'Arquivado' : 'Ativo'
           }`,
           marginX,
           cursorY
