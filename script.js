@@ -2050,6 +2050,8 @@ const getTrainerVisibleWorkouts = (workouts = []) => {
     return workoutId > 0;
   });
 
+  if (isGeneralAdminUser()) return list;
+
   const visibleWorkouts = list.filter((workout) => {
     const workoutId = Number(workout && workout.id) || 0;
     return !trainerHiddenWorkoutIds.has(workoutId);
@@ -14370,7 +14372,9 @@ const renderTrainerManagementPanel = () => {
         ? '<tr><td colspan="8">Nenhuma nomeclatura de treino criada.</td></tr>'
         : '<tr><td colspan="8">Nenhum treino atribuído ao aluno.</td></tr>';
     } else {
-      const visibleManagedRows = rowsForDisplay.slice(0, TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT);
+      const visibleManagedRows = isGeneralAdminUser()
+        ? rowsForDisplay.slice()
+        : rowsForDisplay.slice(0, TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT);
       const validWorkoutIds = new Set(
         visibleManagedRows
           .map((row) =>
