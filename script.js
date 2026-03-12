@@ -1348,6 +1348,50 @@ const getLibraryGroupImageSrc = (groupKey) => {
   return encodeURI(rawPath);
 };
 
+const getLibraryGroupLabel = (groupKey, fallbackLabel = 'Grupo') => {
+  const normalizedGroup = String(groupKey || '').trim().toLowerCase();
+  if (!normalizedGroup) return fallbackLabel;
+  if (LIBRARY_GROUP_LABELS[normalizedGroup]) return LIBRARY_GROUP_LABELS[normalizedGroup];
+  return normalizedGroup
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+};
+
+const getAvailableLibraryGroupKeys = (
+  exercises = [],
+  { includeKnownWhenEmpty = false } = {}
+) => {
+  const knownOrder = Object.keys(LIBRARY_GROUP_LABELS);
+  const groupKeys = Array.isArray(exercises)
+    ? Array.from(
+      new Set(
+        exercises
+          .map((exercise) =>
+            String(
+              (exercise && (exercise.group || exercise.muscleGroup || exercise.muscle_group)) || ''
+            )
+              .trim()
+              .toLowerCase()
+          )
+          .filter(Boolean)
+      )
+    )
+    : [];
+
+  if (!groupKeys.length && includeKnownWhenEmpty) {
+    return knownOrder;
+  }
+
+  const orderedKnown = knownOrder.filter((groupKey) => groupKeys.includes(groupKey));
+  const extraGroups = groupKeys
+    .filter((groupKey) => !knownOrder.includes(groupKey))
+    .sort((first, second) => first.localeCompare(second, 'pt-BR', { sensitivity: 'base' }));
+
+  return [...orderedKnown, ...extraGroups];
+};
+
 const LIBRARY_GROUP_MUSCLES = {
   peito: ['Peitoral Maior', 'Deltoide Anterior', 'Triceps'],
   costas: ['Latissimo do Dorso', 'Romboides', 'Trapezio'],
@@ -6623,12 +6667,15 @@ const closeExerciseModal = () => {
 
 const getFilteredLibraryItems = () => {
   const search = normalizeText(librarySearchTerm);
+  const availableGroupKeys = getAvailableLibraryGroupKeys(studentData.library, {
+    includeKnownWhenEmpty: true
+  });
   const allowedGroups = activeLibraryFilter === 'todos'
-    ? Object.keys(LIBRARY_GROUP_LABELS)
+    ? availableGroupKeys
     : (LIBRARY_TOPIC_GROUPS[activeLibraryFilter] || []);
   const visibleGroups = new Set(
     studentData.library
-      .map((exercise) => exercise.group)
+      .map((exercise) => normalizeLibraryGroupKey(exercise && exercise.group, ''))
       .filter((group) => allowedGroups.includes(group))
   );
 
@@ -6636,10 +6683,12 @@ const getFilteredLibraryItems = () => {
     .filter((group) => visibleGroups.has(group))
     .map((group) => ({
       group,
-      label: LIBRARY_GROUP_LABELS[group] || group,
+      label: getLibraryGroupLabel(group, group),
       icon: LIBRARY_GROUP_ICONS[group] || '🏋️',
       image: getLibraryGroupImageSrc(group),
-      count: studentData.library.filter((exercise) => exercise.group === group).length
+      count: studentData.library.filter(
+        (exercise) => normalizeLibraryGroupKey(exercise && exercise.group, '') === group
+      ).length
     }))
     .filter((category) => {
       if (!search) return true;
@@ -11206,7 +11255,7 @@ const mapApiExerciseToWorkoutExercise = (exercise, index) => {
 
 function normalizeLibraryGroupKey(group, fallback = 'peito') {
   const normalized = String(group || '').trim().toLowerCase();
-  if (LIBRARY_GROUP_LABELS[normalized]) return normalized;
+  if (normalized) return normalized;
   return fallback;
 }
 
@@ -13620,16 +13669,15 @@ const renderTrainerManagementPanel = () => {
   const libraryOptionsMarkup = libraryExercises
     .map((exercise) => {
       const group = normalizeLibraryGroupKey(exercise && exercise.group);
-      const label = LIBRARY_GROUP_LABELS[group] || group;
+      const label = getLibraryGroupLabel(group, group);
       const id = Number(exercise && exercise.id) || 0;
       return `<option value="${safeCell(id)}">${safeCell(exercise && exercise.name)} (${safeCell(label)})</option>`;
     })
     .join('');
-  const selectedExerciseGroups = getSelectedTrainerExerciseGroups();
-  const hasSelectedExerciseGroup = selectedExerciseGroups.length > 0;
-  const groupedLibraryExercises = getTrainerLibraryExercisesBySelectedGroup();
-  const isInstructorMode = isInstructorRole(studentData.userRole);
-
+  const availableExerciseGroupKeys = getAvailableLibraryGroupKeys(libraryExercises, {
+    includeKnownWhenEmpty: true
+  });
+  const previousSelectedExerciseGroups = getSelectedTrainerExerciseGroups();
   const searchTerm = normalizeText(trainerStudentSearchTerm || '');
   const selectableStudents = searchTerm
     ? studentsForSelection.filter((student) => normalizeText(student && student.name).includes(searchTerm))
@@ -13638,6 +13686,25 @@ const renderTrainerManagementPanel = () => {
   const selectableInstructors = instructorSearchTerm
     ? instructors.filter((instructor) => normalizeText(instructor && instructor.name).includes(instructorSearchTerm))
     : instructors;
+
+  if (trainerExerciseGroupSelect) {
+    const preservedGroups = previousSelectedExerciseGroups.filter((groupKey) =>
+      availableExerciseGroupKeys.includes(groupKey)
+    );
+    trainerExerciseGroupSelect.innerHTML = availableExerciseGroupKeys
+      .map(
+        (groupKey) =>
+          `<option value="${safeCell(groupKey)}">${safeCell(getLibraryGroupLabel(groupKey, groupKey))}</option>`
+      )
+      .join('');
+    setSelectedTrainerExerciseGroups(preservedGroups);
+    trainerExerciseGroupSelect.disabled = trainerManagementState.loading || !availableExerciseGroupKeys.length;
+  }
+
+  const selectedExerciseGroups = getSelectedTrainerExerciseGroups();
+  const hasSelectedExerciseGroup = selectedExerciseGroups.length > 0;
+  const groupedLibraryExercises = getTrainerLibraryExercisesBySelectedGroup();
+  const isInstructorMode = isInstructorRole(studentData.userRole);
 
   if (trainerTemplateSelect) {
     const previousValue = trainerTemplateSelect.value;
