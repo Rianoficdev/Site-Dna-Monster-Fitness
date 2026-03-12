@@ -12498,7 +12498,13 @@ const handleMobileSelectPickerPointerDown = (event) => {
   if (document.activeElement === select && typeof select.blur === 'function') {
     select.blur();
   }
-  // Nao bloqueia o pointerdown para manter o click/tap nativo como fallback.
+
+  const opened = openMobileSelectPicker(select);
+  if (!opened) return;
+  mobileSelectPickerTapIntent = null;
+  if (event.cancelable) event.preventDefault();
+  event.stopPropagation();
+  mobileSelectPickerSuppressClickUntil = Date.now() + 450;
 };
 
 const handleMobileSelectPickerPointerMove = (event) => {
