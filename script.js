@@ -786,7 +786,7 @@ const trainerTemplateSelect = document.querySelector('[data-trainer-template-sel
 const trainerTemplateStudentSelect = document.querySelector('[data-trainer-template-student]');
 const trainerTemplateInstructorWrap = document.querySelector('[data-trainer-template-instructor-wrap]');
 const trainerTemplateInstructorSelect = document.querySelector('[data-trainer-template-instructor]');
-const trainerTemplateNameInput = document.querySelector('[data-trainer-template-name]');
+const trainerTemplateNameInput = document.querySelector('input[data-trainer-template-name]');
 const trainerTemplateStartDateInput = document.querySelector('[data-trainer-template-start-date]');
 const trainerTemplateEndDateInput = document.querySelector('[data-trainer-template-end-date]');
 const trainerTemplateWeekdayInputs = document.querySelectorAll('[data-trainer-template-weekday]');
@@ -15232,9 +15232,6 @@ const handleTrainerWorkoutSubmit = async (event) => {
   if (!isTrainerManagerUser()) return;
   if (trainerWorkoutCreateInFlight) return;
 
-  const assignedWorkoutName = trainerTemplateNameInput
-    ? String(trainerTemplateNameInput.value || '').trim()
-    : '';
   const objective = trainerWorkoutObjectiveSelect
     ? String(trainerWorkoutObjectiveSelect.value || '').trim()
     : '';
@@ -15331,13 +15328,12 @@ const handleTrainerWorkoutSubmit = async (event) => {
       const assignmentDay = String(assignment && assignment.day || '').trim();
       if (!assignmentTemplateId || !assignmentDay) continue;
 
+      const resolvedTemplateName = String(assignment && assignment.templateName || '').trim();
       const assignmentName = multipleAssignments
-        ? assignedWorkoutName
-          ? `${assignedWorkoutName} - ${assignmentDay}`
-          : assignment && assignment.templateName
-            ? `${assignment.templateName} - ${assignmentDay}`
-            : `Treino - ${assignmentDay}`
-        : assignedWorkoutName;
+        ? resolvedTemplateName
+          ? `${resolvedTemplateName} - ${assignmentDay}`
+          : `Treino - ${assignmentDay}`
+        : resolvedTemplateName || 'Treino';
       try {
         const response = await requestStudentApi('/workout/from-template', {
           method: 'POST',
