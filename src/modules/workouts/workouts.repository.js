@@ -39,7 +39,7 @@ function createWorkoutsRepository({ prisma }) {
     return parsed.toISOString();
   }
 
-  function withWorkoutCompatibility(workout, metadata = null) {
+  function withWorkoutCompatibility(workout, metadata = null, template = null) {
     if (!workout) return null;
 
     const normalized = {
@@ -48,7 +48,16 @@ function createWorkoutsRepository({ prisma }) {
       objective: normalizeString(metadata && metadata.objective),
       description: normalizeString(metadata && metadata.description),
       coverImageUrl: normalizeString(
-        workout.coverImageUrl || workout.cover_image_url || workout.coverUrl || workout.cover_url
+        workout.coverImageUrl ||
+        workout.cover_image_url ||
+        workout.coverUrl ||
+        workout.cover_url ||
+        (template && (
+          template.coverImageUrl ||
+          template.cover_image_url ||
+          template.coverUrl ||
+          template.cover_url
+        ))
       ),
       studentId: normalizeInteger(workout.studentId || workout.student_id, 0),
       createdBy: normalizeInteger(workout.createdBy || workout.created_by || workout.instructorId, 0),
@@ -260,6 +269,53 @@ WHERE workout_id = ANY($1::int[])
     return map;
   }
 
+  async function listWorkoutTemplateCompatibilityByIds(templateIds) {
+    const ids = Array.isArray(templateIds)
+      ? [...new Set(templateIds.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0))]
+      : [];
+    if (!ids.length) return new Map();
+
+    const templates = await prisma.workoutTemplate.findMany({
+      where: {
+        id: { in: ids },
+      },
+    });
+
+    const metadataById = await listWorkoutTemplateMetadataByIds(ids);
+    const map = new Map();
+    (Array.isArray(templates) ? templates : []).forEach((template) => {
+      const templateId = Number(template && template.id) || 0;
+      if (!templateId) return;
+      map.set(
+        templateId,
+        withTemplateCompatibility(template, metadataById.get(templateId) || null)
+      );
+    });
+    return map;
+  }
+
+  async function withWorkoutCompatibilityList(workouts) {
+    const items = Array.isArray(workouts) ? workouts : [];
+    if (!items.length) return [];
+
+    const metadataById = await listWorkoutMetadataByIds(items.map((item) => item && item.id));
+    const templateById = await listWorkoutTemplateCompatibilityByIds(
+      items.map((item) => item && (item.originTemplateId || item.origin_template_id))
+    );
+
+    return items.map((workout) => {
+      const workoutId = Number(workout && workout.id) || 0;
+      const originTemplateId = Number(
+        workout && (workout.originTemplateId || workout.origin_template_id)
+      ) || 0;
+      return withWorkoutCompatibility(
+        workout,
+        metadataById.get(workoutId) || null,
+        templateById.get(originTemplateId) || null
+      );
+    });
+  }
+
   async function upsertWorkoutMetadata({ workoutId, objective, description, weekDays }) {
     const normalizedWorkoutId = Number(workoutId) || 0;
     if (!normalizedWorkoutId) return;
@@ -308,8 +364,8 @@ SET objective = EXCLUDED.objective,
       weekDays: data && data.weekDays,
     });
 
-    const metadataById = await listWorkoutMetadataByIds([created.id]);
-    return withWorkoutCompatibility(created, metadataById.get(Number(created.id)) || null);
+    const [hydrated] = await withWorkoutCompatibilityList([created]);
+    return hydrated || null;
   }
 
   async function updateWorkout(workoutId, data) {
@@ -371,8 +427,8 @@ SET objective = EXCLUDED.objective,
       });
     }
 
-    const metadataById = await listWorkoutMetadataByIds([normalizedWorkoutId]);
-    return withWorkoutCompatibility(updatedBase, metadataById.get(normalizedWorkoutId) || null);
+    const [hydrated] = await withWorkoutCompatibilityList([updatedBase]);
+    return hydrated || null;
   }
 
   async function deleteWorkout(workoutId) {
@@ -383,7 +439,8 @@ SET objective = EXCLUDED.objective,
       const deleted = await prisma.workout.delete({
         where: { id: normalizedWorkoutId },
       });
-      return withWorkoutCompatibility(deleted, null);
+      const [hydrated] = await withWorkoutCompatibilityList([deleted]);
+      return hydrated || null;
     } catch (error) {
       const code = String((error && error.code) || "").toUpperCase();
       if (code === "P2025") return null;
@@ -405,10 +462,7 @@ SET objective = EXCLUDED.objective,
       ],
     });
 
-    const metadataById = await listWorkoutMetadataByIds(workouts.map((item) => item.id));
-    return workouts.map((workout) =>
-      withWorkoutCompatibility(workout, metadataById.get(Number(workout.id)) || null)
-    );
+    return withWorkoutCompatibilityList(workouts);
   }
 
   async function findByInstructorId(instructorId) {
@@ -425,10 +479,7 @@ SET objective = EXCLUDED.objective,
       ],
     });
 
-    const metadataById = await listWorkoutMetadataByIds(workouts.map((item) => item.id));
-    return workouts.map((workout) =>
-      withWorkoutCompatibility(workout, metadataById.get(Number(workout.id)) || null)
-    );
+    return withWorkoutCompatibilityList(workouts);
   }
 
   async function listStudentIdsByInstructorId(instructorId, { includeInactive = true } = {}) {
@@ -462,10 +513,7 @@ SET objective = EXCLUDED.objective,
       ],
     });
 
-    const metadataById = await listWorkoutMetadataByIds(workouts.map((item) => item.id));
-    return workouts.map((workout) =>
-      withWorkoutCompatibility(workout, metadataById.get(Number(workout.id)) || null)
-    );
+    return withWorkoutCompatibilityList(workouts);
   }
 
   async function findById(id) {
@@ -477,8 +525,8 @@ SET objective = EXCLUDED.objective,
     });
     if (!workout) return null;
 
-    const metadataById = await listWorkoutMetadataByIds([normalizedId]);
-    return withWorkoutCompatibility(workout, metadataById.get(normalizedId) || null);
+    const [hydrated] = await withWorkoutCompatibilityList([workout]);
+    return hydrated || null;
   }
 
   async function createWorkoutTemplate(data) {
