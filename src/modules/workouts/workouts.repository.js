@@ -86,13 +86,20 @@ function createWorkoutsRepository({ prisma }) {
     };
   }
 
-  function withTemplateCompatibility(template) {
+  function withTemplateCompatibility(template, metadata = null) {
     if (!template) return null;
 
     const normalized = {
       id: Number(template.id),
       name: normalizeString(template.name),
       description: normalizeString(template.description),
+      coverImageUrl: normalizeString(
+        (metadata && metadata.coverImageUrl) ||
+        template.coverImageUrl ||
+        template.cover_image_url ||
+        template.coverUrl ||
+        template.cover_url
+      ),
       createdBy: normalizeInteger(template.createdBy || template.created_by, 0),
       isActive: template.isActive !== false && template.is_active !== false,
       createdAt: toIsoDate(template.createdAt || template.created_at) || nowIso(),
@@ -101,6 +108,9 @@ function createWorkoutsRepository({ prisma }) {
 
     return {
       ...normalized,
+      cover_image_url: normalized.coverImageUrl,
+      coverUrl: normalized.coverImageUrl,
+      cover_url: normalized.coverImageUrl,
       created_by: normalized.createdBy,
       is_active: normalized.isActive,
     };
@@ -142,6 +152,67 @@ CREATE TABLE IF NOT EXISTS workout_metadata (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
     `);
+  }
+
+  async function ensureWorkoutTemplateMetadataTable() {
+    await prisma.$executeRawUnsafe(`
+CREATE TABLE IF NOT EXISTS workout_template_metadata (
+  template_id integer PRIMARY KEY REFERENCES workout_template(id) ON DELETE CASCADE,
+  cover_image_url text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+    `);
+  }
+
+  async function listWorkoutTemplateMetadataByIds(templateIds) {
+    const ids = Array.isArray(templateIds)
+      ? [...new Set(templateIds.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0))]
+      : [];
+    if (!ids.length) return new Map();
+
+    await ensureWorkoutTemplateMetadataTable();
+
+    const rows = await prisma.$queryRawUnsafe(
+      `
+SELECT template_id, cover_image_url
+FROM workout_template_metadata
+WHERE template_id = ANY($1::int[])
+      `,
+      ids
+    );
+
+    const map = new Map();
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const templateId = Number(row && row.template_id) || 0;
+      if (!templateId) return;
+
+      map.set(templateId, {
+        coverImageUrl: normalizeString(row && row.cover_image_url),
+      });
+    });
+
+    return map;
+  }
+
+  async function upsertWorkoutTemplateMetadata({ templateId, coverImageUrl }) {
+    const normalizedTemplateId = Number(templateId) || 0;
+    if (!normalizedTemplateId) return;
+
+    await ensureWorkoutTemplateMetadataTable();
+
+    await prisma.$executeRawUnsafe(
+      `
+INSERT INTO workout_template_metadata (template_id, cover_image_url, updated_at)
+VALUES ($1, $2, now())
+ON CONFLICT (template_id)
+DO UPDATE
+SET cover_image_url = EXCLUDED.cover_image_url,
+    updated_at = now()
+      `,
+      normalizedTemplateId,
+      normalizeString(coverImageUrl)
+    );
   }
 
   async function listWorkoutMetadataByIds(workoutIds) {
@@ -420,7 +491,15 @@ SET objective = EXCLUDED.objective,
       },
     });
 
-    return withTemplateCompatibility(template);
+    if (data && data.coverImageUrl !== undefined) {
+      await upsertWorkoutTemplateMetadata({
+        templateId: template.id,
+        coverImageUrl: data.coverImageUrl,
+      });
+    }
+
+    const metadataById = await listWorkoutTemplateMetadataByIds([template.id]);
+    return withTemplateCompatibility(template, metadataById.get(Number(template.id)) || null);
   }
 
   async function listWorkoutTemplates({ includeInactive = true, createdBy = null } = {}) {
@@ -436,7 +515,10 @@ SET objective = EXCLUDED.objective,
       ],
     });
 
-    return templates.map((template) => withTemplateCompatibility(template));
+    const metadataById = await listWorkoutTemplateMetadataByIds(templates.map((item) => item.id));
+    return templates.map((template) =>
+      withTemplateCompatibility(template, metadataById.get(Number(template.id)) || null)
+    );
   }
 
   async function findWorkoutTemplateById(id, { includeInactive = true } = {}) {
@@ -448,7 +530,9 @@ SET objective = EXCLUDED.objective,
     });
     if (!template) return null;
     if (!includeInactive && template.isActive === false) return null;
-    return withTemplateCompatibility(template);
+
+    const metadataById = await listWorkoutTemplateMetadataByIds([normalizedId]);
+    return withTemplateCompatibility(template, metadataById.get(normalizedId) || null);
   }
 
   async function updateWorkoutTemplate(templateId, data) {
@@ -467,7 +551,14 @@ SET objective = EXCLUDED.objective,
         where: { id: normalizedTemplateId },
         data: payload,
       });
-      return withTemplateCompatibility(updated);
+      if (data && data.coverImageUrl !== undefined) {
+        await upsertWorkoutTemplateMetadata({
+          templateId: normalizedTemplateId,
+          coverImageUrl: data.coverImageUrl,
+        });
+      }
+      const metadataById = await listWorkoutTemplateMetadataByIds([normalizedTemplateId]);
+      return withTemplateCompatibility(updated, metadataById.get(normalizedTemplateId) || null);
     } catch (error) {
       const code = String((error && error.code) || "").toUpperCase();
       if (code === "P2025") return null;
@@ -537,6 +628,61 @@ SET objective = EXCLUDED.objective,
     return item ? withTemplateExerciseCompatibility(item) : null;
   }
 
+  async function updateWorkoutTemplateExercise({ templateId, templateExerciseId, data = {} }) {
+    const normalizedTemplateId = Number(templateId) || 0;
+    const normalizedTemplateExerciseId = Number(templateExerciseId) || 0;
+    if (!normalizedTemplateId || !normalizedTemplateExerciseId) return null;
+
+    const current = await findTemplateExerciseById(normalizedTemplateExerciseId);
+    if (!current || Number(current.templateId) !== normalizedTemplateId) return null;
+
+    const payload = {};
+    if (data.exerciseId !== undefined) {
+      payload.exerciseId = Math.max(1, normalizeInteger(data.exerciseId, current.exerciseId));
+    }
+    if (data.order !== undefined) {
+      payload.order = Math.max(1, normalizeInteger(data.order, current.order));
+    }
+    if (data.series !== undefined) {
+      payload.series = Math.max(1, normalizeInteger(data.series, current.series));
+    }
+    if (data.reps !== undefined) {
+      payload.reps = Math.max(1, normalizeInteger(data.reps, current.reps));
+    }
+    if (data.defaultLoad !== undefined) {
+      payload.defaultLoad = Math.max(0, Number(data.defaultLoad) || 0);
+    }
+    if (data.restTime !== undefined) {
+      payload.restTime = Math.max(0, normalizeInteger(data.restTime, current.restTime));
+    }
+
+    const updated = await prisma.workoutTemplateExercise.update({
+      where: {
+        id: normalizedTemplateExerciseId,
+      },
+      data: payload,
+    });
+
+    return withTemplateExerciseCompatibility(updated);
+  }
+
+  async function deleteWorkoutTemplateExercise({ templateId, templateExerciseId }) {
+    const normalizedTemplateId = Number(templateId) || 0;
+    const normalizedTemplateExerciseId = Number(templateExerciseId) || 0;
+    if (!normalizedTemplateId || !normalizedTemplateExerciseId) return null;
+
+    const current = await findTemplateExerciseById(normalizedTemplateExerciseId);
+    if (!current || Number(current.templateId) !== normalizedTemplateId) return null;
+
+    const removed = await prisma.workoutTemplateExercise.delete({
+      where: {
+        id: normalizedTemplateExerciseId,
+      },
+    });
+
+    return withTemplateExerciseCompatibility(removed);
+  }
+
   return {
     createWorkout,
     updateWorkout,
@@ -554,6 +700,8 @@ SET objective = EXCLUDED.objective,
     createWorkoutTemplateExercise,
     listTemplateExercises,
     findTemplateExerciseById,
+    updateWorkoutTemplateExercise,
+    deleteWorkoutTemplateExercise,
   };
 }
 

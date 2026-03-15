@@ -164,6 +164,33 @@ function createWorkoutsController({ workoutsService }) {
     return res.status(200).json({ templateExercises });
   });
 
+  const updateTemplateExercise = asyncHandler(async (req, res) => {
+    const templateExercise = await workoutsService.updateTemplateExercise({
+      ...req.body,
+      authUser: req.user,
+      templateId: req.params.templateId,
+      templateExerciseId: req.params.templateExerciseId,
+    });
+
+    return res.status(200).json({
+      message: "Exercicio do modelo atualizado com sucesso.",
+      templateExercise,
+    });
+  });
+
+  const deleteTemplateExercise = asyncHandler(async (req, res) => {
+    const templateExercise = await workoutsService.deleteTemplateExercise({
+      authUser: req.user,
+      templateId: req.params.templateId,
+      templateExerciseId: req.params.templateExerciseId,
+    });
+
+    return res.status(200).json({
+      message: "Exercicio do modelo removido com sucesso.",
+      templateExercise,
+    });
+  });
+
   const createWorkoutFromTemplate = asyncHandler(async (req, res) => {
     const result = await workoutsService.createWorkoutFromTemplate({
       ...req.body,
@@ -192,6 +219,8 @@ function createWorkoutsController({ workoutsService }) {
     listWorkoutTemplates,
     addTemplateExercise,
     listTemplateExercises,
+    updateTemplateExercise,
+    deleteTemplateExercise,
     createWorkoutFromTemplate,
   };
 }

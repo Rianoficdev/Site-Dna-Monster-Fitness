@@ -1224,6 +1224,7 @@ let trainerTemplateEditorSelectedId = '';
 let trainerTemplateExerciseSelectedId = '';
 let trainerExerciseComposerSelectedId = '';
 let trainerWorkoutEditingId = 0;
+let trainerWorkoutTemplateEditingId = 0;
 let trainerWorkoutEditTriggerButton = null;
 let trainerWorkoutModalReadOnly = false;
 let trainerWorkoutCoverPreviewObjectUrl = '';
@@ -10066,6 +10067,37 @@ const requestWorkoutTemplateDelete = async (templateId) => {
   );
 };
 
+const requestWorkoutTemplateExerciseUpdate = async ({ templateId, templateExerciseId, body }) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  const normalizedTemplateExerciseId = Number(templateExerciseId) || 0;
+  if (!normalizedTemplateId || !normalizedTemplateExerciseId) {
+    throw new Error('Exercício da nomeclatura inválido para atualização.');
+  }
+
+  return requestStudentApi(
+    `/workouts/templates/${encodeURIComponent(String(normalizedTemplateId))}/exercises/${encodeURIComponent(String(normalizedTemplateExerciseId))}`,
+    {
+      method: 'PATCH',
+      body
+    }
+  );
+};
+
+const requestWorkoutTemplateExerciseDelete = async ({ templateId, templateExerciseId }) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  const normalizedTemplateExerciseId = Number(templateExerciseId) || 0;
+  if (!normalizedTemplateId || !normalizedTemplateExerciseId) {
+    throw new Error('Exercício da nomeclatura inválido para exclusão.');
+  }
+
+  return requestStudentApi(
+    `/workouts/templates/${encodeURIComponent(String(normalizedTemplateId))}/exercises/${encodeURIComponent(String(normalizedTemplateExerciseId))}`,
+    {
+      method: 'DELETE'
+    }
+  );
+};
+
 const setTrainerManagementFeedback = (message, isSuccess = false) => {
   setInlineFeedback(trainerWorkoutError, message, isSuccess);
 };
@@ -10093,11 +10125,14 @@ const hydrateTrainerWorkoutExercises = async (workoutId, { silent = true } = {})
 
 const setTrainerWorkoutModalMode = ({ readOnly = false } = {}) => {
   trainerWorkoutModalReadOnly = Boolean(readOnly);
+  const isTemplateMode = Number(trainerWorkoutTemplateEditingId) > 0;
 
   if (trainerWorkoutModalTitle) {
-    trainerWorkoutModalTitle.textContent = trainerWorkoutModalReadOnly
-      ? 'Visualizar treino'
-      : 'Editar treino';
+    if (trainerWorkoutModalReadOnly) {
+      trainerWorkoutModalTitle.textContent = isTemplateMode ? 'Visualizar nomeclatura' : 'Visualizar treino';
+    } else {
+      trainerWorkoutModalTitle.textContent = isTemplateMode ? 'Editar nomeclatura' : 'Editar treino';
+    }
   }
 
   if (trainerWorkoutModalCancelButton) {
@@ -10114,14 +10149,20 @@ const setTrainerWorkoutModalMode = ({ readOnly = false } = {}) => {
 
   if (trainerWorkoutModalLibraryHeadTitle) {
     trainerWorkoutModalLibraryHeadTitle.textContent = trainerWorkoutModalReadOnly
-      ? 'Exercícios do treino'
-      : 'Adicionar exercício da biblioteca';
+      ? (isTemplateMode ? 'Exercícios da nomeclatura' : 'Exercícios do treino')
+      : 'Gerenciar exercícios';
   }
 
   if (trainerWorkoutModalLibraryHeadSubtitle) {
-    trainerWorkoutModalLibraryHeadSubtitle.textContent = trainerWorkoutModalReadOnly
-      ? 'Visualização dos exercícios vinculados ao treino.'
-      : 'Selecione um exercício do grupo escolhido para incluir no treino.';
+    if (trainerWorkoutModalReadOnly) {
+      trainerWorkoutModalLibraryHeadSubtitle.textContent = isTemplateMode
+        ? 'Visualização dos exercícios vinculados à nomeclatura.'
+        : 'Visualização dos exercícios vinculados ao treino.';
+    } else {
+      trainerWorkoutModalLibraryHeadSubtitle.textContent = isTemplateMode
+        ? 'Edite, remova ou adicione exercícios na nomeclatura.'
+        : 'Edite, remova ou adicione exercícios no treino.';
+    }
   }
 
   [
@@ -10137,7 +10178,7 @@ const setTrainerWorkoutModalMode = ({ readOnly = false } = {}) => {
     ) {
       return;
     }
-    control.disabled = trainerWorkoutModalReadOnly;
+    control.disabled = trainerWorkoutModalReadOnly || (isTemplateMode && control === trainerWorkoutModalObjectiveSelect);
     if (control instanceof HTMLTextAreaElement) {
       control.readOnly = trainerWorkoutModalReadOnly;
     }
@@ -10285,22 +10326,18 @@ const renderTrainerWorkoutModalLibraryGuide = () => {
   }
 
   const workoutId = Number(trainerWorkoutEditingId) || 0;
-  const workout = getTrainerWorkoutById(workoutId);
+  const templateId = Number(trainerWorkoutTemplateEditingId) || 0;
+  const isTemplateMode = templateId > 0;
+  const previewWorkout = isTemplateMode ? buildTrainerTemplatePreviewWorkout(templateId) : null;
+  const workout = isTemplateMode ? previewWorkout : getTrainerWorkoutById(workoutId);
   const workoutExercises = workout
     ? getTrainerWorkoutExercisesWithTemplateFallback(workout)
     : trainerManagementState.exercisesByWorkoutId[String(workoutId)] || [];
 
-  if (trainerWorkoutModalReadOnly) {
-    trainerWorkoutModalLibraryWrap.hidden = false;
+  const renderCurrentExerciseItems = ({ editable = false } = {}) => {
+    if (!workoutExercises.length) return '';
 
-    if (!workoutId || !workoutExercises.length) {
-      trainerWorkoutModalLibraryList.innerHTML = '';
-      trainerWorkoutModalLibraryEmpty.hidden = false;
-      trainerWorkoutModalLibraryEmpty.textContent = 'Nenhum exercício cadastrado neste treino.';
-      return;
-    }
-
-    trainerWorkoutModalLibraryList.innerHTML = workoutExercises
+    return workoutExercises
       .slice()
       .sort((first, second) => (Number(first && first.order) || 0) - (Number(second && second.order) || 0))
       .map((exercise, index) => {
@@ -10347,6 +10384,9 @@ const renderTrainerWorkoutModalLibraryGuide = () => {
           ? ` | ${Number.isInteger(loadKg) ? loadKg : loadKg.toFixed(1)} kg`
           : '';
         const metadataLabel = `${series} séries | ${repetitions} reps | desc ${formatSecondsLabel(restSeconds)}${loadLabel}`;
+        const exerciseActionId = isTemplateMode
+          ? Number(exercise && exercise.templateExerciseId) || 0
+          : Number(exercise && exercise.id) || 0;
 
         return `
           <article class="trainer-workout-modal-library-item">
@@ -10354,11 +10394,57 @@ const renderTrainerWorkoutModalLibraryGuide = () => {
               <strong>${escapeAdminCell(exerciseName)}</strong>
               <small>${escapeAdminCell(metadataLabel)}</small>
             </div>
+            ${editable
+              ? `
+                <div class="trainer-workout-modal-library-item-actions">
+                  <button
+                    type="button"
+                    class="trainer-workout-modal-library-view"
+                    data-trainer-workout-modal-library-edit
+                    data-exercise-id="${escapeAdminCell(exerciseActionId)}"
+                    aria-label="Editar ${escapeAdminCell(exerciseName)}"
+                    title="Editar ${escapeAdminCell(exerciseName)}"
+                    ${exerciseActionId > 0 ? '' : 'disabled'}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 20h4l10-10-4-4L4 16v4Z"></path>
+                      <path d="m13 5 4 4"></path>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="trainer-workout-modal-library-remove--circle"
+                    data-trainer-workout-modal-library-remove
+                    data-exercise-id="${escapeAdminCell(exerciseActionId)}"
+                    data-exercise-name="${escapeAdminCell(exerciseName)}"
+                    aria-label="Remover ${escapeAdminCell(exerciseName)}"
+                    title="Remover ${escapeAdminCell(exerciseName)}"
+                    ${exerciseActionId > 0 ? '' : 'disabled'}
+                  >
+                    ×
+                  </button>
+                </div>
+              `
+              : ''}
           </article>
         `;
       })
       .join('');
+  };
 
+  if (trainerWorkoutModalReadOnly) {
+    trainerWorkoutModalLibraryWrap.hidden = false;
+
+    if (!workoutId || !workoutExercises.length) {
+      trainerWorkoutModalLibraryList.innerHTML = '';
+      trainerWorkoutModalLibraryEmpty.hidden = false;
+      trainerWorkoutModalLibraryEmpty.textContent = isTemplateMode
+        ? 'Nenhum exercício cadastrado nesta nomeclatura.'
+        : 'Nenhum exercício cadastrado neste treino.';
+      return;
+    }
+
+    trainerWorkoutModalLibraryList.innerHTML = renderCurrentExerciseItems({ editable: false });
     trainerWorkoutModalLibraryEmpty.hidden = true;
     return;
   }
@@ -10366,24 +10452,18 @@ const renderTrainerWorkoutModalLibraryGuide = () => {
   const selectedGroupKey = normalizeTrainerWorkoutModalGroupKey(
     trainerWorkoutModalMuscleGroupSelect ? trainerWorkoutModalMuscleGroupSelect.value : ''
   );
-  if (!workoutId || !selectedGroupKey) {
-    trainerWorkoutModalLibraryWrap.hidden = true;
-    trainerWorkoutModalLibraryList.innerHTML = '';
-    trainerWorkoutModalLibraryEmpty.hidden = false;
-    trainerWorkoutModalLibraryEmpty.textContent = 'Selecione o grupo muscular para visualizar os exercícios.';
-    return;
-  }
-
   const libraryExercises = Array.isArray(trainerManagementState.library)
     ? trainerManagementState.library
     : [];
-  const exercisesFromGroup = libraryExercises.filter((exercise) => {
-    if (!exercise || exercise.isActive === false) return false;
-    const groupKey = normalizeTrainerWorkoutModalGroupKey(
-      exercise.group || exercise.muscleGroup || exercise.muscle_group
-    );
-    return groupKey === selectedGroupKey;
-  });
+  const exercisesFromGroup = selectedGroupKey
+    ? libraryExercises.filter((exercise) => {
+      if (!exercise || exercise.isActive === false) return false;
+      const groupKey = normalizeTrainerWorkoutModalGroupKey(
+        exercise.group || exercise.muscleGroup || exercise.muscle_group
+      );
+      return groupKey === selectedGroupKey;
+    })
+    : [];
   const existingExerciseIds = new Set(
     workoutExercises
       .map((exercise) =>
@@ -10402,15 +10482,37 @@ const renderTrainerWorkoutModalLibraryGuide = () => {
 
   trainerWorkoutModalLibraryWrap.hidden = false;
 
-  if (!exercisesFromGroup.length) {
-    const selectedGroupLabel = getTrainerWorkoutModalGroupLabel(selectedGroupKey);
+  if (!workoutId) {
     trainerWorkoutModalLibraryList.innerHTML = '';
     trainerWorkoutModalLibraryEmpty.hidden = false;
-    trainerWorkoutModalLibraryEmpty.textContent = `Nenhum exercício cadastrado em ${selectedGroupLabel}.`;
+    trainerWorkoutModalLibraryEmpty.textContent = isTemplateMode
+      ? 'Nomeclatura inválida para gerenciar exercícios.'
+      : 'Treino inválido para gerenciar exercícios.';
     return;
   }
 
-  trainerWorkoutModalLibraryList.innerHTML = exercisesFromGroup
+  const currentExercisesMarkup = renderCurrentExerciseItems({ editable: true });
+  const currentExercisesSectionMarkup = currentExercisesMarkup
+    ? `
+        <article class="trainer-workout-modal-library-item trainer-workout-modal-library-item--section">
+          <div class="trainer-workout-modal-library-item-copy">
+            <strong>${isTemplateMode ? 'Exercícios da nomeclatura' : 'Exercícios do treino'}</strong>
+            <small>Edite ou remova os exercícios já vinculados.</small>
+          </div>
+        </article>
+        ${currentExercisesMarkup}
+      `
+    : `
+        <article class="trainer-workout-modal-library-item trainer-workout-modal-library-item--section">
+          <div class="trainer-workout-modal-library-item-copy">
+            <strong>${isTemplateMode ? 'Exercícios da nomeclatura' : 'Exercícios do treino'}</strong>
+            <small>Nenhum exercício vinculado ainda.</small>
+          </div>
+        </article>
+      `;
+
+  const addableExercisesMarkup = selectedGroupKey
+    ? exercisesFromGroup
     .map((exercise) => {
       const exerciseId = Number(exercise && exercise.id) || 0;
       const repetitions = Math.max(1, Number(exercise && exercise.repetitions) || 10);
@@ -10439,8 +10541,35 @@ const renderTrainerWorkoutModalLibraryGuide = () => {
         </article>
       `;
     })
-    .join('');
+    .join('')
+    : '';
+  const addableExercisesSectionMarkup = selectedGroupKey
+    ? `
+        <article class="trainer-workout-modal-library-item trainer-workout-modal-library-item--section">
+          <div class="trainer-workout-modal-library-item-copy">
+            <strong>${escapeAdminCell(`Biblioteca: ${getTrainerWorkoutModalGroupLabel(selectedGroupKey)}`)}</strong>
+            <small>Selecione um exercício do grupo para adicionar.</small>
+          </div>
+        </article>
+        ${addableExercisesMarkup || `
+          <article class="trainer-workout-modal-library-item">
+            <div class="trainer-workout-modal-library-item-copy">
+              <strong>Nenhum exercício disponível</strong>
+              <small>${escapeAdminCell(`Não há exercícios cadastrados em ${getTrainerWorkoutModalGroupLabel(selectedGroupKey)}.`)}</small>
+            </div>
+          </article>
+        `}
+      `
+    : `
+        <article class="trainer-workout-modal-library-item trainer-workout-modal-library-item--section">
+          <div class="trainer-workout-modal-library-item-copy">
+            <strong>Adicionar da biblioteca</strong>
+            <small>Selecione um grupo muscular acima para carregar os exercícios disponíveis.</small>
+          </div>
+        </article>
+      `;
 
+  trainerWorkoutModalLibraryList.innerHTML = `${currentExercisesSectionMarkup}${addableExercisesSectionMarkup}`;
   trainerWorkoutModalLibraryEmpty.hidden = true;
 };
 
@@ -10450,15 +10579,111 @@ const handleTrainerWorkoutModalLibraryActions = async (event) => {
   const target = event && event.target;
   if (!(target instanceof Element)) return;
 
+  const templateId = Number(trainerWorkoutTemplateEditingId) || 0;
+  const isTemplateMode = templateId > 0;
+  const workoutId = Number(trainerWorkoutEditingId) || 0;
+  const workoutExercises = trainerManagementState.exercisesByWorkoutId[String(workoutId)] || [];
+
+  const editButton = target.closest('[data-trainer-workout-modal-library-edit]');
+  if (editButton && editButton instanceof HTMLButtonElement) {
+    const exerciseActionId = Number(editButton.dataset.exerciseId || 0) || 0;
+    if (!exerciseActionId) return;
+
+    const exercise = isTemplateMode
+      ? workoutExercises.find((item) => Number(item && item.templateExerciseId) === exerciseActionId)
+      : workoutExercises.find((item) => Number(item && item.id) === exerciseActionId);
+    if (!exercise) {
+      setTrainerWorkoutModalFeedback('Exercício não encontrado para edição.', false);
+      return;
+    }
+
+    const opened = openTrainerWorkoutExerciseModal({
+      workoutId,
+      templateId,
+      exercise,
+      triggerButton: editButton
+    });
+    if (!opened) {
+      setTrainerWorkoutModalFeedback('Não foi possível abrir a edição do exercício.', false);
+    }
+    return;
+  }
+
+  const removeButton = target.closest('[data-trainer-workout-modal-library-remove]');
+  if (removeButton && removeButton instanceof HTMLButtonElement) {
+    const exerciseActionId = Number(removeButton.dataset.exerciseId || 0) || 0;
+    const exerciseName = String(removeButton.dataset.exerciseName || 'Exercício').trim() || 'Exercício';
+    if (!exerciseActionId) return;
+
+    const confirmed = await requestSiteConfirm({
+      title: isTemplateMode ? 'Remover exercício da nomeclatura' : 'Remover exercício do treino',
+      identification: exerciseName,
+      message: isTemplateMode
+        ? `Tem certeza que deseja remover "${exerciseName}" desta nomeclatura?`
+        : `Tem certeza que deseja remover "${exerciseName}" deste treino?`,
+      confirmLabel: 'Remover',
+      cancelLabel: 'Cancelar',
+      triggerButton: removeButton
+    });
+    if (!confirmed) return;
+
+    removeButton.disabled = true;
+    const inFlightMessage = isTemplateMode
+      ? 'Removendo exercício da nomeclatura...'
+      : 'Removendo exercício do treino...';
+    setTrainerWorkoutModalFeedback(inFlightMessage, false);
+    setTrainerManagementFeedback(inFlightMessage, false);
+    setTrainerExerciseFeedback(inFlightMessage, false);
+
+    try {
+      const response = isTemplateMode
+        ? await requestWorkoutTemplateExerciseDelete({
+          templateId,
+          templateExerciseId: exerciseActionId
+        })
+        : await requestStudentApi(
+          `/workouts/${encodeURIComponent(String(workoutId))}/exercises/${encodeURIComponent(String(exerciseActionId))}`,
+          { method: 'DELETE' }
+        );
+
+      if (isTemplateMode) {
+        buildTrainerTemplatePreviewWorkout(templateId);
+      } else {
+        trainerExerciseTargetWorkoutId = workoutId;
+      }
+      await loadTrainerManagementData(true);
+      await syncWorkoutsFromBackend({ silent: true });
+      if (!isTemplateMode) await loadTrainerProgressData(true);
+      if (isGeneralAdminUser()) await fetchAdminOverview(true);
+      if (isTemplateMode) buildTrainerTemplatePreviewWorkout(templateId);
+      renderTrainerWorkoutModalLibraryGuide();
+
+      const successMessage = (response && response.message) || (
+        isTemplateMode ? 'Exercício removido da nomeclatura com sucesso.' : 'Exercício removido com sucesso.'
+      );
+      setTrainerWorkoutModalFeedback(successMessage, true);
+      setTrainerManagementFeedback(successMessage, true);
+      setTrainerExerciseFeedback(successMessage, true);
+    } catch (error) {
+      removeButton.disabled = false;
+      const errorMessage = error && error.message
+        ? error.message
+        : (isTemplateMode
+          ? 'Falha ao remover exercício da nomeclatura.'
+          : 'Falha ao remover exercício do treino.');
+      setTrainerWorkoutModalFeedback(errorMessage, false);
+      setTrainerManagementFeedback(errorMessage, false);
+      setTrainerExerciseFeedback(errorMessage, false);
+    }
+    return;
+  }
+
   const addButton = target.closest('[data-trainer-workout-modal-library-add]');
   if (!addButton || !(addButton instanceof HTMLButtonElement)) return;
   if (addButton.disabled) return;
 
-  const workoutId = Number(trainerWorkoutEditingId) || 0;
   const exerciseId = Number(addButton.dataset.exerciseId || 0) || 0;
   if (!workoutId || !exerciseId) return;
-
-  const workoutExercises = trainerManagementState.exercisesByWorkoutId[String(workoutId)] || [];
   const alreadyAdded = workoutExercises.some(
     (exercise) =>
       Number(
@@ -10473,7 +10698,12 @@ const handleTrainerWorkoutModalLibraryActions = async (event) => {
   );
   if (alreadyAdded) {
     renderTrainerWorkoutModalLibraryGuide();
-    setTrainerWorkoutModalFeedback('Esse exercício já está no treino selecionado.', true);
+    setTrainerWorkoutModalFeedback(
+      isTemplateMode
+        ? 'Esse exercício já está na nomeclatura selecionada.'
+        : 'Esse exercício já está no treino selecionado.',
+      true
+    );
     return;
   }
 
@@ -10521,57 +10751,82 @@ const handleTrainerWorkoutModalLibraryActions = async (event) => {
   addButton.disabled = true;
   const initialButtonLabel = addButton.textContent;
   addButton.textContent = 'Adicionando...';
-  setTrainerWorkoutModalFeedback('Adicionando exercício ao treino...', false);
+  setTrainerWorkoutModalFeedback(
+    isTemplateMode ? 'Adicionando exercício à nomeclatura...' : 'Adicionando exercício ao treino...',
+    false
+  );
 
   try {
-    const response = await requestStudentApi('/exercises', {
-      method: 'POST',
-      body: {
-        workoutId,
-        exerciseId,
-        series,
-        repeticoes: repetitions,
-        carga: loadKg,
-        descanso: restSeconds,
-        order
-      }
-    });
-
-    const createdExercise = response && response.exercise ? response.exercise : null;
-    if (createdExercise) {
-      const workoutKey = String(workoutId);
-      const currentExercises = Array.isArray(trainerManagementState.exercisesByWorkoutId[workoutKey])
-        ? trainerManagementState.exercisesByWorkoutId[workoutKey].slice()
-        : [];
-      currentExercises.push(createdExercise);
-      currentExercises.sort((first, second) => {
-        const firstOrder = Number(first && first.order) || 0;
-        const secondOrder = Number(second && second.order) || 0;
-        if (firstOrder !== secondOrder) return firstOrder - secondOrder;
-        return (Number(first && first.id) || 0) - (Number(second && second.id) || 0);
+    const response = isTemplateMode
+      ? await requestStudentApi(
+        `/workouts/templates/${encodeURIComponent(String(templateId))}/exercises`,
+        {
+          method: 'POST',
+          body: {
+            exerciseId,
+            order,
+            series,
+            reps: repetitions,
+            defaultLoad: loadKg,
+            restTime: restSeconds
+          }
+        }
+      )
+      : await requestStudentApi('/exercises', {
+        method: 'POST',
+        body: {
+          workoutId,
+          exerciseId,
+          series,
+          repeticoes: repetitions,
+          carga: loadKg,
+          descanso: restSeconds,
+          order
+        }
       });
-      trainerManagementState.exercisesByWorkoutId[workoutKey] = currentExercises;
+
+    if (!isTemplateMode) {
+      const createdExercise = response && response.exercise ? response.exercise : null;
+      if (createdExercise) {
+        const workoutKey = String(workoutId);
+        const currentExercises = Array.isArray(trainerManagementState.exercisesByWorkoutId[workoutKey])
+          ? trainerManagementState.exercisesByWorkoutId[workoutKey].slice()
+          : [];
+        currentExercises.push(createdExercise);
+        currentExercises.sort((first, second) => {
+          const firstOrder = Number(first && first.order) || 0;
+          const secondOrder = Number(second && second.order) || 0;
+          if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+          return (Number(first && first.id) || 0) - (Number(second && second.id) || 0);
+        });
+        trainerManagementState.exercisesByWorkoutId[workoutKey] = currentExercises;
+      }
+      trainerExerciseTargetWorkoutId = workoutId;
     }
 
-    trainerExerciseTargetWorkoutId = workoutId;
-    const successMessage = (response && response.message) || 'Exercício adicionado ao treino.';
+    await loadTrainerManagementData(true);
+    if (!isTemplateMode) await loadTrainerProgressData(true);
+    await syncWorkoutsFromBackend({ silent: true });
+    if (isGeneralAdminUser()) await fetchAdminOverview(true);
+    if (isTemplateMode) buildTrainerTemplatePreviewWorkout(templateId);
+
+    const successMessage = (response && response.message) || (
+      isTemplateMode
+        ? 'Exercício adicionado à nomeclatura com sucesso.'
+        : 'Exercício adicionado ao treino.'
+    );
     setTrainerWorkoutModalFeedback(successMessage, true);
     setTrainerManagementFeedback(successMessage, true);
     setTrainerExerciseFeedback(successMessage, true);
     renderTrainerWorkoutModalLibraryGuide();
-
-    void Promise.allSettled([
-      loadTrainerManagementData(true),
-      loadTrainerProgressData(true),
-      syncWorkoutsFromBackend({ silent: true }),
-      isGeneralAdminUser() ? fetchAdminOverview(true) : Promise.resolve(null)
-    ]);
   } catch (error) {
     addButton.disabled = false;
     addButton.textContent = initialButtonLabel;
     const errorMessage = error && error.message
       ? error.message
-      : 'Falha ao adicionar exercício ao treino.';
+      : (isTemplateMode
+        ? 'Falha ao adicionar exercício à nomeclatura.'
+        : 'Falha ao adicionar exercício ao treino.');
     setTrainerWorkoutModalFeedback(errorMessage, false);
     setTrainerManagementFeedback(errorMessage, false);
     setTrainerExerciseFeedback(errorMessage, false);
@@ -10593,6 +10848,7 @@ const closeTrainerWorkoutModal = ({ keepFocus = true, force = false } = {}) => {
   trainerWorkoutModal.hidden = true;
   if (studentAppShell) studentAppShell.classList.remove('is-admin-exercise-modal-open');
   trainerWorkoutEditingId = 0;
+  trainerWorkoutTemplateEditingId = 0;
   trainerWorkoutEditTriggerButton = null;
   if (trainerWorkoutModalMuscleGroupSelect) trainerWorkoutModalMuscleGroupSelect.value = '';
   if (trainerWorkoutModalLibraryWrap) trainerWorkoutModalLibraryWrap.hidden = true;
@@ -10611,7 +10867,11 @@ const closeTrainerWorkoutModal = ({ keepFocus = true, force = false } = {}) => {
   }
 };
 
-const openTrainerWorkoutModal = (workout, triggerButton = null, { readOnly = false } = {}) => {
+const openTrainerWorkoutModal = (
+  workout,
+  triggerButton = null,
+  { readOnly = false, templateId = 0 } = {}
+) => {
   if (!trainerWorkoutModal || !workout) return false;
 
   const isReadOnly = Boolean(readOnly);
@@ -10621,6 +10881,7 @@ const openTrainerWorkoutModal = (workout, triggerButton = null, { readOnly = fal
   }
 
   trainerWorkoutEditingId = Number(workout.id) || 0;
+  trainerWorkoutTemplateEditingId = Number(templateId) || 0;
   trainerWorkoutEditTriggerButton = triggerButton || null;
   setTrainerWorkoutModalMode({ readOnly: isReadOnly });
   if (trainerWorkoutModalIdentification) {
@@ -10702,7 +10963,12 @@ const closeTrainerWorkoutExerciseModal = ({ keepFocus = true, force = false } = 
   }
 };
 
-const openTrainerWorkoutExerciseModal = ({ workoutId, exercise, triggerButton = null }) => {
+const openTrainerWorkoutExerciseModal = ({
+  workoutId,
+  templateId = 0,
+  exercise,
+  triggerButton = null
+}) => {
   if (!trainerWorkoutExerciseModal || !exercise) return false;
 
   if (trainerWorkoutExerciseModal.parentElement !== document.body) {
@@ -10711,7 +10977,9 @@ const openTrainerWorkoutExerciseModal = ({ workoutId, exercise, triggerButton = 
 
   trainerWorkoutExerciseEditingState = {
     workoutId: Number(workoutId) || 0,
+    templateId: Number(templateId) || 0,
     workoutExerciseId: Number(exercise.id) || 0,
+    templateExerciseId: Number(exercise.templateExerciseId) || 0,
   };
   trainerWorkoutExerciseEditTriggerButton = triggerButton || null;
 
@@ -11582,6 +11850,7 @@ function mapTrainerTemplateExercisesToWorkoutExercises(templateId, workoutId) {
       const exercise = item && item.exercise ? item.exercise : null;
       return {
         id: normalizedWorkoutId * 1000 + index + 1,
+        templateExerciseId: Number(item && item.id) || 0,
         workoutId: normalizedWorkoutId,
         exerciseId: Number(item && item.exerciseId) || 0,
         libraryExerciseId: Number(item && item.exerciseId) || 0,
@@ -14629,6 +14898,24 @@ const renderTrainerManagementPanel = () => {
               : '';
             const definitionActionsMarkup = `
               <div class="trainer-table-actions">
+                ${templateId > 0
+                  ? `
+                      <button
+                        class="student-progress-action-btn trainer-action-icon-btn trainer-action-neutral"
+                        type="button"
+                        data-trainer-workout-definition-edit-exercises
+                        data-template-id="${safeCell(templateId)}"
+                        data-definition-name="${safeCell(definitionName)}"
+                        aria-label="Editar exercícios da nomeclatura"
+                        title="Editar exercícios da nomeclatura"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M4 20h4l10-10-4-4L4 16v4Z"></path>
+                          <path d="m13 5 4 4"></path>
+                        </svg>
+                      </button>
+                    `
+                  : ''}
                 ${deactivateDefinitionMarkup || deleteDefinitionMarkup || '<span class="admin-overview-action-muted">Sem ações disponíveis</span>'}
               </div>
             `;
@@ -16256,6 +16543,29 @@ const openTrainerTemplatePreview = (templateId, triggerButton = null) => {
   return true;
 };
 
+const openTrainerTemplateEditorModal = (templateId, triggerButton = null) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  const previewWorkout = buildTrainerTemplatePreviewWorkout(normalizedTemplateId);
+  if (!previewWorkout) {
+    setTrainerManagementFeedback('Nomeclatura selecionada não encontrada para edição.', false);
+    return false;
+  }
+
+  trainerTemplateEditorSelectedId = String(normalizedTemplateId);
+  trainerTemplateExerciseSelectedId = String(normalizedTemplateId);
+  trainerExerciseComposerSelectedId = String(normalizedTemplateId);
+
+  const opened = openTrainerWorkoutModal(previewWorkout, triggerButton, {
+    readOnly: false,
+    templateId: normalizedTemplateId
+  });
+  if (!opened) {
+    setTrainerManagementFeedback('Não foi possível abrir a edição da nomeclatura.', false);
+    return false;
+  }
+  return true;
+};
+
 const handleTrainerLibrarySubmit = async (event) => {
   event.preventDefault();
   if (!isLibraryManagerUser()) return;
@@ -16647,8 +16957,10 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
   if (!isTrainerManagerUser()) return;
 
   const workoutId = Number(trainerWorkoutEditingId) || 0;
-  if (!workoutId) {
-    setTrainerWorkoutModalFeedback('Treino inválido para edição.', false);
+  const templateId = Number(trainerWorkoutTemplateEditingId) || 0;
+  const isTemplateMode = templateId > 0;
+  if (!workoutId && !templateId) {
+    setTrainerWorkoutModalFeedback('Registro inválido para edição.', false);
     return;
   }
 
@@ -16674,33 +16986,53 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
   }
 
   setButtonLoading(trainerWorkoutModalSubmitButton, 'Salvando...');
-  setTrainerWorkoutModalFeedback('Salvando alterações do treino...', false);
+  setTrainerWorkoutModalFeedback(
+    isTemplateMode ? 'Salvando alterações da nomeclatura...' : 'Salvando alterações do treino...',
+    false
+  );
 
   try {
-    const response = await requestInstructorWorkoutUpdate({
-      workoutId,
-      body: {
-        title,
-        objective,
-        status
-      }
-    });
+    const response = isTemplateMode
+      ? await requestWorkoutTemplateUpdate({
+        templateId,
+        body: {
+          name: title,
+          isActive: status === 'ATIVO'
+        }
+      })
+      : await requestInstructorWorkoutUpdate({
+        workoutId,
+        body: {
+          title,
+          objective,
+          status
+        }
+      });
 
-    trainerExerciseTargetWorkoutId = workoutId;
+    if (isTemplateMode) {
+      trainerTemplateEditorSelectedId = String(templateId);
+      trainerTemplateExerciseSelectedId = String(templateId);
+      trainerExerciseComposerSelectedId = String(templateId);
+    } else {
+      trainerExerciseTargetWorkoutId = workoutId;
+    }
     await loadTrainerManagementData(true);
-    await loadTrainerProgressData(true);
+    if (!isTemplateMode) await loadTrainerProgressData(true);
     await syncWorkoutsFromBackend({ silent: true });
     if (isGeneralAdminUser()) await fetchAdminOverview(true);
+    if (isTemplateMode) buildTrainerTemplatePreviewWorkout(templateId);
 
     setTrainerManagementFeedback(
-      (response && response.message) || 'Treino atualizado com sucesso.',
+      (response && response.message) || (
+        isTemplateMode ? 'Nomeclatura atualizada com sucesso.' : 'Treino atualizado com sucesso.'
+      ),
       true
     );
     closeTrainerWorkoutModal({ keepFocus: true, force: true });
   } catch (error) {
     const errorMessage = error && error.message
       ? error.message
-      : 'Falha ao atualizar treino.';
+      : (isTemplateMode ? 'Falha ao atualizar nomeclatura.' : 'Falha ao atualizar treino.');
     setTrainerWorkoutModalFeedback(errorMessage, false);
     setTrainerManagementFeedback(errorMessage, false);
   } finally {
@@ -16715,10 +17047,17 @@ const handleTrainerWorkoutExerciseModalSubmit = async (event) => {
   const workoutId = Number(
     trainerWorkoutExerciseEditingState && trainerWorkoutExerciseEditingState.workoutId
   ) || 0;
+  const templateId = Number(
+    trainerWorkoutExerciseEditingState && trainerWorkoutExerciseEditingState.templateId
+  ) || 0;
   const workoutExerciseId = Number(
     trainerWorkoutExerciseEditingState && trainerWorkoutExerciseEditingState.workoutExerciseId
   ) || 0;
-  if (!workoutId || !workoutExerciseId) {
+  const templateExerciseId = Number(
+    trainerWorkoutExerciseEditingState && trainerWorkoutExerciseEditingState.templateExerciseId
+  ) || 0;
+  const isTemplateMode = templateId > 0;
+  if ((!isTemplateMode && (!workoutId || !workoutExerciseId)) || (isTemplateMode && !templateExerciseId)) {
     setTrainerWorkoutExerciseModalFeedback('Exercício inválido para edição.', false);
     return;
   }
@@ -16758,41 +17097,74 @@ const handleTrainerWorkoutExerciseModalSubmit = async (event) => {
     : '';
 
   setButtonLoading(trainerWorkoutExerciseModalSubmitButton, 'Salvando...');
-  setTrainerWorkoutExerciseModalFeedback('Salvando alterações do exercício...', false);
+  setTrainerWorkoutExerciseModalFeedback(
+    isTemplateMode
+      ? 'Salvando alterações do exercício da nomeclatura...'
+      : 'Salvando alterações do exercício...',
+    false
+  );
 
   try {
-    const response = await requestStudentApi(
-      `/workouts/${encodeURIComponent(String(workoutId))}/exercises/${encodeURIComponent(String(workoutExerciseId))}`,
-      {
-        method: 'PATCH',
+    const response = isTemplateMode
+      ? await requestWorkoutTemplateExerciseUpdate({
+        templateId,
+        templateExerciseId,
         body: {
           series,
-          repeticoes: repetitions,
-          carga: loadKg,
-          descanso: restSeconds,
-          observation
+          reps: repetitions,
+          defaultLoad: loadKg,
+          restTime: restSeconds
         }
-      }
-    );
+      })
+      : await requestStudentApi(
+        `/workouts/${encodeURIComponent(String(workoutId))}/exercises/${encodeURIComponent(String(workoutExerciseId))}`,
+        {
+          method: 'PATCH',
+          body: {
+            series,
+            repeticoes: repetitions,
+            carga: loadKg,
+            descanso: restSeconds,
+            observation
+          }
+        }
+      );
 
-    trainerExerciseTargetWorkoutId = workoutId;
+    if (!isTemplateMode) {
+      trainerExerciseTargetWorkoutId = workoutId;
+    } else {
+      trainerTemplateExerciseSelectedId = String(templateId);
+      trainerExerciseComposerSelectedId = String(templateId);
+    }
     await loadTrainerManagementData(true);
+    if (isTemplateMode) buildTrainerTemplatePreviewWorkout(templateId);
     await syncWorkoutsFromBackend({ silent: true });
     if (isGeneralAdminUser()) await fetchAdminOverview(true);
+    renderTrainerWorkoutModalLibraryGuide();
 
     setTrainerManagementFeedback(
-      (response && response.message) || 'Exercício atualizado com sucesso.',
+      (response && response.message) || (
+        isTemplateMode
+          ? 'Exercício da nomeclatura atualizado com sucesso.'
+          : 'Exercício atualizado com sucesso.'
+      ),
       true
     );
     setTrainerExerciseFeedback(
-      (response && response.message) || 'Exercício atualizado com sucesso.',
+      (response && response.message) || (
+        isTemplateMode
+          ? 'Exercício da nomeclatura atualizado com sucesso.'
+          : 'Exercício atualizado com sucesso.'
+      ),
       true
     );
     closeTrainerWorkoutExerciseModal({ keepFocus: true, force: true });
   } catch (error) {
     const errorMessage = error && error.message
       ? error.message
-      : 'Falha ao atualizar exercício do treino.';
+      : (isTemplateMode
+        ? 'Falha ao atualizar exercício da nomeclatura.'
+        : 'Falha ao atualizar exercício do treino.');
     setTrainerWorkoutExerciseModalFeedback(errorMessage, false);
     setTrainerManagementFeedback(errorMessage, false);
     setTrainerExerciseFeedback(errorMessage, false);
@@ -16828,6 +17200,18 @@ const handleTrainerWorkoutsTableActions = async (event) => {
     const opened = openTrainerWorkoutModal(workout, editButton, { readOnly: false });
     if (!opened) {
       setTrainerManagementFeedback('Não foi possível abrir a edição do treino.', false);
+    }
+    return;
+  }
+
+  const definitionEditButton = target.closest('[data-trainer-workout-definition-edit-exercises]');
+  if (definitionEditButton && definitionEditButton instanceof HTMLButtonElement) {
+    const templateId = Number(definitionEditButton.dataset.templateId || 0) || 0;
+    if (!templateId) return;
+
+    const opened = openTrainerTemplateEditorModal(templateId, definitionEditButton);
+    if (!opened) {
+      setTrainerManagementFeedback('Não foi possível abrir a edição da nomeclatura.', false);
     }
     return;
   }

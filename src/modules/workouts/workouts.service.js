@@ -563,7 +563,16 @@ function createWorkoutsService({
     return withWorkoutProgress(updated);
   }
 
-  async function createWorkoutTemplate({ authUser, name, description, isActive }) {
+  async function createWorkoutTemplate({
+    authUser,
+    name,
+    description,
+    isActive,
+    coverImageUrl,
+    cover_image_url,
+    coverUrl,
+    cover_url,
+  }) {
     const actorRole = normalizeRole(authUser && authUser.role);
     const actorId = normalizeId(authUser && authUser.id);
     if (!managementRoles.has(actorRole)) {
@@ -578,6 +587,9 @@ function createWorkoutsService({
     return workoutsRepository.createWorkoutTemplate({
       name: normalizedName,
       description: normalizeString(description),
+      coverImageUrl: normalizeString(
+        coverImageUrl || cover_image_url || coverUrl || cover_url
+      ),
       createdBy: actorId,
       isActive: normalizeBoolean(isActive, true),
     });
@@ -589,6 +601,10 @@ function createWorkoutsService({
     name,
     description,
     isActive,
+    coverImageUrl,
+    cover_image_url,
+    coverUrl,
+    cover_url,
   }) {
     const actorRole = normalizeRole(authUser && authUser.role);
     const actorId = normalizeId(authUser && authUser.id);
@@ -622,6 +638,16 @@ function createWorkoutsService({
     }
     if (description !== undefined) payload.description = normalizeString(description);
     if (isActive !== undefined) payload.isActive = normalizeBoolean(isActive, true);
+    if (
+      coverImageUrl !== undefined ||
+      cover_image_url !== undefined ||
+      coverUrl !== undefined ||
+      cover_url !== undefined
+    ) {
+      payload.coverImageUrl = normalizeString(
+        coverImageUrl || cover_image_url || coverUrl || cover_url
+      );
+    }
 
     const updated = await workoutsRepository.updateWorkoutTemplate(normalizedTemplateId, payload);
     if (!updated) {
@@ -773,6 +799,154 @@ function createWorkoutsService({
     }));
   }
 
+  async function updateTemplateExercise({
+    authUser,
+    templateId,
+    templateExerciseId,
+    exerciseId,
+    libraryExerciseId,
+    order,
+    series,
+    repeticoes,
+    repetitions,
+    reps,
+    carga,
+    load,
+    loadKg,
+    defaultLoad,
+    descanso,
+    restTime,
+    restSeconds,
+  }) {
+    const actorRole = normalizeRole(authUser && authUser.role);
+    const actorId = normalizeId(authUser && authUser.id);
+    if (!managementRoles.has(actorRole)) {
+      throw new AppError("Apenas instrutor ou administrador geral podem editar modelos.", 403, "FORBIDDEN");
+    }
+
+    const normalizedTemplateId = normalizeId(templateId);
+    const normalizedTemplateExerciseId = normalizeId(templateExerciseId);
+    if (!normalizedTemplateId || !normalizedTemplateExerciseId) {
+      throw new AppError("templateId e templateExerciseId sao obrigatorios.", 400, "VALIDATION_ERROR");
+    }
+
+    const template = await workoutsRepository.findWorkoutTemplateById(normalizedTemplateId, {
+      includeInactive: true,
+    });
+    if (!template) {
+      throw new AppError("Modelo de treino nao encontrado.", 404, "TEMPLATE_NOT_FOUND");
+    }
+
+    if (actorRole === "INSTRUTOR" && Number(template.createdBy) !== actorId) {
+      throw new AppError("Instrutor so pode editar modelos que criou.", 403, "FORBIDDEN");
+    }
+
+    const current = await workoutsRepository.findTemplateExerciseById(normalizedTemplateExerciseId);
+    if (!current || Number(current.templateId) !== normalizedTemplateId) {
+      throw new AppError("Exercicio do modelo nao encontrado.", 404, "TEMPLATE_EXERCISE_NOT_FOUND");
+    }
+
+    const payload = {};
+
+    if (exerciseId !== undefined || libraryExerciseId !== undefined) {
+      const normalizedExerciseId = normalizeId(
+        libraryExerciseId !== undefined ? libraryExerciseId : exerciseId
+      );
+      const libraryExercise = libraryRepository.findById(normalizedExerciseId, { includeInactive: false });
+      if (!libraryExercise) {
+        throw new AppError("Exercicio da biblioteca nao encontrado.", 404, "LIBRARY_EXERCISE_NOT_FOUND");
+      }
+      payload.exerciseId = Number(libraryExercise.id);
+    }
+
+    if (order !== undefined) payload.order = Math.max(1, normalizeId(order) || current.order || 1);
+    if (series !== undefined) payload.series = Math.max(1, normalizeId(series) || current.series || 3);
+
+    if (repeticoes !== undefined || repetitions !== undefined || reps !== undefined) {
+      payload.reps = Math.max(
+        1,
+        normalizeId(
+          reps !== undefined ? reps : repetitions !== undefined ? repetitions : repeticoes
+        ) || current.reps || 10
+      );
+    }
+
+    if (defaultLoad !== undefined || carga !== undefined || load !== undefined || loadKg !== undefined) {
+      payload.defaultLoad = Math.max(
+        0,
+        Number(
+          defaultLoad !== undefined
+            ? defaultLoad
+            : loadKg !== undefined
+              ? loadKg
+              : load !== undefined
+                ? load
+                : carga
+        ) || 0
+      );
+    }
+
+    if (descanso !== undefined || restTime !== undefined || restSeconds !== undefined) {
+      payload.restTime = Math.max(
+        0,
+        normalizeId(
+          restTime !== undefined ? restTime : restSeconds !== undefined ? restSeconds : descanso
+        ) || current.restTime || 30
+      );
+    }
+
+    const updated = await workoutsRepository.updateWorkoutTemplateExercise({
+      templateId: normalizedTemplateId,
+      templateExerciseId: normalizedTemplateExerciseId,
+      data: payload,
+    });
+
+    if (!updated) {
+      throw new AppError("Exercicio do modelo nao encontrado.", 404, "TEMPLATE_EXERCISE_NOT_FOUND");
+    }
+
+    return {
+      ...updated,
+      exercise: libraryRepository.findById(Number(updated.exerciseId) || 0, { includeInactive: true }) || null,
+    };
+  }
+
+  async function deleteTemplateExercise({ authUser, templateId, templateExerciseId }) {
+    const actorRole = normalizeRole(authUser && authUser.role);
+    const actorId = normalizeId(authUser && authUser.id);
+    if (!managementRoles.has(actorRole)) {
+      throw new AppError("Apenas instrutor ou administrador geral podem editar modelos.", 403, "FORBIDDEN");
+    }
+
+    const normalizedTemplateId = normalizeId(templateId);
+    const normalizedTemplateExerciseId = normalizeId(templateExerciseId);
+    if (!normalizedTemplateId || !normalizedTemplateExerciseId) {
+      throw new AppError("templateId e templateExerciseId sao obrigatorios.", 400, "VALIDATION_ERROR");
+    }
+
+    const template = await workoutsRepository.findWorkoutTemplateById(normalizedTemplateId, {
+      includeInactive: true,
+    });
+    if (!template) {
+      throw new AppError("Modelo de treino nao encontrado.", 404, "TEMPLATE_NOT_FOUND");
+    }
+
+    if (actorRole === "INSTRUTOR" && Number(template.createdBy) !== actorId) {
+      throw new AppError("Instrutor so pode editar modelos que criou.", 403, "FORBIDDEN");
+    }
+
+    const removed = await workoutsRepository.deleteWorkoutTemplateExercise({
+      templateId: normalizedTemplateId,
+      templateExerciseId: normalizedTemplateExerciseId,
+    });
+
+    if (!removed) {
+      throw new AppError("Exercicio do modelo nao encontrado.", 404, "TEMPLATE_EXERCISE_NOT_FOUND");
+    }
+
+    return removed;
+  }
+
   async function createWorkoutFromTemplate({
     authUser,
     templateId,
@@ -862,7 +1036,13 @@ function createWorkoutsService({
       name: normalizeString(name) || template.name,
       objective: normalizeString(objective),
       description: normalizeString(description) || normalizeString(template.description),
-      coverImageUrl: normalizeString(coverImageUrl),
+      coverImageUrl: normalizeString(
+        coverImageUrl ||
+        template.coverImageUrl ||
+        template.cover_image_url ||
+        template.coverUrl ||
+        template.cover_url
+      ),
       studentId: Number(student.id),
       createdBy: Number(instructor.id),
       originTemplateId: Number(template.id),
@@ -1077,6 +1257,8 @@ function createWorkoutsService({
     listWorkoutTemplates,
     addTemplateExercise,
     listTemplateExercises,
+    updateTemplateExercise,
+    deleteTemplateExercise,
     createWorkoutFromTemplate,
     ensureWorkoutExists,
     ensureWorkoutAccess,

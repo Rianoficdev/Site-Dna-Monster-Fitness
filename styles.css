@@ -4392,6 +4392,12 @@ body.theme-dark .student-run-counter {
   color: #9fb8ab;
 }
 
+body.theme-dark .student-run-busy-toggle {
+  background: rgba(23, 35, 30, 0.96);
+  border-color: rgba(146, 184, 163, 0.16);
+  color: #d9ece2;
+}
+
 body.theme-dark .student-run-help-trigger {
   border-color: rgba(146, 184, 163, 0.4);
   color: #d9ece2;
@@ -5777,6 +5783,32 @@ body.theme-dark .student-rest-actions button[data-student-rest-add-time] {
   margin-top: 10px;
   color: #597265;
   font-size: 0.94rem;
+}
+
+.student-run-busy-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(238, 242, 240, 0.92);
+  border: 1px solid rgba(20, 36, 29, 0.1);
+  color: #20342b;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.student-run-busy-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #16a34a;
+  cursor: pointer;
+}
+
+.student-run-busy-toggle span {
+  line-height: 1.25;
 }
 
 .student-run-controls {
@@ -9800,6 +9832,14 @@ body.theme-dark .avaliacao-title-image-dark {
     margin-top: 12px;
   }
 
+  .student-run-busy-toggle {
+    margin-top: 14px;
+    width: 100%;
+    justify-content: center;
+    text-align: left;
+    font-size: 0.88rem;
+  }
+
   .student-run-controls button {
     min-height: 54px;
     border-radius: 14px;
@@ -11724,6 +11764,12 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   background: linear-gradient(90deg, #9a6a06 0%, #c18208 50%, #e39a11 100%);
 }
 
+.trainer-action-neutral {
+  border: 1px solid rgba(95, 109, 136, 0.34);
+  background: linear-gradient(180deg, #ffffff 0%, #eef4f1 100%);
+  color: #163024;
+}
+
 .trainer-action-icon-btn {
   width: 34px;
   min-width: 34px;
@@ -13237,6 +13283,33 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   flex-shrink: 0;
 }
 
+.trainer-workout-modal-library-view {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(95, 109, 136, 0.34);
+  background: linear-gradient(180deg, #ffffff 0%, #eef4f1 100%);
+  color: #163024;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.trainer-workout-modal-library-view svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .trainer-workout-modal-library-add {
   min-height: 32px;
   border-radius: 10px;
@@ -13297,6 +13370,15 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
 .trainer-workout-modal-library-add:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.trainer-workout-modal-library-item--section {
+  background: rgba(240, 246, 242, 0.95);
+  border-color: rgba(95, 109, 136, 0.18);
+}
+
+.trainer-workout-modal-library-item--section .trainer-workout-modal-library-item-copy strong {
+  white-space: normal;
 }
 
 .trainer-exercise-library-picker {
@@ -14862,6 +14944,18 @@ body.theme-dark .trainer-action-danger {
 
 body.theme-dark .trainer-action-warning {
   background: linear-gradient(90deg, #8a5b02 0%, #b77906 48%, #d99110 100%);
+}
+
+body.theme-dark .trainer-action-neutral,
+body.theme-dark .trainer-workout-modal-library-view {
+  border-color: rgba(116, 162, 138, 0.34);
+  background: rgba(18, 41, 32, 0.82);
+  color: #d9efe3;
+}
+
+body.theme-dark .trainer-workout-modal-library-item--section {
+  border-color: rgba(116, 162, 138, 0.22);
+  background: rgba(20, 36, 29, 0.92);
 }
 
 @media (max-width: 760px) {

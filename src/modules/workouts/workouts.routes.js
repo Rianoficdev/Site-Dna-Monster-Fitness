@@ -104,6 +104,20 @@ function createWorkoutsRoutes({ workoutsController, authMiddleware, roleMiddlewa
     workoutsController.addTemplateExercise
   );
 
+  router.patch(
+    "/workouts/templates/:templateId/exercises/:templateExerciseId",
+    authMiddleware,
+    roleMiddleware(roles.INSTRUTOR, roles.ADMIN_GERAL),
+    workoutsController.updateTemplateExercise
+  );
+
+  router.delete(
+    "/workouts/templates/:templateId/exercises/:templateExerciseId",
+    authMiddleware,
+    roleMiddleware(roles.INSTRUTOR, roles.ADMIN_GERAL),
+    workoutsController.deleteTemplateExercise
+  );
+
   router.post(
     "/workout/from-template",
     authMiddleware,
