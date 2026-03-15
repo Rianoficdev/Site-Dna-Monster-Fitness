@@ -1345,7 +1345,7 @@ const LIBRARY_GROUP_IMAGES = {
   posterior: 'img/posterior coxa.svg',
   adutores: 'img/adutor.svg',
   abdutores: 'img/abdutor.svg',
-  panturrilhas: 'img panturrilha/Design sem nome (2).png'
+  panturrilhas: 'img/panturrilha.svg'
 };
 
 const getLibraryGroupImageSrc = (groupKey) => {
