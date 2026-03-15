@@ -118,22 +118,22 @@ const getConfiguredApiBaseUrl = () => {
 
 const createStudentApiBaseCandidates = () => {
   const explicitBaseUrl = getConfiguredApiBaseUrl();
-  if (explicitBaseUrl) return [explicitBaseUrl.replace(/\/+$/, '')];
-
   const candidates = [];
   const host = String(window.location.hostname || '').trim();
   const originBaseUrl = `${window.location.origin}/api`.replace(/\/+$/, '');
 
-  if (window.location.protocol === 'file:') {
-    candidates.push('http://localhost:3000/api', 'http://127.0.0.1:3000/api');
-  } else if (isLocalDevHost) {
+  if (window.location.protocol === 'file:' || isLocalDevHost) {
     const currentPort = String(window.location.port || '').trim();
     const runningOnApiPort = currentPort === '3000';
 
-    if (runningOnApiPort) candidates.push(originBaseUrl);
+    if (window.location.protocol !== 'file:' && runningOnApiPort) candidates.push(originBaseUrl);
     if (host) candidates.push(`http://${host}:3000/api`);
     candidates.push('http://localhost:3000/api', 'http://127.0.0.1:3000/api');
-  } else {
+  }
+
+  if (explicitBaseUrl) {
+    candidates.push(explicitBaseUrl.replace(/\/+$/, ''));
+  } else if (!isLocalDevHost && window.location.protocol !== 'file:') {
     candidates.push(originBaseUrl);
   }
 
@@ -1027,6 +1027,7 @@ const runHelpText = document.querySelector('[data-student-run-help-text]');
 const runHelpCloseButtons = Array.from(document.querySelectorAll('[data-student-run-help-close]'));
 const runClock = document.querySelector('[data-student-run-clock]');
 const runCounter = document.querySelector('[data-student-run-counter]');
+const runEquipmentBusyCheckbox = document.querySelector('[data-student-run-equipment-busy]');
 const restMedia = document.querySelector('.student-rest-media');
 const restFigure = document.querySelector('[data-student-rest-figure]');
 const restVideo = document.querySelector('[data-student-rest-video]');
@@ -1335,10 +1336,16 @@ const LIBRARY_GROUP_ICONS = {
 const LIBRARY_GROUP_IMAGES = {
   peito: 'Foto do grupo muscular/logo dna (4)/Peitoral.png',
   costas: 'Foto do grupo muscular/logo dna (4)/Costas.png',
+  abdomen: 'img/Abdomem.svg',
   ombros: 'img/capa ombro.svg',
   biceps: 'Foto do grupo muscular/logo dna (4)/Bíceps.png',
   triceps: 'Foto do grupo muscular/logo dna (4)/Tríceps.png',
-  quadriceps: 'img/capa quadriceps.svg'
+  gluteos: 'img/Glueteo.svg',
+  quadriceps: 'img/capa quadriceps.svg',
+  posterior: 'img/posterior coxa.svg',
+  adutores: 'img/adutor.svg',
+  abdutores: 'img/abdutor.svg',
+  panturrilhas: 'img panturrilha/Design sem nome (2).png'
 };
 
 const getLibraryGroupImageSrc = (groupKey) => {
@@ -1570,6 +1577,7 @@ const workoutHeroMap = {
 };
 
 const workoutExerciseChecks = {};
+const workoutExerciseDeferredQueue = {};
 const exerciseDetailMap = {
   'supino reto': {
     duration: 20,
@@ -4748,6 +4756,60 @@ const ensureWorkoutCheckState = (workout) => {
   return next;
 };
 
+const ensureWorkoutDeferredQueue = (workout) => {
+  if (!workout) return [];
+  const checks = ensureWorkoutCheckState(workout);
+  const current = workoutExerciseDeferredQueue[workout.id];
+  const next = Array.isArray(current)
+    ? current.filter((index, position, array) =>
+      Number.isInteger(index) &&
+      index >= 0 &&
+      index < workout.exercises.length &&
+      !checks[index] &&
+      array.indexOf(index) === position
+    )
+    : [];
+  workoutExerciseDeferredQueue[workout.id] = next;
+  return next;
+};
+
+const removeDeferredWorkoutExercise = (workout, index) => {
+  if (!workout) return;
+  const queue = ensureWorkoutDeferredQueue(workout);
+  const nextQueue = queue.filter((queueIndex) => queueIndex !== index);
+  workoutExerciseDeferredQueue[workout.id] = nextQueue;
+};
+
+const deferWorkoutExercise = (workout, index) => {
+  if (!workout) return [];
+  const checks = ensureWorkoutCheckState(workout);
+  if (checks[index]) return ensureWorkoutDeferredQueue(workout);
+  const queue = ensureWorkoutDeferredQueue(workout);
+  if (!queue.includes(index)) {
+    queue.push(index);
+  }
+  workoutExerciseDeferredQueue[workout.id] = queue;
+  return queue;
+};
+
+const getPendingWorkoutExerciseOrder = (workout, { excludeIndex = -1 } = {}) => {
+  if (!workout || !Array.isArray(workout.exercises) || !workout.exercises.length) return [];
+  const checks = ensureWorkoutCheckState(workout);
+  const deferredQueue = ensureWorkoutDeferredQueue(workout);
+  const deferredSet = new Set(deferredQueue);
+  const pendingIndices = workout.exercises
+    .map((_, index) => index)
+    .filter((index) => !checks[index] && index !== excludeIndex);
+  const nonDeferredPending = pendingIndices.filter((index) => !deferredSet.has(index));
+  const deferredPending = deferredQueue.filter((index) => pendingIndices.includes(index));
+  return [...nonDeferredPending, ...deferredPending];
+};
+
+const getNextPendingWorkoutExerciseIndex = (workout, { excludeIndex = -1 } = {}) => {
+  const orderedPendingIndices = getPendingWorkoutExerciseOrder(workout, { excludeIndex });
+  return orderedPendingIndices.length ? orderedPendingIndices[0] : -1;
+};
+
 const getWorkoutChecksDoneCount = (workout) => {
   const checks = ensureWorkoutCheckState(workout);
   return checks.filter(Boolean).length;
@@ -5650,8 +5712,7 @@ const renderPrepCountdown = () => {
 
 const getNextExerciseIndex = (workout) => {
   if (!workout || !workout.exercises.length) return 0;
-  const checks = ensureWorkoutCheckState(workout);
-  const pendingIndex = checks.findIndex((checked) => !checked);
+  const pendingIndex = getNextPendingWorkoutExerciseIndex(workout);
   return pendingIndex >= 0 ? pendingIndex : 0;
 };
 
@@ -5729,7 +5790,36 @@ const markRunExerciseAsDone = (index) => {
   const workout = studentData.workouts.find((w) => w.id === selectedWorkoutId) || studentData.workouts[0];
   if (!workout || !workout.exercises.length) return;
   const checks = ensureWorkoutCheckState(workout);
-  if (index >= 0 && index < checks.length) checks[index] = true;
+  if (index >= 0 && index < checks.length) {
+    checks[index] = true;
+    removeDeferredWorkoutExercise(workout, index);
+  }
+};
+
+const deferCurrentRunExerciseBecauseEquipmentIsBusy = () => {
+  const workout = studentData.workouts.find((w) => w.id === selectedWorkoutId) || studentData.workouts[0];
+  if (!workout || !workout.exercises.length) return false;
+
+  runExerciseIndex = Math.max(0, Math.min(workout.exercises.length - 1, runExerciseIndex));
+  const checks = ensureWorkoutCheckState(workout);
+  if (checks[runExerciseIndex]) return false;
+
+  deferWorkoutExercise(workout, runExerciseIndex);
+  const nextExerciseIndex = getNextPendingWorkoutExerciseIndex(workout, {
+    excludeIndex: runExerciseIndex
+  });
+
+  if (nextExerciseIndex < 0) {
+    removeDeferredWorkoutExercise(workout, runExerciseIndex);
+    if (runEquipmentBusyCheckbox) runEquipmentBusyCheckbox.checked = false;
+    showSiteTopNotice('Não existe outro exercício pendente para avançar agora.', false, { durationMs: 2200 });
+    return false;
+  }
+
+  if (runEquipmentBusyCheckbox) runEquipmentBusyCheckbox.checked = false;
+  showSiteTopNotice('Exercício adiado. Seguindo para o próximo da sequência.', true, { durationMs: 2200 });
+  openRunWorkoutView(nextExerciseIndex, { resetTime: true, seriesIndex: 0 });
+  return true;
 };
 
 const renderRunWorkoutView = () => {
@@ -5758,6 +5848,9 @@ const renderRunWorkoutView = () => {
     runCounter.textContent =
       `EX ${runExerciseIndex + 1}/${workout.exercises.length} • ` +
       `SÉRIE ${runExerciseSeriesIndex + 1}/${seriesTotal}`;
+  }
+  if (runEquipmentBusyCheckbox) {
+    runEquipmentBusyCheckbox.checked = false;
   }
   if (runPauseButton) {
     runPauseButton.innerHTML = runTimerPaused
@@ -5827,8 +5920,9 @@ const advanceRunAfterCurrentSeries = () => {
   }
 
   markRunExerciseAsDone(runExerciseIndex);
-  if (runExerciseIndex < workout.exercises.length - 1) {
-    openRestBetweenExercises(runExerciseIndex, runExerciseIndex + 1, { nextSeriesIndex: 0 });
+  const nextExerciseIndex = getNextPendingWorkoutExerciseIndex(workout);
+  if (nextExerciseIndex >= 0) {
+    openRestBetweenExercises(runExerciseIndex, nextExerciseIndex, { nextSeriesIndex: 0 });
     return;
   }
 
@@ -5939,6 +6033,9 @@ const renderActiveWorkout = () => {
       const index = Number(button.getAttribute('data-student-active-check'));
       if (!Number.isInteger(index) || index < 0 || index >= checks.length) return;
       checks[index] = !checks[index];
+      if (checks[index]) {
+        removeDeferredWorkoutExercise(workout, index);
+      }
       activeCheckPulseIndex = checks[index] ? index : -1;
       renderActiveWorkout();
     });
@@ -11558,6 +11655,10 @@ function buildTrainerTemplatePreviewWorkout(templateId) {
     name: String((template && template.name) || `Nomeclatura ${normalizedTemplateId}`).trim(),
     objective: 'Hipertrofia',
     description: String((template && template.description) || '').trim(),
+    coverImageUrl: getWorkoutCoverFromSource(template),
+    cover_image_url: getWorkoutCoverFromSource(template),
+    coverUrl: getWorkoutCoverFromSource(template),
+    cover_url: getWorkoutCoverFromSource(template),
     status: template && template.isActive === false ? 'INATIVO' : 'ATIVO',
     isActive: !(template && template.isActive === false),
   };
@@ -11615,7 +11716,10 @@ function renderTrainerWorkoutCoverBuilder() {
 
   const selectedWorkoutId = Number(trainerExerciseTargetWorkoutId) || 0;
   const selectedWorkout = selectedWorkoutId ? getTrainerWorkoutById(selectedWorkoutId) : null;
-  const savedCoverUrl = selectedWorkout ? resolveWorkoutCoverImageUrl(selectedWorkout) : '';
+  const selectedTemplate = getTrainerTemplateById(getSelectedTrainerExerciseTemplateId());
+  const savedCoverUrl = selectedWorkout
+    ? resolveWorkoutCoverImageUrl(selectedWorkout)
+    : resolveWorkoutCoverImageUrl(selectedTemplate);
   const previewUrl = trainerWorkoutCoverPreviewObjectUrl || savedCoverUrl;
   const hasPreview = Boolean(previewUrl);
 
@@ -11697,8 +11801,61 @@ async function persistTrainerWorkoutCoverForWorkoutIds(workoutIds, file) {
   return persistedCoverUrl;
 }
 
-async function handleTrainerWorkoutCoverSave({ workoutIds = null, successMessage = 'Capa do treino atualizada.' } = {}) {
+async function persistTrainerWorkoutCoverForTemplateId(templateId, file) {
+  const normalizedTemplateId = Number(templateId) || 0;
+  if (!normalizedTemplateId) {
+    throw new Error('Selecione uma nomeclatura de treino para salvar a capa.');
+  }
+
+  if (!file) {
+    throw new Error('Selecione uma imagem para a capa do treino.');
+  }
+
+  const fileType = String(file.type || '').trim().toLowerCase();
+  if (!fileType.startsWith('image/')) {
+    throw new Error('Selecione apenas arquivo de imagem para a capa do treino.');
+  }
+
+  const uploadedMedia = await uploadStudentMediaFile(file);
+  const persistedCoverUrl = String(
+    (uploadedMedia && (uploadedMedia.url || uploadedMedia.absoluteUrl)) || ''
+  ).trim();
+
+  if (!persistedCoverUrl) {
+    throw new Error('Upload concluído sem URL válida da capa do treino.');
+  }
+
+  await requestWorkoutTemplateUpdate({
+    templateId: normalizedTemplateId,
+    body: {
+      coverImageUrl: persistedCoverUrl
+    }
+  });
+
+  const linkedWorkoutIds = (Array.isArray(trainerManagementState.workouts) ? trainerManagementState.workouts : [])
+    .filter((workout) => Number(workout && workout.originTemplateId) === normalizedTemplateId)
+    .map((workout) => Number(workout && workout.id) || 0)
+    .filter((workoutId) => workoutId > 0);
+
+  for (const workoutId of linkedWorkoutIds) {
+    await requestInstructorWorkoutUpdate({
+      workoutId,
+      body: {
+        coverImageUrl: persistedCoverUrl
+      }
+    });
+  }
+
+  return persistedCoverUrl;
+}
+
+async function handleTrainerWorkoutCoverSave({
+  workoutIds = null,
+  templateId = null,
+  successMessage = 'Capa do treino atualizada.'
+} = {}) {
   const fallbackWorkoutId = Number(trainerExerciseTargetWorkoutId) || 0;
+  const fallbackTemplateId = Number(getSelectedTrainerExerciseTemplateId()) || 0;
   const targetWorkoutIds = Array.isArray(workoutIds)
     ? workoutIds
     : workoutIds
@@ -11706,9 +11863,10 @@ async function handleTrainerWorkoutCoverSave({ workoutIds = null, successMessage
       : fallbackWorkoutId
         ? [fallbackWorkoutId]
         : [];
+  const targetTemplateId = Number(templateId) || (!targetWorkoutIds.length ? fallbackTemplateId : 0);
 
-  if (!targetWorkoutIds.length) {
-    setTrainerWorkoutCoverFeedback('Selecione um treino para salvar a capa.', false);
+  if (!targetWorkoutIds.length && !targetTemplateId) {
+    setTrainerWorkoutCoverFeedback('Selecione um treino ou nomeclatura para salvar a capa.', false);
     return false;
   }
 
@@ -11722,7 +11880,11 @@ async function handleTrainerWorkoutCoverSave({ workoutIds = null, successMessage
   setTrainerWorkoutCoverFeedback('Enviando capa do treino...', false);
 
   try {
-    await persistTrainerWorkoutCoverForWorkoutIds(targetWorkoutIds, trainerWorkoutPendingCoverFile);
+    if (targetWorkoutIds.length) {
+      await persistTrainerWorkoutCoverForWorkoutIds(targetWorkoutIds, trainerWorkoutPendingCoverFile);
+    } else {
+      await persistTrainerWorkoutCoverForTemplateId(targetTemplateId, trainerWorkoutPendingCoverFile);
+    }
     trainerWorkoutPendingCoverFile = null;
     if (trainerWorkoutCoverFileInput) trainerWorkoutCoverFileInput.value = '';
     updateTrainerWorkoutCoverPreview(null);
@@ -11802,6 +11964,9 @@ function getLinkedLibraryExerciseId(workoutExercise) {
 function getTrainerLibraryPickerExercises() {
   const selectedGroups = getSelectedTrainerExerciseGroups();
   const selectedGroupsSet = new Set(selectedGroups);
+  const selectedGroupOrder = new Map(
+    selectedGroups.map((groupKey, index) => [normalizeLibraryGroupKey(groupKey, ''), index])
+  );
   const normalizedSearch = normalizeText(trainerExerciseLibraryPickerSearchTerm || '');
   const libraryExercises = Array.isArray(trainerManagementState.library)
     ? trainerManagementState.library
@@ -11822,9 +11987,32 @@ function getTrainerLibraryPickerExercises() {
     })
     .slice()
     .sort((first, second) => {
+      const firstGroup = normalizeLibraryGroupKey(first && first.group, '');
+      const secondGroup = normalizeLibraryGroupKey(second && second.group, '');
+      const firstGroupOrder = selectedGroupOrder.has(firstGroup)
+        ? selectedGroupOrder.get(firstGroup)
+        : Number.MAX_SAFE_INTEGER;
+      const secondGroupOrder = selectedGroupOrder.has(secondGroup)
+        ? selectedGroupOrder.get(secondGroup)
+        : Number.MAX_SAFE_INTEGER;
+
+      if (firstGroupOrder !== secondGroupOrder) {
+        return firstGroupOrder - secondGroupOrder;
+      }
+
       const firstName = String(first && first.name || '').trim();
       const secondName = String(second && second.name || '').trim();
-      return firstName.localeCompare(secondName, 'pt-BR');
+      const nameCompare = firstName.localeCompare(secondName, 'pt-BR', {
+        numeric: true,
+        sensitivity: 'base'
+      });
+      if (nameCompare !== 0) return nameCompare;
+
+      return String(LIBRARY_GROUP_LABELS[firstGroup] || firstGroup || '').localeCompare(
+        String(LIBRARY_GROUP_LABELS[secondGroup] || secondGroup || ''),
+        'pt-BR',
+        { numeric: true, sensitivity: 'base' }
+      );
     });
 }
 
@@ -13179,6 +13367,10 @@ const mergeLegacyDuplicatedStudentWorkouts = (workouts = []) => {
       ...primary,
       name: baseName || String((primary && primary.name) || (secondary && secondary.name) || 'Treino').trim(),
       weekDays: mergedWeekdays,
+      coverImageUrl: getWorkoutCoverFromSource(primary) || getWorkoutCoverFromSource(secondary),
+      cover_image_url: getWorkoutCoverFromSource(primary) || getWorkoutCoverFromSource(secondary),
+      coverUrl: getWorkoutCoverFromSource(primary) || getWorkoutCoverFromSource(secondary),
+      cover_url: getWorkoutCoverFromSource(primary) || getWorkoutCoverFromSource(secondary),
       day: mergedWeekdays.length
         ? mergedWeekdays.join(', ')
         : String((primary && primary.day) || (secondary && secondary.day) || 'Plano ativo').trim(),
@@ -13242,7 +13434,8 @@ const syncWorkoutsFromBackend = async ({ silent = false } = {}) => {
         return {
           id: workoutId || normalizedId,
           code: workoutCode,
-          name: String((workout && workout.title) || workoutCode).trim(),
+          name: String((workout && (workout.name || workout.title)) || workoutCode).trim(),
+          title: String((workout && (workout.title || workout.name)) || workoutCode).trim(),
           day: dayLabel,
           duration: `${durationMinutes} min`,
           objective: String((workout && (workout.objective || workout.objetivo)) || '').trim(),
@@ -13252,6 +13445,9 @@ const syncWorkoutsFromBackend = async ({ silent = false } = {}) => {
           studentId: Number(workout && workout.studentId) || 0,
           instructorId: Number(workout && workout.instructorId) || 0,
           coverImageUrl: getWorkoutCoverFromSource(workout),
+          cover_image_url: getWorkoutCoverFromSource(workout),
+          coverUrl: getWorkoutCoverFromSource(workout),
+          cover_url: getWorkoutCoverFromSource(workout),
           createdAt: workout && workout.createdAt ? workout.createdAt : null,
           updatedAt: workout && workout.updatedAt ? workout.updatedAt : null,
           done: previousDoneById.get(normalizedId) || completedWorkoutIds.has(normalizedId),
@@ -13276,8 +13472,10 @@ const syncWorkoutsFromBackend = async ({ silent = false } = {}) => {
         ? normalizedForUi[0].id
         : null;
     Object.keys(workoutExerciseChecks).forEach((key) => delete workoutExerciseChecks[key]);
+    Object.keys(workoutExerciseDeferredQueue).forEach((key) => delete workoutExerciseDeferredQueue[key]);
     normalizedForUi.forEach((workout) => {
       workoutExerciseChecks[workout.id] = workout.exercises.map(() => Boolean(workout.done));
+      workoutExerciseDeferredQueue[workout.id] = [];
     });
   } catch (error) {
     if (!silent) {
@@ -15656,13 +15854,21 @@ const handleTrainerTemplateWorkoutSubmit = async (event) => {
       }
     });
 
+    const createdWorkoutId = resolveCreatedWorkoutIdFromResponse(response);
+    let coverAutoApplied = false;
+    if (trainerWorkoutPendingCoverFile && createdWorkoutId > 0) {
+      coverAutoApplied = await handleTrainerWorkoutCoverSave({
+        workoutIds: [createdWorkoutId],
+        successMessage: 'Capa do treino salva com sucesso.'
+      });
+    }
+
     if (trainerTemplateWorkoutForm) trainerTemplateWorkoutForm.reset();
     await loadTrainerManagementData(true);
     await loadTrainerProgressData(true);
     await syncWorkoutsFromBackend({ silent: true });
     if (isGeneralAdminUser()) await fetchAdminOverview(true);
 
-    const createdWorkoutId = resolveCreatedWorkoutIdFromResponse(response);
     if (createdWorkoutId) {
       unhideTrainerWorkoutById(createdWorkoutId);
       trainerExerciseTargetWorkoutId = createdWorkoutId;
@@ -15671,7 +15877,9 @@ const handleTrainerTemplateWorkoutSubmit = async (event) => {
     syncTrainerExerciseComposerUi({ scroll: true, focus: true });
 
     setTrainerManagementFeedback(
-      (response && response.message) || 'Treino criado por modelo com sucesso.',
+      coverAutoApplied
+        ? `${(response && response.message) || 'Treino criado por modelo com sucesso.'} A capa do treino também foi salva.`
+        : (response && response.message) || 'Treino criado por modelo com sucesso.',
       true
     );
   } catch (error) {
@@ -15716,11 +15924,19 @@ const handleTrainerTemplateFormSubmit = async (event) => {
       },
     });
 
+    const createdTemplateId = Number(response && response.template && response.template.id) || 0;
+    let coverAutoApplied = false;
+    if (trainerWorkoutPendingCoverFile && createdTemplateId > 0) {
+      coverAutoApplied = await handleTrainerWorkoutCoverSave({
+        templateId: createdTemplateId,
+        successMessage: 'Capa da nomeclatura salva com sucesso.'
+      });
+    }
+
     if (trainerTemplateForm) trainerTemplateForm.reset();
     if (trainerTemplateFormActiveSelect) trainerTemplateFormActiveSelect.value = 'true';
 
     await loadTrainerManagementData(true);
-    const createdTemplateId = Number(response && response.template && response.template.id) || 0;
     if (createdTemplateId) {
       trainerTemplateExerciseSelectedId = String(createdTemplateId);
       trainerExerciseComposerSelectedId = String(createdTemplateId);
@@ -15737,7 +15953,9 @@ const handleTrainerTemplateFormSubmit = async (event) => {
       setTrainerExerciseFeedback('Nomeclatura de treino criada. Agora adicione os exercícios.', true);
     }
     setTrainerManagementFeedback(
-      (response && response.message) || 'Template criado com sucesso.',
+      coverAutoApplied
+        ? `${(response && response.message) || 'Template criado com sucesso.'} A capa da nomeclatura também foi salva.`
+        : (response && response.message) || 'Template criado com sucesso.',
       true
     );
   } catch (error) {
@@ -16398,12 +16616,22 @@ const handleTrainerExerciseSubmit = async (event) => {
 
     trainerTemplateExerciseSelectedId = String(templateId);
     trainerExerciseComposerSelectedId = String(templateId);
+    let coverAutoApplied = false;
+    if (trainerWorkoutPendingCoverFile) {
+      coverAutoApplied = await handleTrainerWorkoutCoverSave({
+        templateId,
+        successMessage: 'Capa da nomeclatura salva com sucesso.'
+      });
+    }
     await loadTrainerManagementData(true);
     isTrainerExerciseComposerOpen = true;
     syncTrainerExerciseComposerUi();
 
-    setTrainerManagementFeedback(successMessage, !isPartialSave);
-    setTrainerExerciseFeedback(successMessage, !isPartialSave);
+    const finalSuccessMessage = coverAutoApplied
+      ? `${successMessage} A capa da nomeclatura também foi salva.`
+      : successMessage;
+    setTrainerManagementFeedback(finalSuccessMessage, !isPartialSave);
+    setTrainerExerciseFeedback(finalSuccessMessage, !isPartialSave);
     renderTrainerExerciseLibraryPicker();
   } catch (error) {
     const errorMessage = error && error.message ? error.message : 'Falha ao adicionar exercício à nomeclatura de treino.';
@@ -17654,6 +17882,7 @@ const handleCompleteWorkout = async () => {
   try {
     await persistCompletedWorkoutHistory(workout, new Date());
     workoutExerciseChecks[workout.id] = workout.exercises.map(() => true);
+    workoutExerciseDeferredQueue[workout.id] = [];
     workout.done = true;
     clearButtonLoading(workoutCompleteButton, 'Treino concluído');
 
@@ -17690,6 +17919,7 @@ const handleFinishActiveWorkout = async () => {
   try {
     await persistCompletedWorkoutHistory(workout, new Date());
     workoutExerciseChecks[workout.id] = workout.exercises.map(() => true);
+    workoutExerciseDeferredQueue[workout.id] = [];
     workout.done = true;
     clearButtonLoading(activeWorkoutFinishButton, 'Treino concluído');
 
@@ -19384,6 +19614,12 @@ const initStudentArea = () => {
   if (runNextButton) {
     runNextButton.addEventListener('click', () => {
       advanceRunAfterCurrentSeries();
+    });
+  }
+  if (runEquipmentBusyCheckbox) {
+    runEquipmentBusyCheckbox.addEventListener('change', () => {
+      if (!runEquipmentBusyCheckbox.checked) return;
+      deferCurrentRunExerciseBecauseEquipmentIsBusy();
     });
   }
   if (restAddTimeButton) {
