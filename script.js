@@ -942,6 +942,16 @@ const trainerWorkoutModalSubmitButton = document.querySelector('[data-trainer-wo
 const trainerWorkoutModalCancelButton = trainerWorkoutModal
   ? trainerWorkoutModal.querySelector('.admin-exercise-edit-actions .admin-exercise-edit-cancel[data-trainer-workout-modal-close]')
   : null;
+let trainerWorkoutModalCoverSection = null;
+let trainerWorkoutModalCoverStage = null;
+let trainerWorkoutModalCoverStageImage = null;
+let trainerWorkoutModalCoverEyebrow = null;
+let trainerWorkoutModalCoverTitle = null;
+let trainerWorkoutModalCoverMeta = null;
+let trainerWorkoutModalCoverFileInput = null;
+let trainerWorkoutModalCoverUploadPreview = null;
+let trainerWorkoutModalCoverFilename = null;
+let trainerWorkoutModalCoverFeedback = null;
 const trainerWorkoutExerciseModal = document.querySelector('[data-trainer-workout-exercise-modal]');
 const trainerWorkoutExerciseModalCloseButtons = document.querySelectorAll('[data-trainer-workout-exercise-modal-close]');
 const trainerWorkoutExerciseModalForm = document.querySelector('[data-trainer-workout-exercise-modal-form]');
@@ -1230,6 +1240,8 @@ let trainerWorkoutModalReadOnly = false;
 let trainerWorkoutCoverPreviewObjectUrl = '';
 let trainerWorkoutPendingCoverFile = null;
 let trainerWorkoutCoverSaveInFlight = false;
+let trainerWorkoutModalCoverPreviewObjectUrl = '';
+let trainerWorkoutModalPendingCoverFile = null;
 let trainerWorkoutExerciseEditingState = null;
 let trainerWorkoutExerciseEditTriggerButton = null;
 let trainerExerciseVideoModalTriggerButton = null;
@@ -10110,6 +10122,71 @@ const setTrainerWorkoutModalFeedback = (message, isSuccess = false) => {
   setInlineFeedback(trainerWorkoutModalFeedback, message, isSuccess);
 };
 
+const getTrainerWorkoutModalRecord = () => {
+  const templateId = Number(trainerWorkoutTemplateEditingId) || 0;
+  if (templateId) {
+    return getTrainerTemplateById(templateId) || buildTrainerTemplatePreviewWorkout(templateId);
+  }
+
+  const workoutId = Number(trainerWorkoutEditingId) || 0;
+  return workoutId ? getTrainerWorkoutById(workoutId) : null;
+};
+
+const renderTrainerWorkoutModalCoverSection = (workout = null) => {
+  if (!ensureTrainerWorkoutModalCoverSection()) return;
+
+  const isTemplateMode = Number(trainerWorkoutTemplateEditingId) > 0;
+  const currentRecord = workout || getTrainerWorkoutModalRecord();
+  const previewUrl = trainerWorkoutModalCoverPreviewObjectUrl || resolveWorkoutCoverImageUrl(currentRecord);
+  const hasPreview = Boolean(previewUrl);
+
+  if (trainerWorkoutModalCoverEyebrow) {
+    trainerWorkoutModalCoverEyebrow.textContent = isTemplateMode
+      ? (trainerWorkoutModalPendingCoverFile ? 'Nova capa da nomeclatura' : 'Capa da nomeclatura')
+      : (trainerWorkoutModalPendingCoverFile ? 'Nova capa do treino' : 'Capa do treino');
+  }
+
+  if (trainerWorkoutModalCoverTitle) {
+    trainerWorkoutModalCoverTitle.textContent = String(
+      (currentRecord && (currentRecord.title || currentRecord.name)) ||
+      (isTemplateMode ? 'Nomeclatura' : 'Treino')
+    ).trim() || (isTemplateMode ? 'Nomeclatura' : 'Treino');
+  }
+
+  if (trainerWorkoutModalCoverMeta) {
+    if (trainerWorkoutModalReadOnly) {
+      trainerWorkoutModalCoverMeta.textContent = hasPreview
+        ? 'Visualização da capa vinculada a esse registro.'
+        : 'Nenhuma capa vinculada a esse registro.';
+    } else if (trainerWorkoutModalPendingCoverFile) {
+      trainerWorkoutModalCoverMeta.textContent = 'Clique em salvar para atualizar a capa.';
+    } else if (hasPreview) {
+      trainerWorkoutModalCoverMeta.textContent = 'Selecione outra imagem se quiser trocar a foto da capa.';
+    } else {
+      trainerWorkoutModalCoverMeta.textContent = 'Adicione uma foto de capa para esse registro.';
+    }
+  }
+
+  if (trainerWorkoutModalCoverStageImage) {
+    if (hasPreview) {
+      trainerWorkoutModalCoverStageImage.src = previewUrl;
+      trainerWorkoutModalCoverStageImage.hidden = false;
+    } else {
+      trainerWorkoutModalCoverStageImage.hidden = true;
+      trainerWorkoutModalCoverStageImage.removeAttribute('src');
+    }
+  }
+
+  if (trainerWorkoutModalCoverStage) {
+    trainerWorkoutModalCoverStage.classList.toggle('has-image', hasPreview);
+    trainerWorkoutModalCoverStage.classList.toggle('has-pending-cover', Boolean(trainerWorkoutModalCoverPreviewObjectUrl));
+  }
+
+  if (trainerWorkoutModalCoverFileInput) {
+    trainerWorkoutModalCoverFileInput.disabled = trainerWorkoutModalReadOnly;
+  }
+};
+
 const hydrateTrainerWorkoutExercises = async (workoutId, { silent = true } = {}) => {
   const normalizedWorkoutId = Number(workoutId) || 0;
   if (!normalizedWorkoutId) return [];
@@ -10183,6 +10260,12 @@ const setTrainerWorkoutModalMode = ({ readOnly = false } = {}) => {
       control.readOnly = trainerWorkoutModalReadOnly;
     }
   });
+
+  if (ensureTrainerWorkoutModalCoverSection() && trainerWorkoutModalCoverFileInput) {
+    trainerWorkoutModalCoverFileInput.disabled = trainerWorkoutModalReadOnly;
+  }
+
+  renderTrainerWorkoutModalCoverSection();
 };
 
 const setTrainerWorkoutExerciseModalFeedback = (message, isSuccess = false) => {
@@ -10850,12 +10933,20 @@ const closeTrainerWorkoutModal = ({ keepFocus = true, force = false } = {}) => {
   trainerWorkoutEditingId = 0;
   trainerWorkoutTemplateEditingId = 0;
   trainerWorkoutEditTriggerButton = null;
+  trainerWorkoutModalPendingCoverFile = null;
+  clearTrainerWorkoutModalCoverPreviewUrl();
   if (trainerWorkoutModalMuscleGroupSelect) trainerWorkoutModalMuscleGroupSelect.value = '';
   if (trainerWorkoutModalLibraryWrap) trainerWorkoutModalLibraryWrap.hidden = true;
   if (trainerWorkoutModalLibraryList) trainerWorkoutModalLibraryList.innerHTML = '';
   if (trainerWorkoutModalLibraryEmpty) {
     trainerWorkoutModalLibraryEmpty.hidden = false;
     trainerWorkoutModalLibraryEmpty.textContent = 'Nenhum exercício encontrado para este grupo.';
+  }
+  if (ensureTrainerWorkoutModalCoverSection()) {
+    if (trainerWorkoutModalCoverFileInput) trainerWorkoutModalCoverFileInput.value = '';
+    updateTrainerWorkoutModalCoverPreview(null);
+    setTrainerWorkoutModalCoverFeedback('', false);
+    renderTrainerWorkoutModalCoverSection();
   }
   setTrainerWorkoutModalMode({ readOnly: false });
   setTrainerWorkoutModalFeedback('', false);
@@ -10883,6 +10974,12 @@ const openTrainerWorkoutModal = (
   trainerWorkoutEditingId = Number(workout.id) || 0;
   trainerWorkoutTemplateEditingId = Number(templateId) || 0;
   trainerWorkoutEditTriggerButton = triggerButton || null;
+  trainerWorkoutModalPendingCoverFile = null;
+  clearTrainerWorkoutModalCoverPreviewUrl();
+  ensureTrainerWorkoutModalCoverSection();
+  if (trainerWorkoutModalCoverFileInput) trainerWorkoutModalCoverFileInput.value = '';
+  updateTrainerWorkoutModalCoverPreview(null);
+  setTrainerWorkoutModalCoverFeedback('', false);
   setTrainerWorkoutModalMode({ readOnly: isReadOnly });
   if (trainerWorkoutModalIdentification) {
     trainerWorkoutModalIdentification.textContent = String(
@@ -10903,6 +11000,7 @@ const openTrainerWorkoutModal = (
     trainerWorkoutModalStatusSelect.value = isWorkoutInactive(workout) ? 'INATIVO' : 'ATIVO';
   }
   syncTrainerWorkoutModalGroupOptions(workout);
+  renderTrainerWorkoutModalCoverSection(workout);
   renderTrainerWorkoutModalLibraryGuide();
 
   const loadedExercises = getTrainerWorkoutExercisesWithTemplateFallback(workout);
@@ -11289,6 +11387,132 @@ function updateTrainerWorkoutCoverPreview(file) {
   trainerWorkoutCoverUploadPreview.src = trainerWorkoutCoverPreviewObjectUrl;
   trainerWorkoutCoverUploadPreview.hidden = false;
   if (imageZone) imageZone.classList.add('has-preview');
+}
+
+function ensureTrainerWorkoutModalCoverSection() {
+  if (!trainerWorkoutModalForm) return false;
+
+  if (!trainerWorkoutModalCoverSection) {
+    trainerWorkoutModalCoverSection = trainerWorkoutModalForm.querySelector('[data-trainer-workout-modal-cover]');
+  }
+
+  if (!trainerWorkoutModalCoverSection) {
+    const section = document.createElement('section');
+    section.className = 'trainer-workout-cover-builder trainer-workout-modal-cover';
+    section.setAttribute('data-trainer-workout-modal-cover', '');
+    section.innerHTML = `
+      <div class="trainer-workout-cover-stage" data-trainer-workout-modal-cover-stage>
+        <img
+          class="trainer-workout-cover-stage-image"
+          data-trainer-workout-modal-cover-image
+          alt="Prévia da capa do treino"
+          hidden
+        />
+        <div class="trainer-workout-cover-stage-overlay"></div>
+        <div class="trainer-workout-cover-stage-copy">
+          <small data-trainer-workout-modal-cover-eyebrow>Capa da nomeclatura</small>
+          <strong data-trainer-workout-modal-cover-title>Treino</strong>
+          <span data-trainer-workout-modal-cover-meta>Selecione uma imagem para atualizar a capa.</span>
+        </div>
+      </div>
+      <div class="trainer-workout-cover-toolbar">
+        <label class="trainer-workout-cover-drop">
+          <input type="file" accept="image/*" data-trainer-workout-modal-cover-file hidden />
+          <span class="trainer-library-media-zone trainer-workout-cover-upload-zone">
+            <img
+              alt="Prévia da nova capa selecionada"
+              data-trainer-workout-modal-cover-upload-preview
+              hidden
+            />
+            <span class="trainer-library-media-copy">
+              <span class="trainer-library-media-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 16V5m0 0-4 4m4-4 4 4M4 15v4h16v-4"/>
+                </svg>
+              </span>
+              <strong>Toque para trocar a foto da capa</strong>
+              <small data-trainer-workout-modal-cover-filename>Nenhuma imagem selecionada</small>
+            </span>
+          </span>
+        </label>
+      </div>
+      <p class="student-form-error trainer-workout-cover-feedback" data-trainer-workout-modal-cover-feedback aria-live="polite"></p>
+    `;
+
+    const referenceField = trainerWorkoutModalForm.querySelector('[data-trainer-workout-modal-muscle-group]')?.closest('.admin-exercise-edit-field');
+    if (referenceField) {
+      referenceField.insertAdjacentElement('beforebegin', section);
+    } else {
+      trainerWorkoutModalForm.appendChild(section);
+    }
+
+    trainerWorkoutModalCoverSection = section;
+  }
+
+  trainerWorkoutModalCoverStage = trainerWorkoutModalCoverSection.querySelector('[data-trainer-workout-modal-cover-stage]');
+  trainerWorkoutModalCoverStageImage = trainerWorkoutModalCoverSection.querySelector('[data-trainer-workout-modal-cover-image]');
+  trainerWorkoutModalCoverEyebrow = trainerWorkoutModalCoverSection.querySelector('[data-trainer-workout-modal-cover-eyebrow]');
+  trainerWorkoutModalCoverTitle = trainerWorkoutModalCoverSection.querySelector('[data-trainer-workout-modal-cover-title]');
+  trainerWorkoutModalCoverMeta = trainerWorkoutModalCoverSection.querySelector('[data-trainer-workout-modal-cover-meta]');
+  trainerWorkoutModalCoverFileInput = trainerWorkoutModalCoverSection.querySelector('[data-trainer-workout-modal-cover-file]');
+  trainerWorkoutModalCoverUploadPreview = trainerWorkoutModalCoverSection.querySelector('[data-trainer-workout-modal-cover-upload-preview]');
+  trainerWorkoutModalCoverFilename = trainerWorkoutModalCoverSection.querySelector('[data-trainer-workout-modal-cover-filename]');
+  trainerWorkoutModalCoverFeedback = trainerWorkoutModalCoverSection.querySelector('[data-trainer-workout-modal-cover-feedback]');
+
+  return Boolean(
+    trainerWorkoutModalCoverSection &&
+    trainerWorkoutModalCoverStage &&
+    trainerWorkoutModalCoverStageImage &&
+    trainerWorkoutModalCoverEyebrow &&
+    trainerWorkoutModalCoverTitle &&
+    trainerWorkoutModalCoverMeta &&
+    trainerWorkoutModalCoverFileInput &&
+    trainerWorkoutModalCoverUploadPreview &&
+    trainerWorkoutModalCoverFilename &&
+    trainerWorkoutModalCoverFeedback
+  );
+}
+
+function clearTrainerWorkoutModalCoverPreviewUrl() {
+  if (trainerWorkoutModalCoverPreviewObjectUrl) {
+    URL.revokeObjectURL(trainerWorkoutModalCoverPreviewObjectUrl);
+    trainerWorkoutModalCoverPreviewObjectUrl = '';
+  }
+}
+
+function updateTrainerWorkoutModalCoverPreview(file) {
+  if (!ensureTrainerWorkoutModalCoverSection()) return;
+
+  const imageZone = trainerWorkoutModalCoverUploadPreview
+    ? trainerWorkoutModalCoverUploadPreview.closest('.trainer-library-media-zone')
+    : null;
+
+  clearTrainerWorkoutModalCoverPreviewUrl();
+
+  if (trainerWorkoutModalCoverFilename) {
+    trainerWorkoutModalCoverFilename.textContent = file
+      ? `Imagem: ${file.name}`
+      : 'Nenhuma imagem selecionada';
+  }
+
+  if (!trainerWorkoutModalCoverUploadPreview) return;
+
+  if (!file || !String(file.type || '').toLowerCase().startsWith('image/')) {
+    trainerWorkoutModalCoverUploadPreview.hidden = true;
+    trainerWorkoutModalCoverUploadPreview.removeAttribute('src');
+    if (imageZone) imageZone.classList.remove('has-preview');
+    return;
+  }
+
+  trainerWorkoutModalCoverPreviewObjectUrl = URL.createObjectURL(file);
+  trainerWorkoutModalCoverUploadPreview.src = trainerWorkoutModalCoverPreviewObjectUrl;
+  trainerWorkoutModalCoverUploadPreview.hidden = false;
+  if (imageZone) imageZone.classList.add('has-preview');
+}
+
+function setTrainerWorkoutModalCoverFeedback(message, isSuccess = false) {
+  if (!ensureTrainerWorkoutModalCoverSection()) return;
+  setInlineFeedback(trainerWorkoutModalCoverFeedback, message, isSuccess);
 }
 
 const openLibraryManagerPanel = ({ autoOpenForm = false } = {}) => {
@@ -12028,6 +12252,44 @@ function renderTrainerWorkoutCoverBuilder() {
 }
 
 async function persistTrainerWorkoutCoverForWorkoutIds(workoutIds, file) {
+  const persistedCoverUrl = await uploadTrainerWorkoutCoverFile(file);
+  await applyTrainerWorkoutCoverUrlToWorkoutIds(workoutIds, persistedCoverUrl);
+  return persistedCoverUrl;
+}
+
+const getTrainerWorkoutIdsByTemplateId = (templateId) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  if (!normalizedTemplateId) return [];
+
+  return (Array.isArray(trainerManagementState.workouts) ? trainerManagementState.workouts : [])
+    .filter((workout) => Number(workout && workout.originTemplateId) === normalizedTemplateId)
+    .map((workout) => Number(workout && workout.id) || 0)
+    .filter((workoutId) => workoutId > 0);
+};
+
+async function uploadTrainerWorkoutCoverFile(file) {
+  if (!file) {
+    throw new Error('Selecione uma imagem para a capa do treino.');
+  }
+
+  const fileType = String(file.type || '').trim().toLowerCase();
+  if (!fileType.startsWith('image/')) {
+    throw new Error('Selecione apenas arquivo de imagem para a capa do treino.');
+  }
+
+  const uploadedMedia = await uploadStudentMediaFile(file);
+  const persistedCoverUrl = String(
+    (uploadedMedia && (uploadedMedia.url || uploadedMedia.absoluteUrl)) || ''
+  ).trim();
+
+  if (!persistedCoverUrl) {
+    throw new Error('Upload concluído sem URL válida da capa do treino.');
+  }
+
+  return persistedCoverUrl;
+}
+
+async function applyTrainerWorkoutCoverUrlToWorkoutIds(workoutIds, persistedCoverUrl) {
   const safeWorkoutIds = Array.from(
     new Set(
       (Array.isArray(workoutIds) ? workoutIds : [workoutIds])
@@ -12040,21 +12302,8 @@ async function persistTrainerWorkoutCoverForWorkoutIds(workoutIds, file) {
     throw new Error('Selecione um treino para salvar a capa.');
   }
 
-  if (!file) {
-    throw new Error('Selecione uma imagem para a capa do treino.');
-  }
-
-  const fileType = String(file.type || '').trim().toLowerCase();
-  if (!fileType.startsWith('image/')) {
-    throw new Error('Selecione apenas arquivo de imagem para a capa do treino.');
-  }
-
-  const uploadedMedia = await uploadStudentMediaFile(file);
-  const persistedCoverUrl = String(
-    (uploadedMedia && (uploadedMedia.url || uploadedMedia.absoluteUrl)) || ''
-  ).trim();
-
-  if (!persistedCoverUrl) {
+  const normalizedCoverUrl = String(persistedCoverUrl || '').trim();
+  if (!normalizedCoverUrl) {
     throw new Error('Upload concluído sem URL válida da capa do treino.');
   }
 
@@ -12062,60 +12311,44 @@ async function persistTrainerWorkoutCoverForWorkoutIds(workoutIds, file) {
     await requestInstructorWorkoutUpdate({
       workoutId,
       body: {
-        coverImageUrl: persistedCoverUrl
+        coverImageUrl: normalizedCoverUrl
       }
     });
   }
 
-  return persistedCoverUrl;
+  return normalizedCoverUrl;
 }
 
 async function persistTrainerWorkoutCoverForTemplateId(templateId, file) {
+  const persistedCoverUrl = await uploadTrainerWorkoutCoverFile(file);
+  await applyTrainerWorkoutCoverUrlToTemplateId(templateId, persistedCoverUrl);
+  return persistedCoverUrl;
+}
+
+async function applyTrainerWorkoutCoverUrlToTemplateId(templateId, persistedCoverUrl) {
   const normalizedTemplateId = Number(templateId) || 0;
   if (!normalizedTemplateId) {
     throw new Error('Selecione uma nomeclatura de treino para salvar a capa.');
   }
 
-  if (!file) {
-    throw new Error('Selecione uma imagem para a capa do treino.');
-  }
-
-  const fileType = String(file.type || '').trim().toLowerCase();
-  if (!fileType.startsWith('image/')) {
-    throw new Error('Selecione apenas arquivo de imagem para a capa do treino.');
-  }
-
-  const uploadedMedia = await uploadStudentMediaFile(file);
-  const persistedCoverUrl = String(
-    (uploadedMedia && (uploadedMedia.url || uploadedMedia.absoluteUrl)) || ''
-  ).trim();
-
-  if (!persistedCoverUrl) {
+  const normalizedCoverUrl = String(persistedCoverUrl || '').trim();
+  if (!normalizedCoverUrl) {
     throw new Error('Upload concluído sem URL válida da capa do treino.');
   }
 
   await requestWorkoutTemplateUpdate({
     templateId: normalizedTemplateId,
     body: {
-      coverImageUrl: persistedCoverUrl
+      coverImageUrl: normalizedCoverUrl
     }
   });
 
-  const linkedWorkoutIds = (Array.isArray(trainerManagementState.workouts) ? trainerManagementState.workouts : [])
-    .filter((workout) => Number(workout && workout.originTemplateId) === normalizedTemplateId)
-    .map((workout) => Number(workout && workout.id) || 0)
-    .filter((workoutId) => workoutId > 0);
-
-  for (const workoutId of linkedWorkoutIds) {
-    await requestInstructorWorkoutUpdate({
-      workoutId,
-      body: {
-        coverImageUrl: persistedCoverUrl
-      }
-    });
+  const linkedWorkoutIds = getTrainerWorkoutIdsByTemplateId(normalizedTemplateId);
+  if (linkedWorkoutIds.length) {
+    await applyTrainerWorkoutCoverUrlToWorkoutIds(linkedWorkoutIds, normalizedCoverUrl);
   }
 
-  return persistedCoverUrl;
+  return normalizedCoverUrl;
 }
 
 async function handleTrainerWorkoutCoverSave({
@@ -16990,14 +17223,25 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
     isTemplateMode ? 'Salvando alterações da nomeclatura...' : 'Salvando alterações do treino...',
     false
   );
+  setTrainerWorkoutModalCoverFeedback('', false);
 
   try {
+    if (trainerWorkoutModalPendingCoverFile) {
+      setTrainerWorkoutModalCoverFeedback(
+        isTemplateMode ? 'Enviando nova capa da nomeclatura...' : 'Enviando nova capa do treino...',
+        false
+      );
+    }
+    const uploadedCoverUrl = trainerWorkoutModalPendingCoverFile
+      ? await uploadTrainerWorkoutCoverFile(trainerWorkoutModalPendingCoverFile)
+      : '';
     const response = isTemplateMode
       ? await requestWorkoutTemplateUpdate({
         templateId,
         body: {
           name: title,
-          isActive: status === 'ATIVO'
+          isActive: status === 'ATIVO',
+          ...(uploadedCoverUrl ? { coverImageUrl: uploadedCoverUrl } : {})
         }
       })
       : await requestInstructorWorkoutUpdate({
@@ -17005,9 +17249,17 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
         body: {
           title,
           objective,
-          status
+          status,
+          ...(uploadedCoverUrl ? { coverImageUrl: uploadedCoverUrl } : {})
         }
       });
+
+    if (isTemplateMode && uploadedCoverUrl) {
+      const linkedWorkoutIds = getTrainerWorkoutIdsByTemplateId(templateId);
+      if (linkedWorkoutIds.length) {
+        await applyTrainerWorkoutCoverUrlToWorkoutIds(linkedWorkoutIds, uploadedCoverUrl);
+      }
+    }
 
     if (isTemplateMode) {
       trainerTemplateEditorSelectedId = String(templateId);
@@ -17023,11 +17275,14 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
     if (isTemplateMode) buildTrainerTemplatePreviewWorkout(templateId);
 
     setTrainerManagementFeedback(
-      (response && response.message) || (
+      `${(response && response.message) || (
         isTemplateMode ? 'Nomeclatura atualizada com sucesso.' : 'Treino atualizado com sucesso.'
-      ),
+      )}${uploadedCoverUrl ? ' A capa também foi atualizada.' : ''}`,
       true
     );
+    if (uploadedCoverUrl) {
+      setTrainerWorkoutModalCoverFeedback('Capa atualizada com sucesso.', true);
+    }
     closeTrainerWorkoutModal({ keepFocus: true, force: true });
   } catch (error) {
     const errorMessage = error && error.message
@@ -17035,6 +17290,7 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
       : (isTemplateMode ? 'Falha ao atualizar nomeclatura.' : 'Falha ao atualizar treino.');
     setTrainerWorkoutModalFeedback(errorMessage, false);
     setTrainerManagementFeedback(errorMessage, false);
+    setTrainerWorkoutModalCoverFeedback(errorMessage, false);
   } finally {
     clearButtonLoading(trainerWorkoutModalSubmitButton, 'Salvar alterações');
   }
@@ -18864,6 +19120,20 @@ const initStudentArea = () => {
       updateTrainerWorkoutCoverPreview(selectedFile);
       setTrainerWorkoutCoverFeedback('', false);
       renderTrainerWorkoutCoverBuilder();
+    });
+  }
+
+  ensureTrainerWorkoutModalCoverSection();
+  if (trainerWorkoutModalCoverFileInput) {
+    trainerWorkoutModalCoverFileInput.addEventListener('change', () => {
+      const selectedFile =
+        trainerWorkoutModalCoverFileInput.files && trainerWorkoutModalCoverFileInput.files[0]
+          ? trainerWorkoutModalCoverFileInput.files[0]
+          : null;
+      trainerWorkoutModalPendingCoverFile = selectedFile;
+      updateTrainerWorkoutModalCoverPreview(selectedFile);
+      setTrainerWorkoutModalCoverFeedback('', false);
+      renderTrainerWorkoutModalCoverSection();
     });
   }
 
