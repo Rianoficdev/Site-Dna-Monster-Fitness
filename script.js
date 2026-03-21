@@ -5827,6 +5827,19 @@ const deferCurrentRunExerciseBecauseEquipmentIsBusy = () => {
   return true;
 };
 
+const confirmRunExerciseSkipBecauseEquipmentIsBusy = async () => {
+  const confirmed = await requestSiteConfirm({
+    title: 'Equipamento ocupado',
+    identification: 'Treino em execução',
+    message: 'Pular esse exercício por enquanto?',
+    confirmLabel: 'Pular',
+    cancelLabel: 'Cancelar',
+    triggerButton: runEquipmentBusyCheckbox
+  });
+  if (!confirmed && runEquipmentBusyCheckbox) runEquipmentBusyCheckbox.checked = false;
+  return confirmed;
+};
+
 const renderRunWorkoutView = () => {
   const workout = studentData.workouts.find((w) => w.id === selectedWorkoutId) || studentData.workouts[0];
   if (!workout || !workout.exercises.length) return;
@@ -20263,9 +20276,16 @@ const initStudentArea = () => {
     });
   }
   if (runEquipmentBusyCheckbox) {
-    runEquipmentBusyCheckbox.addEventListener('change', () => {
+    runEquipmentBusyCheckbox.addEventListener('change', async () => {
       if (!runEquipmentBusyCheckbox.checked) return;
-      deferCurrentRunExerciseBecauseEquipmentIsBusy();
+      runEquipmentBusyCheckbox.disabled = true;
+      try {
+        const confirmed = await confirmRunExerciseSkipBecauseEquipmentIsBusy();
+        if (!confirmed) return;
+        deferCurrentRunExerciseBecauseEquipmentIsBusy();
+      } finally {
+        runEquipmentBusyCheckbox.disabled = false;
+      }
     });
   }
   if (restAddTimeButton) {

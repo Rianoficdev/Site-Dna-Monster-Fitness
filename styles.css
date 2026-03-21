@@ -3573,6 +3573,19 @@ body.theme-dark .student-app-brand-logo-dark {
   stroke-linejoin: round;
 }
 
+.student-area button,
+.student-area [role="button"],
+.student-area a[href],
+.student-area label,
+.student-app-brand-logo-wrap {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+}
+
 .student-app-main {
   background: transparent;
   border: 0;
@@ -5772,6 +5785,7 @@ body.theme-dark .student-rest-actions button[data-student-rest-add-time] {
 
 .student-run-clock {
   display: block;
+  order: 1;
   margin-top: 16px;
   font-size: 4rem;
   line-height: 1;
@@ -5780,6 +5794,7 @@ body.theme-dark .student-rest-actions button[data-student-rest-add-time] {
 
 .student-run-counter {
   display: block;
+  order: 3;
   margin-top: 10px;
   color: #597265;
   font-size: 0.94rem;
@@ -5787,32 +5802,38 @@ body.theme-dark .student-rest-actions button[data-student-rest-add-time] {
 
 .student-run-busy-toggle {
   display: inline-flex;
+  order: 2;
   align-items: center;
-  gap: 10px;
-  margin-top: 16px;
-  padding: 10px 14px;
-  border-radius: 14px;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 7px 12px;
+  border-radius: 999px;
   background: rgba(238, 242, 240, 0.92);
   border: 1px solid rgba(20, 36, 29, 0.1);
   color: #20342b;
-  font-size: 0.92rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .student-run-busy-toggle input {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   accent-color: #16a34a;
   cursor: pointer;
+  flex: 0 0 auto;
 }
 
 .student-run-busy-toggle span {
-  line-height: 1.25;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .student-run-controls {
-  margin-top: 20px;
+  order: 4;
+  margin-top: 16px;
   width: 100%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -9833,11 +9854,12 @@ body.theme-dark .avaliacao-title-image-dark {
   }
 
   .student-run-busy-toggle {
-    margin-top: 14px;
-    width: 100%;
+    margin-top: 10px;
+    width: auto;
     justify-content: center;
-    text-align: left;
-    font-size: 0.88rem;
+    text-align: center;
+    font-size: 0.76rem;
+    padding: 6px 10px;
   }
 
   .student-run-controls button {
@@ -9855,7 +9877,7 @@ body.theme-dark .avaliacao-title-image-dark {
   }
 
   .student-run-controls {
-    margin-top: 34px;
+    margin-top: 18px;
     width: 100%;
   }
 
