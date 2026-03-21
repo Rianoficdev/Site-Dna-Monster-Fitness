@@ -734,7 +734,6 @@ function createSupportService({
 
     return sanitizeTicket(updated);
   }
-
   return {
     openPasswordResetSupportRequest,
     getPublicPasswordResetRequestStatus,

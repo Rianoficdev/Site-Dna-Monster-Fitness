@@ -2937,19 +2937,13 @@ const requestStudentApi = async (path, { method = 'GET', body, token } = {}) => 
     const attemptedHosts = attemptedBases
       .map((url) => String(url).replace(/\/api$/, ''))
       .filter(Boolean);
-    const uniqueHosts = Array.from(new Set(attemptedHosts));
-    const currentHost = String(window.location.hostname || '').trim();
-    const hostHint =
-      uniqueHosts.find((host) => currentHost && host.includes(currentHost)) ||
-      uniqueHosts[0] ||
-      'http://localhost:3000';
     const timeoutDetected =
       Boolean(lastNetworkError) && String(lastNetworkError.name || '').toLowerCase() === 'aborterror';
     const reasonHint = timeoutDetected
       ? 'A API demorou para responder.'
       : 'A API pode estar desligada ou reiniciando.';
     throw new Error(
-      `Não foi possível conectar ao servidor. ${reasonHint} Verifique se a API está online em ${hostHint}. Se estiver no ambiente local, inicie a API com: npm run dev`
+      `Sistema com erro. ${reasonHint} Tente novamente em instantes.`
     );
   }
 
@@ -3026,10 +3020,8 @@ const requestStudentApiMultipart = async (path, { method = 'POST', formData, tok
     const attemptedHosts = attemptedBases
       .map((url) => String(url).replace(/\/api$/, ''))
       .filter(Boolean);
-    const uniqueHosts = Array.from(new Set(attemptedHosts));
-    const hostHint = uniqueHosts[0] || 'http://localhost:3000';
     throw new Error(
-      `Não foi possível conectar ao servidor. Verifique se a API está online em ${hostHint}. Se estiver no ambiente local, inicie a API com: npm run dev`
+      'Sistema com erro. Tente novamente em instantes.'
     );
   }
 

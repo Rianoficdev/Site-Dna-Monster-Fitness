@@ -4,9 +4,11 @@ const { prisma } = require("./config/prisma");
 const logger = require("./shared/logger");
 
 const app = createApp();
-const server = app.listen(env.port, () => {
+const PORT = env.port;
+
+const server = app.listen(PORT, () => {
   logger.info("DNA Monster API started", {
-    port: env.port,
+    port: PORT,
     env: env.nodeEnv,
     pid: process.pid,
   });

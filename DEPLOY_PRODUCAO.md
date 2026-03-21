@@ -6,7 +6,6 @@ Use no servidor de producao:
 
 ```env
 NODE_ENV=production
-PORT=3000
 TRUST_PROXY=true
 
 JWT_SECRET=COLOQUE_UMA_CHAVE_FORTE_COM_32+_CARACTERES
@@ -27,6 +26,7 @@ Regras importantes:
 1. Em producao, `CORS_ORIGINS` e obrigatorio e nao aceita `*`.
 2. `JWT_SECRET` precisa ter no minimo 32 caracteres e ser forte.
 3. `DATABASE_URL` precisa apontar para banco com permissoes de leitura/escrita.
+4. No Render, nao defina `PORT` manualmente. A plataforma injeta essa variavel automaticamente, e o backend ja usa `process.env.PORT || 3000`.
 
 ## 2) Frontend apontando para API correta
 

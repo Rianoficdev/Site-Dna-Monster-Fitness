@@ -10,6 +10,12 @@ function parseBoolean(value, defaultValue = false) {
   return String(value).trim().toLowerCase() === "true";
 }
 
+function parseNumber(value, defaultValue) {
+  if (value === undefined || value === null || value === "") return defaultValue;
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? defaultValue : parsed;
+}
+
 function parseTrustProxy(value) {
   if (value === undefined || value === null || value === "") return false;
   const normalized = String(value).trim().toLowerCase();
@@ -35,17 +41,17 @@ const weakJwtSecretValues = new Set([
 
 const env = {
   nodeEnv: process.env.NODE_ENV || "development",
-  port: Number(process.env.PORT) || 3000,
+  port: parseNumber(process.env.PORT, 3000),
   jwtSecret: process.env.JWT_SECRET || "sua_chave_super_secreta",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   jwtSessionExpiresIn: process.env.JWT_EXPIRES_IN_SESSION || "12h",
   jwtRememberExpiresIn: process.env.JWT_EXPIRES_IN_REMEMBER || process.env.JWT_EXPIRES_IN || "30d",
-  onlinePresenceWindowMinutes: Number(process.env.ONLINE_PRESENCE_WINDOW_MINUTES) || 5,
+  onlinePresenceWindowMinutes: parseNumber(process.env.ONLINE_PRESENCE_WINDOW_MINUTES, 5),
   corsOrigins: parseCsv(process.env.CORS_ORIGINS),
-  passwordResetTokenMinutes: Number(process.env.PASSWORD_RESET_TOKEN_MINUTES) || 30,
+  passwordResetTokenMinutes: parseNumber(process.env.PASSWORD_RESET_TOKEN_MINUTES, 30),
   mailService: process.env.MAIL_SERVICE || "",
   mailHost: process.env.MAIL_HOST || "",
-  mailPort: Number(process.env.MAIL_PORT) || 587,
+  mailPort: parseNumber(process.env.MAIL_PORT, 587),
   mailSecure: parseBoolean(process.env.MAIL_SECURE, false),
   mailUser: process.env.MAIL_USER || "",
   mailPass: process.env.MAIL_PASS || "",
@@ -57,7 +63,7 @@ const env = {
   databaseUrl: process.env.DATABASE_URL || "",
   trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
   uploadsDir: process.env.UPLOADS_DIR || "uploads",
-  uploadMaxFileSizeMb: Math.max(1, Number(process.env.UPLOAD_MAX_FILE_SIZE_MB) || 50),
+  uploadMaxFileSizeMb: Math.max(1, parseNumber(process.env.UPLOAD_MAX_FILE_SIZE_MB, 50)),
   seedSampleWorkouts: parseBoolean(process.env.SEED_SAMPLE_WORKOUTS, false),
 };
 
