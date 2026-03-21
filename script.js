@@ -1168,7 +1168,7 @@ let selectedWorkoutId = null;
 let activeLibraryFilter = 'todos';
 let librarySearchTerm = '';
 let isLibraryManagerFormOpen = false;
-let isTrainerExerciseComposerOpen = false;
+let isTrainerExerciseComposerOpen = true;
 let isTrainerExerciseLibraryPickerOpen = false;
 let isTrainerLinkedExercisesExpanded = false;
 const trainerManagedWorkoutExpandedIds = new Set();
@@ -2669,6 +2669,10 @@ function syncLibraryManagerUi() {
 function syncTrainerExerciseComposerUi({ focus = false, scroll = false } = {}) {
   const canManageExercises = isTrainerManagerUser();
 
+  if (canManageExercises && !trainerExerciseFocusButton) {
+    isTrainerExerciseComposerOpen = true;
+  }
+
   if (!canManageExercises) {
     isTrainerExerciseComposerOpen = false;
     closeTrainerExerciseLibraryPicker({ clearSearch: true });
@@ -2719,11 +2723,11 @@ function syncTrainerExerciseComposerUi({ focus = false, scroll = false } = {}) {
 function openTrainerWorkoutCreateFromExerciseField() {
   if (!isTrainerManagerUser()) return false;
 
-  const infoMessage = 'Crie e salve a nomeclatura de treino antes de adicionar exercícios.';
+  const infoMessage = 'Crie e salve o treino antes de adicionar exercícios.';
   setTrainerManagementFeedback(infoMessage, true);
   setTrainerExerciseFeedback(infoMessage, true);
-  if (typeof setTrainerWorkoutCreatePanelCollapsed === 'function') {
-    setTrainerWorkoutCreatePanelCollapsed(false);
+  if (typeof setTrainerTemplateCreatePanelCollapsed === 'function') {
+    setTrainerTemplateCreatePanelCollapsed(false);
   }
 
   const scrollTarget =
@@ -11551,6 +11555,17 @@ function normalizeWorkoutDefinitionLabel(value) {
     .replace(/\s+/g, ' ');
 }
 
+function formatWorkoutDefinitionDisplayName(value) {
+  const label = normalizeWorkoutDefinitionLabel(value);
+  if (!label) return '';
+
+  const strippedLabel = label
+    .replace(/^treino\b[\s:._-]*/i, '')
+    .trim();
+
+  return strippedLabel || label;
+}
+
 const buildTrainerWorkoutDefinitionsCatalog = (
   workouts,
   exercisesByWorkoutId = {}
@@ -12175,17 +12190,17 @@ function shouldOpenTrainerWorkoutQuickCreate(rawWorkoutValue = '') {
 
 function getTrainerWorkoutCoverStageTitle(selectedWorkout) {
   if (selectedWorkout) {
-    return String((selectedWorkout.title || selectedWorkout.name || 'Treino') || '').trim() || 'Treino';
+    return formatWorkoutDefinitionDisplayName(selectedWorkout.title || selectedWorkout.name || 'Treino') || 'Treino';
   }
 
   const selectedTemplate = getTrainerTemplateById(getSelectedTrainerExerciseTemplateId());
   if (selectedTemplate) {
-    return String((selectedTemplate && selectedTemplate.name) || '').trim() || 'Treino em construção';
+    return formatWorkoutDefinitionDisplayName(selectedTemplate && selectedTemplate.name) || 'Treino em construção';
   }
 
   const selectedDefinition = getSelectedTrainerWorkoutDefinition();
   const definitionLabel = normalizeWorkoutDefinitionLabel(selectedDefinition && selectedDefinition.label);
-  return definitionLabel || 'Treino em construção';
+  return formatWorkoutDefinitionDisplayName(definitionLabel) || 'Treino em construção';
 }
 
 function getTrainerWorkoutCoverStageMeta(selectedWorkout) {
@@ -12333,7 +12348,7 @@ async function persistTrainerWorkoutCoverForTemplateId(templateId, file) {
 async function applyTrainerWorkoutCoverUrlToTemplateId(templateId, persistedCoverUrl) {
   const normalizedTemplateId = Number(templateId) || 0;
   if (!normalizedTemplateId) {
-    throw new Error('Selecione uma nomeclatura de treino para salvar a capa.');
+    throw new Error('Selecione um treino salvo para aplicar a capa.');
   }
 
   const normalizedCoverUrl = String(persistedCoverUrl || '').trim();
@@ -13043,10 +13058,10 @@ const openMobileSelectPicker = (select) => {
       const subtitle = document.createElement('small');
       subtitle.className = 'student-mobile-select-picker-option-subtitle';
       subtitle.textContent = isCreateWorkoutOption
-        ? 'Criar nomeclatura de treino agora'
+        ? 'Criar treino agora'
         : optionText
-          ? `Nomeclatura de treino: ${optionText}`
-          : 'Nomeclatura de treino';
+          ? `Treino cadastrado: ${optionText}`
+          : 'Treino cadastrado';
       label.appendChild(title);
       label.appendChild(subtitle);
     } else {
@@ -13309,8 +13324,8 @@ async function openTrainerExerciseLibraryPicker({ focusSearch = false } = {}) {
     if (shouldOpenTrainerWorkoutQuickCreate(rawWorkoutValue)) {
       await createTrainerWorkoutFromExerciseField();
     } else {
-      setTrainerManagementFeedback('Selecione a nomeclatura de treino salva antes de abrir a biblioteca geral.', false);
-      setTrainerExerciseFeedback('Selecione a nomeclatura de treino salva antes de abrir a biblioteca geral.', false);
+      setTrainerManagementFeedback('Selecione um treino salvo antes de abrir a biblioteca geral.', false);
+      setTrainerExerciseFeedback('Selecione um treino salvo antes de abrir a biblioteca geral.', false);
     }
     return false;
   }
@@ -13374,7 +13389,7 @@ function renderTrainerExerciseLibraryPicker() {
     trainerExerciseLibraryPickerList.innerHTML = '';
     trainerExerciseLibraryPickerEmpty.hidden = false;
     trainerExerciseLibraryPickerEmpty.textContent =
-      'Selecione a nomeclatura de treino salva para adicionar exercícios.';
+      'Selecione um treino salvo para adicionar exercícios.';
     return;
   }
 
@@ -13428,7 +13443,7 @@ function renderTrainerExerciseLibraryPicker() {
       const existingCount = Number(existingExerciseCounts[exerciseId]) || 0;
       const existingCountLabel =
         existingCount > 0
-          ? ` | já na nomeclatura de treino: ${existingCount}`
+          ? ` | já no treino salvo: ${existingCount}`
           : '';
       const pendingCount = Number(pendingExerciseCounts[exerciseId]) || 0;
       const metadataLabel = `${groupLabel} | ${repetitions} reps | desc ${formatSecondsLabel(restSeconds)}${existingCountLabel}`;
@@ -14792,7 +14807,7 @@ const renderTrainerManagementPanel = () => {
       .map((definition) => {
         const label = normalizeWorkoutDefinitionLabel(definition && definition.label);
         if (!label) return '';
-        return `<option value="${safeCell(label)}">${safeCell(label)}</option>`;
+        return `<option value="${safeCell(label)}">${safeCell(formatWorkoutDefinitionDisplayName(label))}</option>`;
       })
       .filter(Boolean)
       .join('');
@@ -14836,7 +14851,7 @@ const renderTrainerManagementPanel = () => {
       `<option value="${TRAINER_WORKOUT_CREATE_OPTION_VALUE}">+ Criar treino agora</option>`;
     if (!activeTemplates.length) {
       trainerExerciseWorkoutSelect.innerHTML = [
-        '<option value="">Selecione a nomeclatura de treino</option>',
+        '<option value="">Selecione o treino cadastrado</option>',
         createWorkoutOptionMarkup
       ].join('');
       trainerExerciseWorkoutSelect.value = '';
@@ -14853,11 +14868,11 @@ const renderTrainerManagementPanel = () => {
         )
         .map(
           (template) =>
-            `<option value="${safeCell(Number(template.id) || 0)}">${safeCell(template.name || `Treino ${template.id}`)}</option>`
+            `<option value="${safeCell(Number(template.id) || 0)}">${safeCell(formatWorkoutDefinitionDisplayName(template && template.name) || `Treino ${template.id}`)}</option>`
         )
         .join('');
       trainerExerciseWorkoutSelect.innerHTML = [
-        '<option value="">Selecione a nomeclatura de treino</option>',
+        '<option value="">Selecione o treino cadastrado</option>',
         createWorkoutOptionMarkup,
         workoutOptionsMarkup
       ].join('');
@@ -15071,10 +15086,10 @@ const renderTrainerManagementPanel = () => {
       ? definitionRows
       : managedWorkoutsForDisplay;
 
-    if (!rowsForDisplay.length) {
-      trainerManagedWorkoutExpandedIds.clear();
-      trainerWorkoutsTableBody.innerHTML = isDefinitionView
-        ? '<tr><td colspan="8">Nenhuma nomeclatura de treino criada.</td></tr>'
+      if (!rowsForDisplay.length) {
+        trainerManagedWorkoutExpandedIds.clear();
+        trainerWorkoutsTableBody.innerHTML = isDefinitionView
+        ? '<tr><td colspan="8">Nenhum treino cadastrado.</td></tr>'
         : '<tr><td colspan="8">Nenhum treino atribuído ao aluno.</td></tr>';
     } else {
       const visibleManagedRows = isGeneralAdminUser()
@@ -15097,7 +15112,8 @@ const renderTrainerManagementPanel = () => {
         .map((row) => {
           if (isDefinitionView) {
             const templateId = Number(row && row.templateId) || 0;
-            const definitionName = String((row && row.name) || `Treino ${templateId || '-'}`).trim() || '-';
+            const definitionName =
+              formatWorkoutDefinitionDisplayName((row && row.name) || `Treino ${templateId || '-'}`) || '-';
             const objectiveLabel = '-';
             const statusLabel = String((row && row.statusLabel) || 'Inativo').trim() || 'Inativo';
             const statusClass = String((row && row.statusClass) || '').trim();
@@ -15165,7 +15181,7 @@ const renderTrainerManagementPanel = () => {
                   <div class="trainer-managed-workout-summary">
                     <div class="trainer-managed-workout-summary-main">
                       <strong>${safeCell(definitionName)}</strong>
-                      <small class="trainer-managed-workout-kind is-definition">Nomeclatura de treino</small>
+                      <small class="trainer-managed-workout-kind is-definition">Treino cadastrado</small>
                     </div>
                   </div>
                 </td>
@@ -16432,12 +16448,12 @@ const handleTrainerTemplateFormSubmit = async (event) => {
     String(trainerTemplateFormActiveSelect.value || 'true').trim().toLowerCase() !== 'false';
 
   if (!name) {
-    setTrainerManagementFeedback('Preencha o nome do template para continuar.');
+    setTrainerManagementFeedback('Preencha o nome do treino para continuar.');
     return;
   }
 
   setButtonLoading(trainerTemplateFormSubmitButton, 'Salvando...');
-  setTrainerManagementFeedback('Criando template...', false);
+  setTrainerManagementFeedback('Criando treino...', false);
 
   try {
     const response = await requestStudentApi('/workouts/templates', {
@@ -16454,7 +16470,7 @@ const handleTrainerTemplateFormSubmit = async (event) => {
     if (trainerWorkoutPendingCoverFile && createdTemplateId > 0) {
       coverAutoApplied = await handleTrainerWorkoutCoverSave({
         templateId: createdTemplateId,
-        successMessage: 'Capa da nomeclatura salva com sucesso.'
+        successMessage: 'Capa do treino salva com sucesso.'
       });
     }
 
@@ -16475,21 +16491,21 @@ const handleTrainerTemplateFormSubmit = async (event) => {
       }
       isTrainerExerciseComposerOpen = true;
       syncTrainerExerciseComposerUi({ scroll: true, focus: false });
-      setTrainerExerciseFeedback('Nomeclatura de treino criada. Agora adicione os exercícios.', true);
+      setTrainerExerciseFeedback('Treino criado. Agora adicione os exercícios.', true);
     }
     setTrainerManagementFeedback(
       coverAutoApplied
-        ? `${(response && response.message) || 'Template criado com sucesso.'} A capa da nomeclatura também foi salva.`
-        : (response && response.message) || 'Template criado com sucesso.',
+        ? 'Treino criado com sucesso. A capa do treino também foi salva.'
+        : 'Treino criado com sucesso.',
       true
     );
   } catch (error) {
     setTrainerManagementFeedback(
-      error && error.message ? error.message : 'Falha ao criar template.',
+      error && error.message ? error.message : 'Falha ao criar treino.',
       false
     );
   } finally {
-    clearButtonLoading(trainerTemplateFormSubmitButton, 'Criar template');
+    clearButtonLoading(trainerTemplateFormSubmitButton, 'Salvar treino');
   }
 };
 
@@ -16990,7 +17006,7 @@ const handleTrainerExerciseSubmit = async (event) => {
     : '';
 
   if (!templateId) {
-    const validationMessage = 'Selecione a nomeclatura de treino salva para adicionar o exercício.';
+    const validationMessage = 'Selecione um treino salvo para adicionar o exercício.';
     setTrainerManagementFeedback(validationMessage);
     setTrainerExerciseFeedback(validationMessage);
     return;
@@ -17019,7 +17035,7 @@ const handleTrainerExerciseSubmit = async (event) => {
   setButtonLoading(trainerExerciseSubmitButton, 'Salvando...');
   const savingMessage = hasPendingQueue
     ? `Salvando ${pendingExerciseIds.length} exercício(s) da fila...`
-    : 'Adicionando exercício à nomeclatura de treino...';
+    : 'Adicionando exercício ao treino salvo...';
   setTrainerManagementFeedback(savingMessage, false);
   setTrainerExerciseFeedback(savingMessage, false);
 
@@ -17031,7 +17047,7 @@ const handleTrainerExerciseSubmit = async (event) => {
     let nextOrder = templateExercises.reduce((maxOrder, exerciseItem) => {
       return Math.max(maxOrder, Number(exerciseItem && exerciseItem.order) || 0);
     }, 0) + 1;
-    let successMessage = 'Exercício adicionado à nomeclatura de treino com sucesso.';
+    let successMessage = 'Exercício adicionado ao treino com sucesso.';
     let isPartialSave = false;
 
     if (hasPendingQueue) {
@@ -17138,7 +17154,7 @@ const handleTrainerExerciseSubmit = async (event) => {
         }
       );
 
-      successMessage = (response && response.message) || 'Exercício adicionado à nomeclatura de treino com sucesso.';
+      successMessage = (response && response.message) || 'Exercício adicionado ao treino com sucesso.';
     }
 
     if (trainerExerciseForm) {
@@ -17182,7 +17198,7 @@ const handleTrainerExerciseSubmit = async (event) => {
     setTrainerExerciseFeedback(finalSuccessMessage, !isPartialSave);
     renderTrainerExerciseLibraryPicker();
   } catch (error) {
-    const errorMessage = error && error.message ? error.message : 'Falha ao adicionar exercício à nomeclatura de treino.';
+    const errorMessage = error && error.message ? error.message : 'Falha ao adicionar exercício ao treino.';
     setTrainerManagementFeedback(errorMessage, false);
     setTrainerExerciseFeedback(errorMessage, false);
   } finally {
@@ -18877,7 +18893,7 @@ const initStudentArea = () => {
       if (trainerExerciseSearchInput) trainerExerciseSearchInput.value = '';
       closeTrainerExerciseLibraryPicker({ clearSearch: true });
       setTrainerManagementFeedback(
-        'Formulário aberto. Selecione a nomeclatura de treino, o grupo e o exercício da biblioteca.',
+        'Formulário aberto. Selecione o treino cadastrado, o grupo e o exercício da biblioteca.',
         false
       );
       syncTrainerExerciseComposerUi({
