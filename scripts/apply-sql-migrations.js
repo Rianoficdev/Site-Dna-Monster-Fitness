@@ -51,6 +51,11 @@ function formatErrorDetails(error) {
   return lines.join(" | ");
 }
 
+function shouldUseRelaxedSsl(databaseUrl) {
+  const normalized = String(databaseUrl || "").toLowerCase();
+  return normalized.includes("supabase.com") || normalized.includes("supabase.co") || normalized.includes("sslmode=");
+}
+
 async function main() {
   const databaseUrl = String(process.env.DATABASE_URL || "").trim();
   if (!databaseUrl) {
@@ -73,9 +78,18 @@ async function main() {
     return;
   }
 
-  const client = new Client({
-    connectionString: databaseUrl,
-  });
+  const client = new Client(
+    shouldUseRelaxedSsl(databaseUrl)
+      ? {
+          connectionString: databaseUrl,
+          ssl: {
+            rejectUnauthorized: false,
+          },
+        }
+      : {
+          connectionString: databaseUrl,
+        }
+  );
 
   await client.connect();
 
