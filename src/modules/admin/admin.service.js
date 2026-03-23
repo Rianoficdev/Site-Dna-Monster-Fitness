@@ -14,9 +14,24 @@ function createAdminService({
 }) {
   const normalizedOnlineWindowMinutes = Math.max(1, Number(onlineWindowMinutes) || 5);
   const editableRoles = new Set(validRoles.map((role) => String(role || "").toUpperCase()));
+  const defaultTeamPhotoPositionY = 50;
+  const defaultTeamPhotoZoom = 1;
 
   function normalizeRole(role) {
     return String(role || "").trim().toUpperCase();
+  }
+
+  function normalizeTeamPhotoPositionY(value, fallback = defaultTeamPhotoPositionY) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return fallback;
+    return Math.min(100, Math.max(0, Math.round(numericValue)));
+  }
+
+  function normalizeTeamPhotoZoom(value, fallback = defaultTeamPhotoZoom) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return fallback;
+    const clampedValue = Math.min(2.5, Math.max(1, numericValue));
+    return Math.round(clampedValue * 100) / 100;
   }
 
   function normalizeBoolean(value) {
@@ -55,6 +70,12 @@ function createAdminService({
         safeMember.description || "Profissional qualificado para acompanhar sua evolucao."
       ).trim(),
       photoUrl: String(safeMember.photoUrl || "").trim(),
+      photoPositionY: normalizeTeamPhotoPositionY(
+        safeMember.photoPositionY ?? safeMember.photo_position_y
+      ),
+      photoZoom: normalizeTeamPhotoZoom(
+        safeMember.photoZoom ?? safeMember.photo_zoom
+      ),
     };
   }
 

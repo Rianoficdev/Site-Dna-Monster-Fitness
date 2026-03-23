@@ -3,6 +3,22 @@ const path = require("path");
 
 const STORE_FILE_PATH = path.resolve(process.cwd(), "data", "in-memory-store.json");
 
+const SITE_TEAM_PHOTO_POSITION_DEFAULT = 50;
+const SITE_TEAM_PHOTO_ZOOM_DEFAULT = 1;
+
+function normalizeTeamPhotoPositionY(value, fallback = SITE_TEAM_PHOTO_POSITION_DEFAULT) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return fallback;
+  return Math.min(100, Math.max(0, Math.round(numericValue)));
+}
+
+function normalizeTeamPhotoZoom(value, fallback = SITE_TEAM_PHOTO_ZOOM_DEFAULT) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return fallback;
+  const clampedValue = Math.min(2.5, Math.max(1, numericValue));
+  return Math.round(clampedValue * 100) / 100;
+}
+
 function buildDefaultSiteTeamMembers() {
   return [
     {
@@ -13,6 +29,8 @@ function buildDefaultSiteTeamMembers() {
         "Especialista em hipertrofia e condicionamento, com atendimento individual e foco total na execucao correta.",
       photoUrl:
         "https://images.unsplash.com/photo-1549060279-7e168fcee0c2?auto=format&fit=crop&w=900&q=80",
+      photoPositionY: SITE_TEAM_PHOTO_POSITION_DEFAULT,
+      photoZoom: SITE_TEAM_PHOTO_ZOOM_DEFAULT,
     },
     {
       id: 2,
@@ -22,6 +40,8 @@ function buildDefaultSiteTeamMembers() {
         "Treinos de forca e periodizacao estrategica para ganho de performance, evolucao consistente e seguranca.",
       photoUrl:
         "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80",
+      photoPositionY: SITE_TEAM_PHOTO_POSITION_DEFAULT,
+      photoZoom: SITE_TEAM_PHOTO_ZOOM_DEFAULT,
     },
     {
       id: 3,
@@ -31,6 +51,8 @@ function buildDefaultSiteTeamMembers() {
         "Acompanhamento dinamico com foco em mobilidade, resistencia e melhoria da capacidade fisica no dia a dia.",
       photoUrl:
         "https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=900&q=80",
+      photoPositionY: SITE_TEAM_PHOTO_POSITION_DEFAULT,
+      photoZoom: SITE_TEAM_PHOTO_ZOOM_DEFAULT,
     },
     {
       id: 4,
@@ -40,6 +62,8 @@ function buildDefaultSiteTeamMembers() {
         "Aulas energeticas e acessiveis para todos os niveis, com atencao ao ritmo, motivacao e gasto calorico.",
       photoUrl:
         "https://images.unsplash.com/photo-1548690312-e3b507d8c110?auto=format&fit=crop&w=900&q=80",
+      photoPositionY: SITE_TEAM_PHOTO_POSITION_DEFAULT,
+      photoZoom: SITE_TEAM_PHOTO_ZOOM_DEFAULT,
     },
   ];
 }
@@ -98,6 +122,14 @@ function normalizeSiteTeamMembers(value, fallbackMembers = []) {
         "Profissional qualificado para acompanhar sua evolucao."
     ).trim();
     const resolvedPhotoUrl = String(sourceItem.photoUrl || fallbackItem.photoUrl || "").trim();
+    const resolvedPhotoPositionY = normalizeTeamPhotoPositionY(
+      sourceItem.photoPositionY ?? sourceItem.photo_position_y,
+      normalizeTeamPhotoPositionY(fallbackItem.photoPositionY ?? fallbackItem.photo_position_y)
+    );
+    const resolvedPhotoZoom = normalizeTeamPhotoZoom(
+      sourceItem.photoZoom ?? sourceItem.photo_zoom,
+      normalizeTeamPhotoZoom(fallbackItem.photoZoom ?? fallbackItem.photo_zoom)
+    );
 
     return {
       id: resolvedId,
@@ -105,6 +137,8 @@ function normalizeSiteTeamMembers(value, fallbackMembers = []) {
       role: resolvedRole,
       description: resolvedDescription,
       photoUrl: resolvedPhotoUrl,
+      photoPositionY: resolvedPhotoPositionY,
+      photoZoom: resolvedPhotoZoom,
     };
   });
 }

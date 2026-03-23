@@ -3085,6 +3085,170 @@ const getAdminTeamItems = () => (
     : []
 );
 
+const SITE_TEAM_PHOTO_POSITION_MIN = 0;
+const SITE_TEAM_PHOTO_POSITION_MAX = 100;
+const SITE_TEAM_PHOTO_POSITION_DEFAULT = 50;
+const SITE_TEAM_PHOTO_ZOOM_MIN = 1;
+const SITE_TEAM_PHOTO_ZOOM_MAX = 2.5;
+const SITE_TEAM_PHOTO_ZOOM_DEFAULT = 1;
+
+const normalizeSiteTeamPhotoPositionY = (value) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return SITE_TEAM_PHOTO_POSITION_DEFAULT;
+  return Math.min(
+    SITE_TEAM_PHOTO_POSITION_MAX,
+    Math.max(SITE_TEAM_PHOTO_POSITION_MIN, Math.round(numericValue))
+  );
+};
+
+const normalizeSiteTeamPhotoZoom = (value) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return SITE_TEAM_PHOTO_ZOOM_DEFAULT;
+  const clampedValue = Math.min(SITE_TEAM_PHOTO_ZOOM_MAX, Math.max(SITE_TEAM_PHOTO_ZOOM_MIN, numericValue));
+  return Math.round(clampedValue * 100) / 100;
+};
+
+const formatAdminTeamPhotoPositionValue = (value) => (
+  `${normalizeSiteTeamPhotoPositionY(value)}%`
+);
+
+const formatAdminTeamPhotoZoomValue = (value) => (
+  `${Math.round(normalizeSiteTeamPhotoZoom(value) * 100)}%`
+);
+
+const setTeamPhotoFrame = (node, {
+  photoUrl = '',
+  photoPositionY = SITE_TEAM_PHOTO_POSITION_DEFAULT,
+  photoZoom = SITE_TEAM_PHOTO_ZOOM_DEFAULT,
+  alt = ''
+} = {}) => {
+  if (!(node instanceof HTMLElement)) return;
+  const safePhotoPositionY = normalizeSiteTeamPhotoPositionY(photoPositionY);
+  const safePhotoZoom = normalizeSiteTeamPhotoZoom(photoZoom);
+  const finalPhotoUrl = resolveApiMediaUrl(photoUrl) || String(photoUrl || '').trim();
+  let image = node.querySelector('img');
+  if (!(image instanceof HTMLImageElement)) {
+    image = document.createElement('img');
+    image.decoding = 'async';
+    node.appendChild(image);
+  }
+  image.alt = String(alt || '').trim();
+  image.loading = 'lazy';
+  node.style.setProperty('--team-photo-position-y', `${safePhotoPositionY}%`);
+  node.style.setProperty('--team-photo-zoom', String(safePhotoZoom));
+  node.style.removeProperty('background-image');
+  if (finalPhotoUrl) {
+    image.src = finalPhotoUrl;
+    image.hidden = false;
+  } else {
+    image.removeAttribute('src');
+    image.hidden = true;
+  }
+};
+
+const ensureAdminTeamPhotoControls = (item) => {
+  if (!(item instanceof HTMLElement)) return;
+  let controlsWrap = item.querySelector('[data-admin-team-photo-adjustments]');
+  let hintNode = item.querySelector('[data-admin-team-photo-adjustments-hint]');
+  if (controlsWrap instanceof HTMLElement && hintNode instanceof HTMLElement) return;
+
+  controlsWrap = document.createElement('div');
+  controlsWrap.className = 'admin-overview-exercises-toolbar admin-site-team-toolbar';
+  controlsWrap.setAttribute('data-admin-team-photo-adjustments', '');
+  controlsWrap.innerHTML = `
+    <label class="admin-overview-filter-field admin-site-team-range-field">
+      <span>Posição vertical <strong data-admin-team-photo-position-y-value>${formatAdminTeamPhotoPositionValue(SITE_TEAM_PHOTO_POSITION_DEFAULT)}</strong></span>
+      <input
+        type="range"
+        min="${SITE_TEAM_PHOTO_POSITION_MIN}"
+        max="${SITE_TEAM_PHOTO_POSITION_MAX}"
+        step="1"
+        value="${SITE_TEAM_PHOTO_POSITION_DEFAULT}"
+        data-admin-team-photo-position-y
+      />
+    </label>
+    <label class="admin-overview-filter-field admin-site-team-range-field">
+      <span>Zoom <strong data-admin-team-photo-zoom-value>${formatAdminTeamPhotoZoomValue(SITE_TEAM_PHOTO_ZOOM_DEFAULT)}</strong></span>
+      <input
+        type="range"
+        min="${SITE_TEAM_PHOTO_ZOOM_MIN}"
+        max="${SITE_TEAM_PHOTO_ZOOM_MAX}"
+        step="0.05"
+        value="${SITE_TEAM_PHOTO_ZOOM_DEFAULT}"
+        data-admin-team-photo-zoom
+      />
+    </label>
+  `;
+
+  hintNode = document.createElement('p');
+  hintNode.className = 'admin-overview-action-muted admin-site-team-photo-hint';
+  hintNode.setAttribute('data-admin-team-photo-adjustments-hint', '');
+  hintNode.textContent = 'Use os controles para subir, descer ou aproximar a foto.';
+
+  const uploadToolbar = item.querySelector('.admin-site-team-toolbar--single');
+  if (uploadToolbar instanceof HTMLElement) {
+    uploadToolbar.insertAdjacentElement('afterend', controlsWrap);
+    controlsWrap.insertAdjacentElement('afterend', hintNode);
+  } else {
+    item.append(controlsWrap, hintNode);
+  }
+};
+
+const syncAdminTeamPhotoControlValues = (item, {
+  photoPositionY = SITE_TEAM_PHOTO_POSITION_DEFAULT,
+  photoZoom = SITE_TEAM_PHOTO_ZOOM_DEFAULT
+} = {}) => {
+  if (!(item instanceof HTMLElement)) {
+    return {
+      photoPositionY: normalizeSiteTeamPhotoPositionY(photoPositionY),
+      photoZoom: normalizeSiteTeamPhotoZoom(photoZoom)
+    };
+  }
+  ensureAdminTeamPhotoControls(item);
+  const safePhotoPositionY = normalizeSiteTeamPhotoPositionY(photoPositionY);
+  const safePhotoZoom = normalizeSiteTeamPhotoZoom(photoZoom);
+  const positionInput = item.querySelector('[data-admin-team-photo-position-y]');
+  const zoomInput = item.querySelector('[data-admin-team-photo-zoom]');
+  const positionValueNode = item.querySelector('[data-admin-team-photo-position-y-value]');
+  const zoomValueNode = item.querySelector('[data-admin-team-photo-zoom-value]');
+
+  if (positionInput instanceof HTMLInputElement) positionInput.value = String(safePhotoPositionY);
+  if (zoomInput instanceof HTMLInputElement) zoomInput.value = String(safePhotoZoom);
+  if (positionValueNode instanceof HTMLElement) {
+    positionValueNode.textContent = formatAdminTeamPhotoPositionValue(safePhotoPositionY);
+  }
+  if (zoomValueNode instanceof HTMLElement) {
+    zoomValueNode.textContent = formatAdminTeamPhotoZoomValue(safePhotoZoom);
+  }
+
+  return {
+    photoPositionY: safePhotoPositionY,
+    photoZoom: safePhotoZoom
+  };
+};
+
+const getAdminTeamPhotoAdjustments = (item, fallbackMember = {}) => {
+  if (!(item instanceof HTMLElement)) {
+    return {
+      photoPositionY: normalizeSiteTeamPhotoPositionY(fallbackMember && fallbackMember.photoPositionY),
+      photoZoom: normalizeSiteTeamPhotoZoom(fallbackMember && fallbackMember.photoZoom)
+    };
+  }
+  ensureAdminTeamPhotoControls(item);
+  const positionInput = item.querySelector('[data-admin-team-photo-position-y]');
+  const zoomInput = item.querySelector('[data-admin-team-photo-zoom]');
+  return syncAdminTeamPhotoControlValues(item, {
+    photoPositionY:
+      positionInput instanceof HTMLInputElement && positionInput.value
+        ? positionInput.value
+        : fallbackMember && fallbackMember.photoPositionY,
+    photoZoom:
+      zoomInput instanceof HTMLInputElement && zoomInput.value
+        ? zoomInput.value
+        : fallbackMember && fallbackMember.photoZoom
+  });
+};
+
 const buildFallbackSiteTeamMembers = () => {
   const membersFromDom = getSiteTeamCards().map((card, index) => {
     if (!(card instanceof Element)) return null;
@@ -3108,6 +3272,38 @@ const buildFallbackSiteTeamMembers = () => {
       const matched = rawPhoto.match(/url\((['"]?)(.*?)\1\)/i);
       photoUrl = matched ? String(matched[2] || '').trim() : '';
     }
+    if (!photoUrl) {
+      const photoImage = photoNode && typeof photoNode.querySelector === 'function'
+        ? photoNode.querySelector('img')
+        : null;
+      if (photoImage instanceof HTMLImageElement) {
+        photoUrl = String(photoImage.currentSrc || photoImage.getAttribute('src') || '').trim();
+      }
+    }
+    const rawPhotoPositionY = photoNode instanceof HTMLElement
+      ? String(
+        photoNode.style.getPropertyValue('--team-photo-position-y') ||
+        (
+          typeof window !== 'undefined' &&
+          typeof window.getComputedStyle === 'function'
+            ? window.getComputedStyle(photoNode).getPropertyValue('--team-photo-position-y')
+            : ''
+        ) ||
+        ''
+      ).trim()
+      : '';
+    const rawPhotoZoom = photoNode instanceof HTMLElement
+      ? String(
+        photoNode.style.getPropertyValue('--team-photo-zoom') ||
+        (
+          typeof window !== 'undefined' &&
+          typeof window.getComputedStyle === 'function'
+            ? window.getComputedStyle(photoNode).getPropertyValue('--team-photo-zoom')
+            : ''
+        ) ||
+        ''
+      ).trim()
+      : '';
     return {
       id: index + 1,
       name: String(nameNode && nameNode.textContent ? nameNode.textContent : '').trim() || `Membro ${index + 1}`,
@@ -3115,7 +3311,9 @@ const buildFallbackSiteTeamMembers = () => {
       description:
         String(descNode && descNode.textContent ? descNode.textContent : '').trim() ||
         'Profissional qualificado para acompanhar sua evolucao.',
-      photoUrl
+      photoUrl,
+      photoPositionY: normalizeSiteTeamPhotoPositionY(parseFloat(rawPhotoPositionY)),
+      photoZoom: normalizeSiteTeamPhotoZoom(parseFloat(rawPhotoZoom))
     };
   }).filter(Boolean);
 
@@ -3129,7 +3327,9 @@ const buildFallbackSiteTeamMembers = () => {
       description:
         'Especialista em hipertrofia e condicionamento, com atendimento individual e foco total na execucao correta.',
       photoUrl:
-        'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?auto=format&fit=crop&w=900&q=80'
+        'https://images.unsplash.com/photo-1549060279-7e168fcee0c2?auto=format&fit=crop&w=900&q=80',
+      photoPositionY: SITE_TEAM_PHOTO_POSITION_DEFAULT,
+      photoZoom: SITE_TEAM_PHOTO_ZOOM_DEFAULT
     },
     {
       id: 2,
@@ -3138,7 +3338,9 @@ const buildFallbackSiteTeamMembers = () => {
       description:
         'Treinos de forca e periodizacao estrategica para ganho de performance, evolucao consistente e seguranca.',
       photoUrl:
-        'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80'
+        'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80',
+      photoPositionY: SITE_TEAM_PHOTO_POSITION_DEFAULT,
+      photoZoom: SITE_TEAM_PHOTO_ZOOM_DEFAULT
     },
     {
       id: 3,
@@ -3147,7 +3349,9 @@ const buildFallbackSiteTeamMembers = () => {
       description:
         'Acompanhamento dinamico com foco em mobilidade, resistencia e melhoria da capacidade fisica no dia a dia.',
       photoUrl:
-        'https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=900&q=80'
+        'https://images.unsplash.com/photo-1518310383802-640c2de311b2?auto=format&fit=crop&w=900&q=80',
+      photoPositionY: SITE_TEAM_PHOTO_POSITION_DEFAULT,
+      photoZoom: SITE_TEAM_PHOTO_ZOOM_DEFAULT
     },
     {
       id: 4,
@@ -3156,7 +3360,9 @@ const buildFallbackSiteTeamMembers = () => {
       description:
         'Aulas energeticas e acessiveis para todos os niveis, com atencao ao ritmo, motivacao e gasto calorico.',
       photoUrl:
-        'https://images.unsplash.com/photo-1548690312-e3b507d8c110?auto=format&fit=crop&w=900&q=80'
+        'https://images.unsplash.com/photo-1548690312-e3b507d8c110?auto=format&fit=crop&w=900&q=80',
+      photoPositionY: SITE_TEAM_PHOTO_POSITION_DEFAULT,
+      photoZoom: SITE_TEAM_PHOTO_ZOOM_DEFAULT
     }
   ];
 };
@@ -3169,7 +3375,9 @@ const sanitizeSiteTeamMember = (member, index = 0) => {
     role: String(source.role || 'Personal Trainer').trim(),
     description:
       String(source.description || 'Profissional qualificado para acompanhar sua evolucao.').trim(),
-    photoUrl: String(source.photoUrl || '').trim()
+    photoUrl: String(source.photoUrl || '').trim(),
+    photoPositionY: normalizeSiteTeamPhotoPositionY(source.photoPositionY ?? source.photo_position_y),
+    photoZoom: normalizeSiteTeamPhotoZoom(source.photoZoom ?? source.photo_zoom)
   };
 };
 
@@ -3228,11 +3436,12 @@ const createSiteTeamCardElement = (member, index = 0) => {
   description.setAttribute('data-site-team-desc', '');
   description.textContent = String(member && member.description ? member.description : '').trim();
 
-  const finalPhotoUrl = resolveApiMediaUrl(member && member.photoUrl ? member.photoUrl : '') ||
-    String(member && member.photoUrl ? member.photoUrl : '').trim();
-  if (finalPhotoUrl) {
-    photo.style.backgroundImage = `url("${finalPhotoUrl}")`;
-  }
+  setTeamPhotoFrame(photo, {
+    photoUrl: member && member.photoUrl ? member.photoUrl : '',
+    photoPositionY: member && member.photoPositionY,
+    photoZoom: member && member.photoZoom,
+    alt: name.textContent ? `Foto de ${name.textContent}` : 'Foto do integrante'
+  });
 
   article.append(topWeight, photo, name, role, description);
   return article;
@@ -3251,16 +3460,22 @@ const applySiteTeamMembers = (members) => {
   siteTeamGrid.appendChild(fragment);
 };
 
-const setAdminTeamItemPreview = (item, photoUrl = '') => {
+const setAdminTeamItemPreview = (
+  item,
+  photoUrl = '',
+  photoPositionY = SITE_TEAM_PHOTO_POSITION_DEFAULT,
+  photoZoom = SITE_TEAM_PHOTO_ZOOM_DEFAULT
+) => {
   if (!(item instanceof Element)) return;
   const previewNode = item.querySelector('[data-admin-team-photo-preview]');
   if (!(previewNode instanceof HTMLElement)) return;
-  const finalPhotoUrl = resolveApiMediaUrl(photoUrl) || String(photoUrl || '').trim();
-  if (finalPhotoUrl) {
-    previewNode.style.backgroundImage = `url("${finalPhotoUrl}")`;
-  } else {
-    previewNode.style.removeProperty('background-image');
-  }
+  const safeAdjustments = syncAdminTeamPhotoControlValues(item, { photoPositionY, photoZoom });
+  setTeamPhotoFrame(previewNode, {
+    photoUrl,
+    photoPositionY: safeAdjustments.photoPositionY,
+    photoZoom: safeAdjustments.photoZoom,
+    alt: ''
+  });
 };
 
 const readImageFileAsDataUrl = (file) => (
@@ -3340,6 +3555,10 @@ const createAdminTeamItemElement = () => {
       input.value = '';
       return;
     }
+    if (input.type === 'range') {
+      input.value = input.defaultValue || input.getAttribute('value') || '';
+      return;
+    }
     input.value = '';
   });
 
@@ -3350,7 +3569,18 @@ const createAdminTeamItemElement = () => {
   const previewNode = clone.querySelector('[data-admin-team-photo-preview]');
   if (previewNode instanceof HTMLElement) {
     previewNode.style.removeProperty('background-image');
+    previewNode.style.removeProperty('--team-photo-position-y');
+    previewNode.style.removeProperty('--team-photo-zoom');
+    const previewImage = previewNode.querySelector('img');
+    if (previewImage instanceof HTMLImageElement) {
+      previewImage.removeAttribute('src');
+      previewImage.hidden = true;
+    }
   }
+  syncAdminTeamPhotoControlValues(clone, {
+    photoPositionY: SITE_TEAM_PHOTO_POSITION_DEFAULT,
+    photoZoom: SITE_TEAM_PHOTO_ZOOM_DEFAULT
+  });
 
   return clone;
 };
@@ -3389,6 +3619,7 @@ const applyAdminTeamFormMembers = (members) => {
 
   items.forEach((item, index) => {
     if (!(item instanceof Element)) return;
+    ensureAdminTeamPhotoControls(item);
     const member = normalizedMembers[index];
     if (!member) return;
 
@@ -3402,7 +3633,7 @@ const applyAdminTeamFormMembers = (members) => {
     if (descInput instanceof HTMLTextAreaElement) descInput.value = member.description;
     if (photoFileInput instanceof HTMLInputElement) photoFileInput.value = '';
     clearInvalidState(nameInput, roleInput, descInput);
-    setAdminTeamItemPreview(item, member.photoUrl);
+    setAdminTeamItemPreview(item, member.photoUrl, member.photoPositionY, member.photoZoom);
     item.setAttribute('data-current-photo-url', String(member.photoUrl || '').trim());
     bindAdminTeamItemInputs(item, index);
   });
@@ -3414,11 +3645,32 @@ const bindAdminTeamItemInputs = (item, index = 0) => {
   if (!(item instanceof HTMLElement)) return;
   if (item.dataset.teamBound === 'true') return;
   item.dataset.teamBound = 'true';
+  ensureAdminTeamPhotoControls(item);
 
   const nameInput = item.querySelector('[data-admin-team-name]');
   const roleInput = item.querySelector('[data-admin-team-role]');
   const descInput = item.querySelector('[data-admin-team-desc]');
   const photoFileInput = item.querySelector('[data-admin-team-photo-file]');
+  const photoPositionInput = item.querySelector('[data-admin-team-photo-position-y]');
+  const photoZoomInput = item.querySelector('[data-admin-team-photo-zoom]');
+  const refreshPreviewFromCurrentState = () => {
+    const currentIndex = Number(item.getAttribute('data-admin-team-index'));
+    const safeIndex = Number.isFinite(currentIndex) ? currentIndex : index;
+    const fallbackMember = siteTeamMembersCache[safeIndex] || buildFallbackSiteTeamMembers()[safeIndex] || {};
+    const previewNode = item.querySelector('[data-admin-team-photo-preview]');
+    const previewImage = previewNode instanceof HTMLElement ? previewNode.querySelector('img') : null;
+    const currentPreviewUrl = previewImage instanceof HTMLImageElement
+      ? String(previewImage.currentSrc || previewImage.getAttribute('src') || '').trim()
+      : '';
+    const adjustments = getAdminTeamPhotoAdjustments(item, fallbackMember);
+    const fallbackUrl = String(item.getAttribute('data-current-photo-url') || fallbackMember.photoUrl || '').trim();
+    setAdminTeamItemPreview(
+      item,
+      currentPreviewUrl || fallbackUrl,
+      adjustments.photoPositionY,
+      adjustments.photoZoom
+    );
+  };
 
   if (nameInput instanceof HTMLElement) {
     nameInput.addEventListener('input', () => clearInvalidState(nameInput));
@@ -3429,24 +3681,34 @@ const bindAdminTeamItemInputs = (item, index = 0) => {
   if (descInput instanceof HTMLElement) {
     descInput.addEventListener('input', () => clearInvalidState(descInput));
   }
+  if (photoPositionInput instanceof HTMLInputElement) {
+    photoPositionInput.addEventListener('input', refreshPreviewFromCurrentState);
+  }
+  if (photoZoomInput instanceof HTMLInputElement) {
+    photoZoomInput.addEventListener('input', refreshPreviewFromCurrentState);
+  }
 
   if (photoFileInput instanceof HTMLInputElement) {
     photoFileInput.addEventListener('change', () => {
       const selectedFile = photoFileInput.files && photoFileInput.files[0] ? photoFileInput.files[0] : null;
+      const currentIndex = Number(item.getAttribute('data-admin-team-index'));
+      const safeIndex = Number.isFinite(currentIndex) ? currentIndex : index;
+      const fallbackMember = siteTeamMembersCache[safeIndex] || buildFallbackSiteTeamMembers()[safeIndex] || {};
+      const adjustments = getAdminTeamPhotoAdjustments(item, fallbackMember);
       if (!selectedFile) {
-        const currentIndex = Number(item.getAttribute('data-admin-team-index'));
-        const safeIndex = Number.isFinite(currentIndex) ? currentIndex : index;
         const fallbackUrl = String(
           (siteTeamMembersCache[safeIndex] && siteTeamMembersCache[safeIndex].photoUrl) || ''
         ).trim();
-        setAdminTeamItemPreview(item, fallbackUrl);
+        setAdminTeamItemPreview(item, fallbackUrl, adjustments.photoPositionY, adjustments.photoZoom);
         return;
       }
 
       void (async () => {
         try {
           const previewDataUrl = await readImageFileAsDataUrl(selectedFile);
-          if (previewDataUrl) setAdminTeamItemPreview(item, previewDataUrl);
+          if (previewDataUrl) {
+            setAdminTeamItemPreview(item, previewDataUrl, adjustments.photoPositionY, adjustments.photoZoom);
+          }
         } catch (_) {}
       })();
     });
@@ -3544,6 +3806,7 @@ const collectAdminTeamMembersFromForm = async () => {
     const photoFileInput = item.querySelector('[data-admin-team-photo-file]');
     const fallbackMember = siteTeamMembersCache[index] || buildFallbackSiteTeamMembers()[index] || {};
     let nextPhotoUrl = String(item.getAttribute('data-current-photo-url') || fallbackMember.photoUrl || '').trim();
+    const adjustments = getAdminTeamPhotoAdjustments(item, fallbackMember);
 
     const nextName = String(nameInput && nameInput.value ? nameInput.value : '').trim();
     const nextRole = String(roleInput && roleInput.value ? roleInput.value : '').trim();
@@ -3568,7 +3831,9 @@ const collectAdminTeamMembersFromForm = async () => {
           name: nextName,
           role: nextRole,
           description: nextDescription,
-          photoUrl: nextPhotoUrl || String(fallbackMember.photoUrl || '').trim()
+          photoUrl: nextPhotoUrl || String(fallbackMember.photoUrl || '').trim(),
+          photoPositionY: adjustments.photoPositionY,
+          photoZoom: adjustments.photoZoom
         },
         index
       )
