@@ -10724,6 +10724,7 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   color: #10251c;
   font-family: inherit;
   font-size: 0.88rem;
+  touch-action: manipulation;
 }
 
 .trainer-workout-form-grid textarea {

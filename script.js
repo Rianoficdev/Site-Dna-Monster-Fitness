@@ -13475,6 +13475,10 @@ const handleMobileSelectPickerPointerDown = (event) => {
   if (document.activeElement === select && typeof select.blur === 'function') {
     select.blur();
   }
+
+  // Intercept touch-driven selects early so mobile browsers do not wait on the native select behavior.
+  if (event.cancelable) event.preventDefault();
+  event.stopPropagation();
 };
 
 const handleMobileSelectPickerPointerMove = (event) => {
