@@ -201,6 +201,27 @@ function createUserRepository({ prisma }) {
     });
   }
 
+  async function listUsersByRole(role, { isEnabled } = {}) {
+    const normalizedRole = String(role || "").trim().toUpperCase();
+    if (!normalizedRole) return [];
+
+    const where = {
+      role: normalizedRole,
+    };
+
+    if (isEnabled !== undefined) {
+      where.isEnabled = Boolean(isEnabled);
+    }
+
+    return prisma.user.findMany({
+      where,
+      select: publicSelect,
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
   async function touchUserPresence({ userId, onLogin = false }) {
     const normalizedUserId = normalizeUserId(userId);
     if (!normalizedUserId) return null;
@@ -343,6 +364,7 @@ function createUserRepository({ prisma }) {
     revokeActivePasswordResetTokensByUserId,
     applyPasswordReset,
     listUsers,
+    listUsersByRole,
     touchUserPresence,
     updateUserRole,
     updateUserEnabledStatus,

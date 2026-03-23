@@ -142,9 +142,13 @@ function createWorkoutsService({
   }
 
   async function listActiveStudents() {
+    if (userRepository && typeof userRepository.listUsersByRole === "function") {
+      return userRepository.listUsersByRole(studentRole, { isEnabled: true });
+    }
+
     const users = await userRepository.listUsers();
     return (Array.isArray(users) ? users : []).filter(
-      (user) => normalizeRole(user && user.role) === "ALUNO" && user.isEnabled !== false
+      (user) => normalizeRole(user && user.role) === studentRole && user.isEnabled !== false
     );
   }
 
@@ -214,6 +218,55 @@ function createWorkoutsService({
     };
   }
 
+  async function getWorkoutsProgressBatch(workoutIds) {
+    const normalizedIds = Array.from(
+      new Set(
+        (Array.isArray(workoutIds) ? workoutIds : [])
+          .map((value) => normalizeId(value))
+          .filter(Boolean)
+      )
+    );
+    const progressMap = new Map(
+      normalizedIds.map((workoutId) => [
+        workoutId,
+        {
+          totalExercises: 0,
+          completedExercises: 0,
+          progressPercent: 0,
+        },
+      ])
+    );
+
+    if (!normalizedIds.length) return progressMap;
+    if (!exercisesRepository || typeof exercisesRepository.listByWorkoutIds !== "function") {
+      await Promise.all(
+        normalizedIds.map(async (workoutId) => {
+          progressMap.set(workoutId, await getWorkoutProgress(workoutId));
+        })
+      );
+      return progressMap;
+    }
+
+    const exercises = await exercisesRepository.listByWorkoutIds(normalizedIds);
+    (Array.isArray(exercises) ? exercises : []).forEach((exercise) => {
+      const workoutId = normalizeId(exercise && exercise.workoutId);
+      if (!workoutId || !progressMap.has(workoutId)) return;
+
+      const currentProgress = progressMap.get(workoutId);
+      currentProgress.totalExercises += 1;
+      if (exercise && exercise.completed) currentProgress.completedExercises += 1;
+    });
+
+    progressMap.forEach((progress, workoutId) => {
+      progress.progressPercent = progress.totalExercises
+        ? Math.round((progress.completedExercises / progress.totalExercises) * 100)
+        : 0;
+      progressMap.set(workoutId, progress);
+    });
+
+    return progressMap;
+  }
+
   async function withWorkoutProgress(workout) {
     const progress = await getWorkoutProgress(workout && workout.id);
     return {
@@ -224,9 +277,22 @@ function createWorkoutsService({
   }
 
   async function sortWorkoutsByCreatedAt(workouts) {
-    const withProgress = await Promise.all(
-      (Array.isArray(workouts) ? workouts : []).map((workout) => withWorkoutProgress(workout))
-    );
+    const list = Array.isArray(workouts) ? workouts : [];
+    if (!list.length) return [];
+
+    const progressMap = await getWorkoutsProgressBatch(list.map((workout) => workout && workout.id));
+    const withProgress = list.map((workout) => {
+      const progress = progressMap.get(normalizeId(workout && workout.id)) || {
+        totalExercises: 0,
+        completedExercises: 0,
+        progressPercent: 0,
+      };
+      return {
+        ...workout,
+        progress,
+        ...progress,
+      };
+    });
 
     return withProgress.sort((a, b) => {
         const aTime = a && a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -1031,8 +1097,27 @@ function createWorkoutsService({
       );
     }
 
-    let createdWorkout = null;
-    createdWorkout = await workoutsRepository.createWorkout({
+    const libraryExerciseIds = templateExercises
+      .map((item) => normalizeId(item && item.exerciseId))
+      .filter(Boolean);
+    const libraryExercises =
+      libraryRepository && typeof libraryRepository.findByIds === "function"
+        ? libraryRepository.findByIds(libraryExerciseIds, { includeInactive: true })
+        : libraryExerciseIds
+            .map((exerciseId) =>
+              libraryRepository && typeof libraryRepository.findById === "function"
+                ? libraryRepository.findById(exerciseId, { includeInactive: true })
+                : null
+            )
+            .filter(Boolean);
+    const libraryExercisesMap = new Map(
+      (Array.isArray(libraryExercises) ? libraryExercises : []).map((exercise) => [
+        normalizeId(exercise && exercise.id),
+        exercise,
+      ])
+    );
+
+    const createdWorkout = await workoutsRepository.createWorkout({
       name: normalizeString(name) || template.name,
       objective: normalizeString(objective),
       description: normalizeString(description) || normalizeString(template.description),
@@ -1055,8 +1140,46 @@ function createWorkoutsService({
       weekDays: normalizeWeekDays(weekDays),
     });
 
-    const copiedExercises = [];
     try {
+      const copiedExercises = await Promise.all(
+        templateExercises.map((item) => {
+          const libraryExercise =
+            libraryExercisesMap.get(normalizeId(item && item.exerciseId)) || null;
+          return exercisesRepository.createExercise({
+            workoutId: createdWorkout.id,
+            exerciseId: item.exerciseId,
+            order: item.order,
+            series: item.series,
+            reps: item.reps,
+            load: Number(item.defaultLoad) || 0,
+            restTime: item.restTime,
+            completed: false,
+            replacedFromExerciseId: null,
+            name: libraryExercise ? libraryExercise.name : `ExercÃ­cio ${item.exerciseId}`,
+            description: libraryExercise ? libraryExercise.description : "",
+            animationUrl: libraryExercise ? libraryExercise.animationUrl : "",
+            tutorialText: libraryExercise ? libraryExercise.tutorialText : "",
+            level: libraryExercise ? libraryExercise.level : "intermediario",
+            type: libraryExercise ? libraryExercise.type : "forca",
+            isActive: libraryExercise ? libraryExercise.isActive !== false : true,
+            imageUrl: libraryExercise ? libraryExercise.imageUrl : "",
+            videoUrl: libraryExercise ? libraryExercise.videoUrl : "",
+            repetitions: item.reps,
+            loadKg: Number(item.defaultLoad) || 0,
+            restSeconds: item.restTime,
+            durationSeconds: libraryExercise ? Number(libraryExercise.durationSeconds) || 60 : 60,
+          });
+        })
+      );
+
+      return {
+        workout: await withWorkoutProgress(createdWorkout),
+        exercises: copiedExercises,
+        template: {
+          id: template.id,
+          name: template.name,
+        },
+      };
     for (const item of templateExercises) {
       const libraryExercise = libraryRepository.findById(item.exerciseId, { includeInactive: true });
       const copiedExercise = await exercisesRepository.createExercise({
