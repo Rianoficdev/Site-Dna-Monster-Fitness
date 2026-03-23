@@ -13090,8 +13090,17 @@ const MOBILE_SELECT_TAP_MAX_MOVE_PX = 10;
 
 const getMobileSelectPickerSelectFromEvent = (event) => {
   const target = event && event.target;
-  if (!(target instanceof Element)) return null;
   if (target instanceof HTMLSelectElement) return target;
+  if (target instanceof Element) {
+    const closestSelect = target.closest('select');
+    if (closestSelect instanceof HTMLSelectElement) return closestSelect;
+  }
+  if (event && typeof event.composedPath === 'function') {
+    const eventPath = event.composedPath();
+    for (const node of eventPath) {
+      if (node instanceof HTMLSelectElement) return node;
+    }
+  }
   return null;
 };
 
@@ -13566,7 +13575,21 @@ const handleMobileSelectPickerKeydown = (event) => {
 };
 
 const handleMobileSelectPickerFocusIn = (event) => {
-  return;
+  const select = getMobileSelectPickerSelectFromEvent(event);
+  if (!isMobileSelectPickerCandidate(select)) return;
+  if (!shouldUseMobileSelectPicker(select)) return;
+  if (mobileSelectPickerActiveSelect === select && mobileSelectPickerRoot && !mobileSelectPickerRoot.hidden) {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    if (document.activeElement === select && typeof select.blur === 'function') {
+      select.blur();
+    }
+    const opened = openMobileSelectPicker(select);
+    if (!opened) return;
+    mobileSelectPickerSuppressClickUntil = Date.now() + 450;
+  });
 };
 
 function closeTrainerExerciseLibraryPicker({ clearSearch = false } = {}) {
