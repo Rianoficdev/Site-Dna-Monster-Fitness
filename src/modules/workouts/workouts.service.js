@@ -128,19 +128,6 @@ function createWorkoutsService({
     return Number(workout && (workout.createdBy || workout.instructorId)) || 0;
   }
 
-  async function listInstructorLinkedStudentIds(instructorId) {
-    if (
-      !workoutsRepository ||
-      typeof workoutsRepository.listStudentIdsByInstructorId !== "function"
-    ) {
-      return [];
-    }
-
-    return workoutsRepository.listStudentIdsByInstructorId(instructorId, {
-      includeInactive: true,
-    });
-  }
-
   async function listActiveStudents() {
     if (userRepository && typeof userRepository.listUsersByRole === "function") {
       return userRepository.listUsersByRole(studentRole, { isEnabled: true });
@@ -152,29 +139,6 @@ function createWorkoutsService({
     );
   }
 
-  async function getInstructorManagedStudentIdSet(instructorId) {
-    const normalizedInstructorId = normalizeId(instructorId);
-    if (!normalizedInstructorId) return null;
-
-    const linkedStudentIds = await listInstructorLinkedStudentIds(normalizedInstructorId);
-    if (!linkedStudentIds.length) return null;
-
-    const students = await listActiveStudents();
-    const activeStudentIds = new Set(
-      students
-        .map((student) => Number(student && student.id) || 0)
-        .filter((studentId) => Number.isFinite(studentId) && studentId > 0)
-    );
-
-    const managedStudentIds = linkedStudentIds
-      .map((studentId) => Number(studentId) || 0)
-      .filter((studentId) => Number.isFinite(studentId) && studentId > 0)
-      .filter((studentId) => activeStudentIds.has(studentId));
-
-    if (!managedStudentIds.length) return null;
-    return new Set(managedStudentIds);
-  }
-
   async function ensureInstructorCanManageStudent({ instructorId, studentId }) {
     const normalizedInstructorId = normalizeId(instructorId);
     const normalizedStudentId = normalizeId(studentId);
@@ -182,16 +146,8 @@ function createWorkoutsService({
       throw new AppError("Instrutor ou aluno inválido.", 400, "VALIDATION_ERROR");
     }
 
-    const managedStudentIds = await getInstructorManagedStudentIdSet(normalizedInstructorId);
-    if (!managedStudentIds || !managedStudentIds.size) return;
-
-    if (!managedStudentIds.has(normalizedStudentId)) {
-      throw new AppError(
-        "Instrutor pode vincular treino apenas para alunos associados a ele.",
-        403,
-        "FORBIDDEN"
-      );
-    }
+    // O sistema nao possui um vinculo persistente entre instrutor e aluno.
+    // Restringir pela historico de treinos acabava escondendo alunos validos.
   }
   async function getWorkoutProgress(workoutId) {
     if (!exercisesRepository || typeof exercisesRepository.listByWorkoutId !== "function") {
@@ -1344,24 +1300,10 @@ function createWorkoutsService({
 
   async function listAssignableStudents({ authUser }) {
     const role = normalizeRole(authUser && authUser.role);
-    const actorId = normalizeId(authUser && authUser.id);
     const students = await listActiveStudents();
 
-    if (role === "ADMIN_GERAL") return students;
-    if (role !== "INSTRUTOR") {
-      throw new AppError("Acesso negado para listar alunos vinculados.", 403, "FORBIDDEN");
-    }
-
-    const linkedStudentIds = await getInstructorManagedStudentIdSet(actorId);
-    // Sem vínculos válidos, permite mostrar os alunos ativos cadastrados
-    // para o instrutor iniciar ou recuperar a gestão dos treinos.
-    if (!linkedStudentIds || !linkedStudentIds.size) return students;
-
-    const linkedStudents = students.filter((student) =>
-      linkedStudentIds.has(Number(student && student.id) || 0)
-    );
-
-    return linkedStudents.length ? linkedStudents : students;
+    if (role === "ADMIN_GERAL" || role === "INSTRUTOR") return students;
+    throw new AppError("Acesso negado para listar alunos.", 403, "FORBIDDEN");
   }
   return {
     createWorkout,
