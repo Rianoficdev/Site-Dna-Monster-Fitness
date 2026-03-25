@@ -7513,6 +7513,13 @@ const getAdminOverviewExerciseById = (exerciseId) => {
   return adminOverviewState.exercises.find((item) => Number(item && item.id) === safeId) || null;
 };
 
+const getAdminOverviewWorkoutById = (workoutId) => {
+  const safeId = Number(workoutId) || 0;
+  if (!safeId) return null;
+  if (!Array.isArray(adminOverviewState.workouts)) return null;
+  return adminOverviewState.workouts.find((item) => Number(item && item.id) === safeId) || null;
+};
+
 const getAdminExerciseEditGroupKeys = (exercise = null) => {
   const groupKeysSet = new Set(Object.keys(LIBRARY_GROUP_LABELS));
   groupKeysSet.add('geral');
@@ -9184,13 +9191,13 @@ const renderAdminOverviewPanel = () => {
 
   if (adminWorkoutsTableBody) {
     if (!showPanelData) {
-      adminWorkoutsTableBody.innerHTML = '<tr><td colspan="5">Acesso exclusivo do Administrador Geral.</td></tr>';
+      adminWorkoutsTableBody.innerHTML = '<tr><td colspan="6">Acesso exclusivo do Administrador Geral.</td></tr>';
     } else if (!workoutsForDisplay.length) {
-      adminWorkoutsTableBody.innerHTML = '';
+      adminWorkoutsTableBody.innerHTML = '<tr><td colspan="6">Nenhum treino cadastrado.</td></tr>';
     } else if (!sortedAdminWorkouts.length) {
       adminWorkoutsTableBody.innerHTML = normalizedWorkoutsSearchRaw
-        ? `<tr><td colspan="5">Nenhum treino encontrado para "${escapeAdminCell(adminOverviewWorkoutsSearchTerm)}".</td></tr>`
-        : '<tr><td colspan="5">Nenhum treino encontrado com esse filtro.</td></tr>';
+        ? `<tr><td colspan="6">Nenhum treino encontrado para "${escapeAdminCell(adminOverviewWorkoutsSearchTerm)}".</td></tr>`
+        : '<tr><td colspan="6">Nenhum treino encontrado com esse filtro.</td></tr>';
     } else {
       adminWorkoutsTableBody.innerHTML = sortedAdminWorkouts
         .map((workout) => {
@@ -9202,13 +9209,51 @@ const renderAdminOverviewPanel = () => {
             workout && workout.instructorName,
             workout && workout.instructorId
           );
+          const workoutId = Number(workout && workout.id) || 0;
+          const isActiveWorkout = workout && workout.isActive !== false;
           return `
             <tr>
-              <td data-label="ID">${escapeAdminCell(workout.id)}</td>
+              <td data-label="ID">${escapeAdminCell(workoutId)}</td>
               <td data-label="Título">${escapeAdminCell(workout.title || '-')}</td>
               <td data-label="Aluno">${escapeAdminCell(studentLabel)}</td>
               <td data-label="Instrutor">${escapeAdminCell(instructorLabel)}</td>
               <td data-label="Criado em">${escapeAdminCell(formatAdminDate(workout.createdAt))}</td>
+              <td data-label="Ações">
+                <div class="admin-overview-actions-group">
+                  <button
+                    class="admin-overview-action-btn"
+                    type="button"
+                    data-admin-workout-edit
+                    data-workout-id="${escapeAdminCell(workoutId)}"
+                    ${workoutId > 0 ? '' : 'disabled'}
+                  >
+                    Editar
+                  </button>
+                  ${isActiveWorkout
+                    ? `
+                        <button
+                          class="admin-overview-action-btn"
+                          type="button"
+                          data-admin-workout-deactivate
+                          data-workout-id="${escapeAdminCell(workoutId)}"
+                          ${workoutId > 0 ? '' : 'disabled'}
+                        >
+                          Desativar
+                        </button>
+                      `
+                    : `
+                        <button
+                          class="admin-overview-action-btn is-danger"
+                          type="button"
+                          data-admin-workout-delete
+                          data-workout-id="${escapeAdminCell(workoutId)}"
+                          ${workoutId > 0 ? '' : 'disabled'}
+                        >
+                          Excluir
+                        </button>
+                      `}
+                </div>
+              </td>
             </tr>
           `;
         })
@@ -17587,12 +17632,13 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
     if (isGeneralAdminUser()) await fetchAdminOverview(true);
     if (isTemplateMode) buildTrainerTemplatePreviewWorkout(templateId);
 
-    setTrainerManagementFeedback(
-      `${(response && response.message) || (
-        isTemplateMode ? 'Nomeclatura atualizada com sucesso.' : 'Treino atualizado com sucesso.'
-      )}${uploadedCoverUrl ? ' A capa também foi atualizada.' : ''}`,
-      true
-    );
+    const successMessage = `${(response && response.message) || (
+      isTemplateMode ? 'Nomeclatura atualizada com sucesso.' : 'Treino atualizado com sucesso.'
+    )}${uploadedCoverUrl ? ' A capa também foi atualizada.' : ''}`;
+    setTrainerManagementFeedback(successMessage, true);
+    if (!isTemplateMode && isGeneralAdminUser()) {
+      setAdminOverviewFeedback(successMessage, true);
+    }
     if (uploadedCoverUrl) {
       setTrainerWorkoutModalCoverFeedback('Capa atualizada com sucesso.', true);
     }
@@ -17603,6 +17649,9 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
       : (isTemplateMode ? 'Falha ao atualizar nomeclatura.' : 'Falha ao atualizar treino.');
     setTrainerWorkoutModalFeedback(errorMessage, false);
     setTrainerManagementFeedback(errorMessage, false);
+    if (!isTemplateMode && isGeneralAdminUser()) {
+      setAdminOverviewFeedback(errorMessage, false);
+    }
     setTrainerWorkoutModalCoverFeedback(errorMessage, false);
   } finally {
     clearButtonLoading(trainerWorkoutModalSubmitButton, 'Salvar alterações');
@@ -19700,6 +19749,149 @@ const initStudentArea = () => {
         event && event.target && event.target.value ? event.target.value : ''
       );
       renderAdminOverviewPanel();
+    });
+  }
+
+  if (adminWorkoutsTableBody) {
+    adminWorkoutsTableBody.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const editButton = target.closest('[data-admin-workout-edit]');
+      if (editButton && editButton instanceof HTMLButtonElement) {
+        const workoutId = Number(editButton.dataset.workoutId || 0);
+        if (!workoutId) return;
+
+        editButton.disabled = true;
+        setAdminOverviewFeedback('Carregando detalhes do treino...', false);
+
+        try {
+          await loadTrainerManagementData(true);
+          const workout = getTrainerWorkoutById(workoutId);
+          if (!workout) {
+            throw new Error('Não foi possível carregar os detalhes completos do treino para edição.');
+          }
+
+          const opened = openTrainerWorkoutModal(workout, editButton, { readOnly: false });
+          if (!opened) {
+            throw new Error('Não foi possível abrir a edição do treino.');
+          }
+
+          setAdminOverviewFeedback('', false);
+        } catch (error) {
+          setAdminOverviewFeedback(
+            error && error.message ? error.message : 'Falha ao abrir a edição do treino.',
+            false
+          );
+        } finally {
+          editButton.disabled = false;
+        }
+        return;
+      }
+
+      const deactivateButton = target.closest('[data-admin-workout-deactivate]');
+      if (deactivateButton && deactivateButton instanceof HTMLButtonElement) {
+        const workoutId = Number(deactivateButton.dataset.workoutId || 0);
+        if (!workoutId) return;
+
+        const workout = getAdminOverviewWorkoutById(workoutId) || getTrainerWorkoutById(workoutId);
+        const workoutName = String(
+          (workout && (workout.title || workout.name)) || `Treino #${workoutId}`
+        ).trim();
+
+        const confirmed = await requestSiteConfirm({
+          title: 'Desativar treino',
+          identification: workoutName,
+          message: `Tem certeza que deseja desativar o treino "${workoutName}"?`,
+          confirmLabel: 'Desativar',
+          cancelLabel: 'Cancelar',
+          triggerButton: deactivateButton
+        });
+        if (!confirmed) return;
+
+        deactivateButton.disabled = true;
+        setAdminOverviewFeedback('Desativando treino...', false);
+
+        void requestInstructorWorkoutDeactivate(workoutId, { workout })
+          .then(async (response) => {
+            trainerExerciseTargetWorkoutId = workoutId;
+            await loadTrainerManagementData(true);
+            await loadTrainerProgressData(true);
+            await syncWorkoutsFromBackend({ silent: true });
+            await fetchAdminOverview(true);
+
+            const refreshedWorkout = getAdminOverviewWorkoutById(workoutId);
+            const deactivationConfirmed = refreshedWorkout ? refreshedWorkout.isActive === false : true;
+            if (!deactivationConfirmed) {
+              throw new Error('Não foi possível confirmar a desativação. Atualize os dados e tente novamente.');
+            }
+
+            const successMessage = (response && response.message) || 'Treino desativado com sucesso.';
+            setAdminOverviewFeedback(successMessage, true);
+            setTrainerManagementFeedback(successMessage, true);
+          })
+          .catch((error) => {
+            const errorMessage = error && error.message
+              ? error.message
+              : 'Falha ao desativar treino.';
+            setAdminOverviewFeedback(errorMessage, false);
+            setTrainerManagementFeedback(errorMessage, false);
+          })
+          .finally(() => {
+            deactivateButton.disabled = false;
+          });
+        return;
+      }
+
+      const deleteButton = target.closest('[data-admin-workout-delete]');
+      if (!deleteButton || !(deleteButton instanceof HTMLButtonElement)) return;
+
+      const workoutId = Number(deleteButton.dataset.workoutId || 0);
+      if (!workoutId) return;
+
+      const workout = getAdminOverviewWorkoutById(workoutId) || getTrainerWorkoutById(workoutId);
+      const workoutName = String(
+        (workout && (workout.title || workout.name)) || `Treino #${workoutId}`
+      ).trim();
+
+      const confirmed = await requestSiteConfirm({
+        title: 'Excluir treino inativo',
+        identification: workoutName,
+        message: `Tem certeza que deseja excluir o treino inativo "${workoutName}"? Essa ação não pode ser desfeita.`,
+        confirmLabel: 'Excluir treino',
+        cancelLabel: 'Cancelar',
+        triggerButton: deleteButton
+      });
+      if (!confirmed) return;
+
+      deleteButton.disabled = true;
+      setAdminOverviewFeedback('Excluindo treino inativo...', false);
+
+      void requestInstructorWorkoutDelete(workoutId)
+        .then(async (response) => {
+          const currentTargetWorkoutId = Number(trainerExerciseTargetWorkoutId) || 0;
+          if (currentTargetWorkoutId === workoutId) {
+            trainerExerciseTargetWorkoutId = 0;
+          }
+          await loadTrainerManagementData(true);
+          await loadTrainerProgressData(true);
+          await syncWorkoutsFromBackend({ silent: true });
+          await fetchAdminOverview(true);
+
+          const successMessage = (response && response.message) || 'Treino excluído com sucesso.';
+          setAdminOverviewFeedback(successMessage, true);
+          setTrainerManagementFeedback(successMessage, true);
+        })
+        .catch((error) => {
+          const errorMessage = error && error.message
+            ? error.message
+            : 'Falha ao excluir treino inativo.';
+          setAdminOverviewFeedback(errorMessage, false);
+          setTrainerManagementFeedback(errorMessage, false);
+        })
+        .finally(() => {
+          deleteButton.disabled = false;
+        });
     });
   }
 
