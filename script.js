@@ -6920,6 +6920,12 @@ const saveBmiFromModal = () => {
   });
 };
 
+const formatProgressWeightValue = (value) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return '0';
+  return Number.isInteger(numericValue) ? String(numericValue) : numericValue.toFixed(1);
+};
+
 const renderProgress = () => {
   if (isTrainerManagerUser()) {
     renderTrainerProgressPanel();
@@ -6964,9 +6970,9 @@ const renderProgress = () => {
   const maxWeight = weightValues.length ? Math.max(...weightValues) : 0;
   const minWeight = weightValues.length ? Math.min(...weightValues) : 0;
 
-  if (progressCurrentWeight) progressCurrentWeight.textContent = String(Math.round(currentWeight));
-  if (progressMaxWeight) progressMaxWeight.textContent = String(Math.round(maxWeight));
-  if (progressMinWeight) progressMinWeight.textContent = String(Math.round(minWeight));
+  if (progressCurrentWeight) progressCurrentWeight.textContent = formatProgressWeightValue(currentWeight);
+  if (progressMaxWeight) progressMaxWeight.textContent = formatProgressWeightValue(maxWeight);
+  if (progressMinWeight) progressMinWeight.textContent = formatProgressWeightValue(minWeight);
 
   if (progressWeightPlot) {
     const topValue = Math.ceil((maxWeight + 0.8) * 10) / 10;
@@ -6985,7 +6991,7 @@ const renderProgress = () => {
         <div class="student-progress-plot-y">${yLabels.map((value) => `<span>${value}</span>`).join('')}</div>
         <div class="student-progress-plot-canvas">
           <div class="student-progress-plot-point" style="top:${dotTop}%;">
-            <span class="student-progress-plot-label">${currentWeight.toFixed(1)}</span>
+            <span class="student-progress-plot-label">${formatProgressWeightValue(currentWeight)}</span>
             <span class="student-progress-plot-dot" aria-hidden="true"></span>
           </div>
         </div>
