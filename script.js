@@ -4783,63 +4783,37 @@ const getVisibleStudentWorkouts = () => {
   const activeWorkouts = workouts.filter((workout) => isWorkoutActive(workout));
   if (!activeWorkouts.length) return [];
 
-  const workoutByDay = new Map();
-  activeWorkouts.forEach((workout) => {
-    const dayKeys = getStudentWorkoutWeekdayKeys(workout);
-    if (!dayKeys.length) return;
-    dayKeys.forEach((dayKey) => {
-      const previous = workoutByDay.get(dayKey);
-      if (!previous) {
-        workoutByDay.set(dayKey, workout);
-        return;
-      }
-      if (getStudentWorkoutTimestamp(workout) >= getStudentWorkoutTimestamp(previous)) {
-        workoutByDay.set(dayKey, workout);
-      }
+  return activeWorkouts
+    .map((workout) => {
+      const dayKeys = getStudentWorkoutWeekdayKeys(workout);
+      const visibleDayLabel = dayKeys.length
+        ? dayKeys.map((dayKey) => STUDENT_WEEKDAY_LABELS[dayKey] || dayKey).join(', ')
+        : String((workout && workout.day) || 'Plano ativo').trim() || 'Plano ativo';
+      return {
+        ...workout,
+        _visibleDayKeys: dayKeys,
+        _visibleDayLabel: visibleDayLabel,
+        _displayName: getStudentWorkoutDisplayName(workout)
+      };
+    })
+    .sort((first, second) => {
+      const firstIndex = first._visibleDayKeys.length
+        ? Math.min(
+            ...first._visibleDayKeys
+              .map((dayKey) => STUDENT_WEEKDAY_ORDER.indexOf(dayKey))
+              .filter((index) => index >= 0)
+          )
+        : 99;
+      const secondIndex = second._visibleDayKeys.length
+        ? Math.min(
+            ...second._visibleDayKeys
+              .map((dayKey) => STUDENT_WEEKDAY_ORDER.indexOf(dayKey))
+              .filter((index) => index >= 0)
+          )
+        : 99;
+      if (firstIndex !== secondIndex) return firstIndex - secondIndex;
+      return getStudentWorkoutTimestamp(second) - getStudentWorkoutTimestamp(first);
     });
-  });
-
-  const groupedByWorkoutId = new Map();
-  STUDENT_WEEKDAY_ORDER.forEach((dayKey) => {
-    const workout = workoutByDay.get(dayKey);
-    if (!workout) return;
-    const idKey = String(workout && workout.id || '');
-    if (!groupedByWorkoutId.has(idKey)) {
-      groupedByWorkoutId.set(idKey, { workout, dayKeys: [] });
-    }
-    groupedByWorkoutId.get(idKey).dayKeys.push(dayKey);
-  });
-
-  let visible = Array.from(groupedByWorkoutId.values()).map(({ workout, dayKeys }) => ({
-    ...workout,
-    _visibleDayKeys: dayKeys,
-    _visibleDayLabel: dayKeys.map((dayKey) => STUDENT_WEEKDAY_LABELS[dayKey] || dayKey).join(', '),
-    _displayName: getStudentWorkoutDisplayName(workout)
-  }));
-
-  if (!visible.length) {
-    const fallbackWorkout = activeWorkouts
-      .slice()
-      .sort((first, second) => getStudentWorkoutTimestamp(second) - getStudentWorkoutTimestamp(first))[0];
-    if (!fallbackWorkout) return [];
-    visible = [{
-      ...fallbackWorkout,
-      _visibleDayKeys: [],
-      _visibleDayLabel: String((fallbackWorkout && fallbackWorkout.day) || 'Plano ativo').trim() || 'Plano ativo',
-      _displayName: getStudentWorkoutDisplayName(fallbackWorkout)
-    }];
-  }
-
-  return visible.sort((first, second) => {
-    const firstIndex = first._visibleDayKeys.length
-      ? Math.min(...first._visibleDayKeys.map((dayKey) => STUDENT_WEEKDAY_ORDER.indexOf(dayKey)).filter((index) => index >= 0))
-      : 99;
-    const secondIndex = second._visibleDayKeys.length
-      ? Math.min(...second._visibleDayKeys.map((dayKey) => STUDENT_WEEKDAY_ORDER.indexOf(dayKey)).filter((index) => index >= 0))
-      : 99;
-    if (firstIndex !== secondIndex) return firstIndex - secondIndex;
-    return getStudentWorkoutTimestamp(second) - getStudentWorkoutTimestamp(first);
-  });
 };
 
 /* ==========================================================================
@@ -14178,32 +14152,13 @@ const mergeLegacyDuplicatedStudentWorkouts = (workouts = []) => {
   if (!Array.isArray(workouts) || !workouts.length) return [];
 
   const grouped = new Map();
-  workouts.forEach((workout) => {
+  workouts.forEach((workout, index) => {
+    const workoutId = Number(workout && workout.id) || 0;
     const baseName = normalizeStudentWorkoutTitleForGrouping(workout);
-    const exerciseSignature = (Array.isArray(workout && workout.exercises) ? workout.exercises : [])
-      .map((exercise) => {
-        const exerciseId = Number(
-          exercise && (
-            exercise.exerciseId !== undefined
-              ? exercise.exerciseId
-              : exercise.libraryExerciseId !== undefined
-                ? exercise.libraryExerciseId
-                : exercise.id
-          )
-        ) || 0;
-        if (exerciseId > 0) return `id:${exerciseId}`;
-        return `name:${normalizeText(String(exercise && exercise.name || '').trim())}`;
-      })
-      .filter(Boolean)
-      .sort()
-      .join('|');
-    const key = [
-      Number(workout && workout.studentId) || 0,
-      Number(workout && workout.instructorId) || 0,
-      normalizeText(baseName),
-      normalizeText(String((workout && workout.objective) || '').trim()),
-      exerciseSignature
-    ].join('::');
+    // Legacy cleanup must not collapse distinct active assignments for the same aluno.
+    const key = workoutId > 0
+      ? `id::${workoutId}`
+      : `fallback::${index}::${normalizeText(baseName)}`;
 
     const existing = grouped.get(key);
     if (!existing) {
