@@ -45,6 +45,13 @@ function createWorkoutsRoutes({ workoutsController, authMiddleware, roleMiddlewa
     workoutsController.listStudentWorkouts
   );
 
+  router.get(
+    "/student/workouts/revision",
+    authMiddleware,
+    roleMiddleware(roles.ALUNO),
+    workoutsController.getStudentWorkoutsRevision
+  );
+
   router.post(
     "/workouts",
     authMiddleware,

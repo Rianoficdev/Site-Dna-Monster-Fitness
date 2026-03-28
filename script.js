@@ -36,6 +36,7 @@ const STUDENT_API_UPLOAD_TIMEOUT_MS = 120000;
 const STUDENT_API_MAX_RETRIES = 3;
 const STUDENT_API_RETRY_DELAY_MS = 350;
 const STUDENT_FORGOT_STATUS_POLL_MS = 12000;
+const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 5000;
 const TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT = 3;
 const ADMIN_TEAM_MIN_MEMBERS = 1;
 const ADMIN_TEAM_MAX_MEMBERS = 8;
@@ -928,6 +929,7 @@ const trainerWorkoutModalFeedback = document.querySelector('[data-trainer-workou
 const trainerWorkoutModalNameInput = document.querySelector('[data-trainer-workout-modal-name]');
 const trainerWorkoutModalObjectiveSelect = document.querySelector('[data-trainer-workout-modal-objective]');
 const trainerWorkoutModalStatusSelect = document.querySelector('[data-trainer-workout-modal-status]');
+const trainerWorkoutModalStatusField = document.querySelector('[data-trainer-workout-modal-status-field]');
 const trainerWorkoutModalMuscleGroupSelect = document.querySelector('[data-trainer-workout-modal-muscle-group]');
 const trainerWorkoutModalLibraryWrap = document.querySelector('[data-trainer-workout-modal-library]');
 const trainerWorkoutModalLibraryHeadTitle = trainerWorkoutModal
@@ -1247,6 +1249,9 @@ let trainerWorkoutExerciseEditTriggerButton = null;
 let trainerExerciseVideoModalTriggerButton = null;
 let trainerExerciseLibrarySelectSuppressClickUntil = 0;
 let sessionHeartbeatTimer = null;
+let studentWorkoutsRefreshTimer = null;
+let studentWorkoutsRefreshInFlight = false;
+let studentLatestWorkoutsRevision = '';
 let adminOverviewWorkoutsSearchTerm = '';
 let adminOverviewExercisesSearchTerm = '';
 let adminOverviewExercisesGroupFilterValue = 'todos';
@@ -1951,6 +1956,12 @@ const setOverlayView = (view) => {
     playStudentLoadingVideo();
   } else if (studentVideo) {
     studentVideo.pause();
+  }
+
+  if (view === 'app') {
+    startStudentWorkoutsRefresh();
+  } else {
+    stopStudentWorkoutsRefresh();
   }
 
   if (view === 'login') {
@@ -2864,6 +2875,7 @@ const resetAuthIdentityToDefault = ({ clearStoredToken = false, clearStoredProfi
   studentData.userId = null;
   studentData.userEnabled = true;
   studentData.profileAvatarUrl = '';
+  studentLatestWorkoutsRevision = '';
   resetStudentBodyMetricsToDefault();
   profileSupportState.loading = false;
   profileSupportState.loaded = false;
@@ -2910,6 +2922,30 @@ const extractWorkoutsFromResponse = (payload) => {
   if (Array.isArray(payload && payload.result && payload.result.workouts)) return payload.result.workouts;
   if (Array.isArray(payload)) return payload;
   return [];
+};
+
+const normalizeStudentWorkoutsRevision = (value) => String(value || '').trim();
+
+const computeStudentWorkoutsRevisionFromList = (workouts = []) => {
+  const list = Array.isArray(workouts) ? workouts : [];
+  if (!list.length) return '0:0:none';
+
+  let activeCount = 0;
+  let latestTimestamp = 0;
+  list.forEach((workout) => {
+    if (workout && workout.isActive !== false && workout.is_active !== false) activeCount += 1;
+    const rawTimestamp = String(
+      (workout && (workout.updatedAt || workout.updated_at || workout.createdAt || workout.created_at)) || ''
+    ).trim();
+    if (!rawTimestamp) return;
+    const parsed = new Date(rawTimestamp);
+    if (!Number.isNaN(parsed.getTime())) {
+      latestTimestamp = Math.max(latestTimestamp, parsed.getTime());
+    }
+  });
+
+  const latestUpdatedAt = latestTimestamp ? new Date(latestTimestamp).toISOString() : 'none';
+  return `${list.length}:${activeCount}:${latestUpdatedAt}`;
 };
 
 const requestStudentApi = async (path, { method = 'GET', body, token } = {}) => {
@@ -3975,6 +4011,85 @@ const stopSessionHeartbeat = () => {
   sessionHeartbeatTimer = null;
 };
 
+const STUDENT_WORKOUTS_REFRESH_BLOCKED_PANELS = new Set([
+  'pre-treino',
+  'treino-ativo',
+  'treino-execucao',
+  'treino-descanso',
+  'exercicio-detalhe'
+]);
+
+const canRefreshStudentWorkoutsInBackground = ({ force = false } = {}) => {
+  if (normalizeRole(studentData.userRole) !== 'ALUNO') return false;
+  if (!loadStudentAuthToken()) return false;
+  if (!studentArea || studentArea.hidden || !studentApp || !studentApp.classList.contains('is-visible')) {
+    return false;
+  }
+  if (document.visibilityState !== 'visible') return false;
+  if (!force && STUDENT_WORKOUTS_REFRESH_BLOCKED_PANELS.has(String(currentStudentPanel || '').trim())) {
+    return false;
+  }
+  return true;
+};
+
+const stopStudentWorkoutsRefresh = () => {
+  if (studentWorkoutsRefreshTimer) {
+    clearInterval(studentWorkoutsRefreshTimer);
+    studentWorkoutsRefreshTimer = null;
+  }
+  studentWorkoutsRefreshInFlight = false;
+};
+
+const refreshStudentWorkoutsInBackground = async ({ force = false } = {}) => {
+  if (!canRefreshStudentWorkoutsInBackground({ force })) return false;
+  if (studentWorkoutsRefreshInFlight) return false;
+
+  studentWorkoutsRefreshInFlight = true;
+  try {
+    await syncWorkoutsFromBackend({ silent: true });
+    renderStudentApp();
+    return true;
+  } catch (_) {
+    return false;
+  } finally {
+    studentWorkoutsRefreshInFlight = false;
+  }
+};
+
+const checkStudentWorkoutsRevisionInBackground = async ({ force = false } = {}) => {
+  if (!canRefreshStudentWorkoutsInBackground({ force })) return false;
+  if (studentWorkoutsRefreshInFlight) return false;
+
+  studentWorkoutsRefreshInFlight = true;
+  try {
+    const response = await requestStudentApi('/student/workouts/revision');
+    const nextRevision = normalizeStudentWorkoutsRevision(
+      response && response.revision && response.revision.revision
+    );
+    if (!nextRevision) return false;
+
+    const previousRevision = normalizeStudentWorkoutsRevision(studentLatestWorkoutsRevision);
+    studentLatestWorkoutsRevision = nextRevision;
+    if (!previousRevision || previousRevision === nextRevision) return false;
+
+    await syncWorkoutsFromBackend({ silent: true });
+    renderStudentApp();
+    return true;
+  } catch (_) {
+    return false;
+  } finally {
+    studentWorkoutsRefreshInFlight = false;
+  }
+};
+
+const startStudentWorkoutsRefresh = () => {
+  stopStudentWorkoutsRefresh();
+  if (!canRefreshStudentWorkoutsInBackground()) return;
+  studentWorkoutsRefreshTimer = window.setInterval(() => {
+    void checkStudentWorkoutsRevisionInBackground();
+  }, STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS);
+};
+
 const sendSessionHeartbeat = async () => {
   const token = loadStudentAuthToken();
   if (!token) return;
@@ -4780,10 +4895,9 @@ const getStudentWorkoutDisplayName = (workout) => {
 
 const getVisibleStudentWorkouts = () => {
   const workouts = Array.isArray(studentData.workouts) ? studentData.workouts : [];
-  const activeWorkouts = workouts.filter((workout) => isWorkoutActive(workout));
-  if (!activeWorkouts.length) return [];
+  if (!workouts.length) return [];
 
-  return activeWorkouts
+  return workouts
     .map((workout) => {
       const dayKeys = getStudentWorkoutWeekdayKeys(workout);
       const visibleDayLabel = dayKeys.length
@@ -9190,7 +9304,6 @@ const renderAdminOverviewPanel = () => {
             workout && workout.instructorId
           );
           const workoutId = Number(workout && workout.id) || 0;
-          const isActiveWorkout = workout && workout.isActive !== false;
           return `
             <tr>
               <td data-label="ID">${escapeAdminCell(workoutId)}</td>
@@ -9209,29 +9322,15 @@ const renderAdminOverviewPanel = () => {
                   >
                     Editar
                   </button>
-                  ${isActiveWorkout
-                    ? `
-                        <button
-                          class="admin-overview-action-btn"
-                          type="button"
-                          data-admin-workout-deactivate
-                          data-workout-id="${escapeAdminCell(workoutId)}"
-                          ${workoutId > 0 ? '' : 'disabled'}
-                        >
-                          Desativar
-                        </button>
-                      `
-                    : `
-                        <button
-                          class="admin-overview-action-btn is-danger"
-                          type="button"
-                          data-admin-workout-delete
-                          data-workout-id="${escapeAdminCell(workoutId)}"
-                          ${workoutId > 0 ? '' : 'disabled'}
-                        >
-                          Excluir
-                        </button>
-                      `}
+                  <button
+                    class="admin-overview-action-btn is-danger"
+                    type="button"
+                    data-admin-workout-delete
+                    data-workout-id="${escapeAdminCell(workoutId)}"
+                    ${workoutId > 0 ? '' : 'disabled'}
+                  >
+                    Excluir
+                  </button>
                 </div>
               </td>
             </tr>
@@ -10502,6 +10601,7 @@ const hydrateTrainerWorkoutExercises = async (workoutId, { silent = true } = {})
 const setTrainerWorkoutModalMode = ({ readOnly = false } = {}) => {
   trainerWorkoutModalReadOnly = Boolean(readOnly);
   const isTemplateMode = Number(trainerWorkoutTemplateEditingId) > 0;
+  const showStatusControl = isTemplateMode;
 
   if (trainerWorkoutModalTitle) {
     if (trainerWorkoutModalReadOnly) {
@@ -10521,6 +10621,13 @@ const setTrainerWorkoutModalMode = ({ readOnly = false } = {}) => {
 
   if (trainerWorkoutModalForm) {
     trainerWorkoutModalForm.classList.toggle('is-readonly', trainerWorkoutModalReadOnly);
+  }
+
+  if (trainerWorkoutModalStatusField) {
+    trainerWorkoutModalStatusField.hidden = !showStatusControl;
+  }
+  if (trainerWorkoutModalStatusSelect && !showStatusControl) {
+    trainerWorkoutModalStatusSelect.value = 'ATIVO';
   }
 
   if (trainerWorkoutModalLibraryHeadTitle) {
@@ -10554,7 +10661,10 @@ const setTrainerWorkoutModalMode = ({ readOnly = false } = {}) => {
     ) {
       return;
     }
-    control.disabled = trainerWorkoutModalReadOnly || (isTemplateMode && control === trainerWorkoutModalObjectiveSelect);
+    control.disabled =
+      trainerWorkoutModalReadOnly ||
+      (control === trainerWorkoutModalStatusSelect && !showStatusControl) ||
+      (isTemplateMode && control === trainerWorkoutModalObjectiveSelect);
     if (control instanceof HTMLTextAreaElement) {
       control.readOnly = trainerWorkoutModalReadOnly;
     }
@@ -11296,7 +11406,8 @@ const openTrainerWorkoutModal = (
     ).trim() || 'Hipertrofia';
   }
   if (trainerWorkoutModalStatusSelect) {
-    trainerWorkoutModalStatusSelect.value = isWorkoutInactive(workout) ? 'INATIVO' : 'ATIVO';
+    trainerWorkoutModalStatusSelect.value =
+      Number(trainerWorkoutTemplateEditingId) > 0 && isWorkoutInactive(workout) ? 'INATIVO' : 'ATIVO';
   }
   syncTrainerWorkoutModalGroupOptions(workout);
   renderTrainerWorkoutModalCoverSection(workout);
@@ -13968,11 +14079,6 @@ function applyPredefinedWorkoutSelectionToAssignmentForm() {
     }
   }
 
-  if (trainerWorkoutStatusSelect) {
-    trainerWorkoutStatusSelect.value =
-      isWorkoutInactive(selectedWorkout) ? 'INATIVO' : 'ATIVO';
-  }
-
   if (trainerWorkoutDescriptionInput) {
     trainerWorkoutDescriptionInput.value = String(
       (selectedWorkout &&
@@ -14216,6 +14322,7 @@ const syncWorkoutsFromBackend = async ({ silent = false } = {}) => {
       : '/workouts/my';
     const response = await requestStudentApi(workoutsEndpoint);
     const workouts = extractWorkoutsFromResponse(response);
+    studentLatestWorkoutsRevision = computeStudentWorkoutsRevisionFromList(workouts);
     const previousDoneById = new Map(
       (studentData.workouts || []).map((workout) => [String(workout.id), Boolean(workout.done)])
     );
@@ -15502,26 +15609,9 @@ const renderTrainerManagementPanel = () => {
             ? exercises.length
             : Math.max(0, Number(workout && workout.totalExercises) || 0);
           const objectiveLabel = String(workout && (workout.objective || workout.objetivo) || '').trim() || '-';
-          const isActiveWorkout = isWorkoutActive(workout);
-          const statusLabel = isActiveWorkout ? 'Ativo' : 'Inativo';
-          const statusClass = isActiveWorkout ? 'is-success' : 'is-disabled';
+          const statusLabel = 'Disponivel';
+          const statusClass = 'is-success';
           const toggleAriaLabel = 'Visualizar detalhes do treino';
-          const deleteActionMarkup = !isActiveWorkout
-            ? `
-                  <button
-                    class="student-progress-action-btn trainer-action-danger trainer-action-icon-btn"
-                    type="button"
-                    data-trainer-workout-delete
-                    data-workout-id="${safeCell(workoutId)}"
-                    aria-label="Excluir treino inativo"
-                    title="Excluir treino inativo"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M9 3h6m-8 3h10m-8 0v13a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V6m-8 0h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                  </button>
-              `
-            : '';
 
           return `
             <tr class="trainer-managed-workout-row" data-workout-id="${safeCell(workoutId)}">
@@ -15566,13 +15656,11 @@ const renderTrainerManagementPanel = () => {
                   <button
                     class="student-progress-action-btn trainer-action-danger"
                     type="button"
-                    data-trainer-workout-deactivate
+                    data-trainer-workout-delete
                     data-workout-id="${safeCell(workoutId)}"
-                    ${isActiveWorkout ? '' : 'disabled'}
                   >
-                    Desativar
+                    Excluir
                   </button>
-                  ${deleteActionMarkup}
                 </div>
               </td>
             </tr>
@@ -16429,9 +16517,7 @@ const handleTrainerWorkoutSubmit = async (event) => {
   const objective = trainerWorkoutObjectiveSelect
     ? String(trainerWorkoutObjectiveSelect.value || '').trim()
     : '';
-  const status = trainerWorkoutStatusSelect
-    ? String(trainerWorkoutStatusSelect.value || 'ATIVO').trim().toUpperCase()
-    : 'ATIVO';
+  const status = 'ATIVO';
   const description = trainerWorkoutDescriptionInput ? String(trainerWorkoutDescriptionInput.value || '').trim() : '';
   const studentId = Number(trainerWorkoutStudentSelect ? trainerWorkoutStudentSelect.value : 0) || 0;
   const selectedStudentName =
@@ -16608,9 +16694,7 @@ const handleTrainerWorkoutSubmit = async (event) => {
     );
     trainerTemplateExerciseSelectedId = selectedTemplateAfterSubmit;
     trainerExerciseComposerSelectedId = selectedTemplateAfterSubmit;
-    const visibilityHint = status === 'INATIVO'
-      ? 'Treino salvo como Inativo para o aluno.'
-      : 'Treino já disponível para o aluno.';
+    const visibilityHint = 'Treino já disponível para o aluno.';
     const successMessage = selectedStudentName
       ? dayAssignments.length > 1
         ? `${dayAssignments.length} treinos foram designados ao aluno ${selectedStudentName}. ${visibilityHint}`
@@ -16627,10 +16711,14 @@ const handleTrainerWorkoutSubmit = async (event) => {
         .filter(Boolean)
         .join(', ')}.`
       : '';
+    const hasPartialFailure = failedAssignments.length > 0;
+    const managementFeedbackMessage = hasPartialFailure
+      ? `Conclusão parcial. ${finalSuccessMessage}${failedAssignmentsMessage}`.trim()
+      : `${finalSuccessMessage}${failedAssignmentsMessage}`.trim();
 
     setTrainerManagementFeedback(
-      `${finalSuccessMessage}${failedAssignmentsMessage}`.trim(),
-      true
+      managementFeedbackMessage,
+      !hasPartialFailure
     );
     if (failedAssignments.length) {
       setTrainerExerciseFeedback(
@@ -17525,11 +17613,13 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
     (currentWorkout && (currentWorkout.objective || currentWorkout.objetivo)) ||
     'Hipertrofia'
   ).trim() || 'Hipertrofia';
-  const selectedStatusValue = String(
-    (trainerWorkoutModalStatusSelect && trainerWorkoutModalStatusSelect.value) ||
-    (isWorkoutInactive(currentWorkout) ? 'INATIVO' : 'ATIVO')
-  ).trim().toUpperCase();
-  const status = selectedStatusValue === 'INATIVO' ? 'INATIVO' : 'ATIVO';
+  const status = isTemplateMode
+    ? String(
+        (trainerWorkoutModalStatusSelect && trainerWorkoutModalStatusSelect.value) || 'ATIVO'
+      ).trim().toUpperCase() === 'INATIVO'
+      ? 'INATIVO'
+      : 'ATIVO'
+    : 'ATIVO';
 
   if (!title) {
     setTrainerWorkoutModalFeedback('O nome do treino é obrigatório.', false);
@@ -17569,6 +17659,7 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
           title,
           objective,
           status,
+          isActive: true,
           ...(uploadedCoverUrl ? { coverImageUrl: uploadedCoverUrl } : {})
         }
       });
@@ -17916,9 +18007,9 @@ const handleTrainerWorkoutsTableActions = async (event) => {
     ).trim();
 
     const confirmed = await requestSiteConfirm({
-      title: 'Excluir treino inativo',
+      title: 'Excluir treino',
       identification: workoutName,
-      message: `Tem certeza que deseja excluir o treino inativo "${workoutName}"? Essa ação não pode ser desfeita.`,
+      message: `Tem certeza que deseja excluir o treino "${workoutName}"? Essa ação não pode ser desfeita.`,
       confirmLabel: 'Excluir treino',
       cancelLabel: 'Cancelar',
       triggerButton: deleteButton
@@ -17926,7 +18017,7 @@ const handleTrainerWorkoutsTableActions = async (event) => {
     if (!confirmed) return;
 
     deleteButton.disabled = true;
-    setTrainerManagementFeedback('Excluindo treino inativo...', false);
+    setTrainerManagementFeedback('Excluindo treino...', false);
 
     void requestInstructorWorkoutDelete(workoutId)
       .then(async (response) => {
@@ -17946,7 +18037,7 @@ const handleTrainerWorkoutsTableActions = async (event) => {
       .catch((error) => {
         const errorMessage = error && error.message
           ? error.message
-          : 'Falha ao excluir treino inativo.';
+          : 'Falha ao excluir treino.';
         setTrainerManagementFeedback(errorMessage, false);
         setTrainerExerciseFeedback(errorMessage, false);
       })
@@ -18218,6 +18309,7 @@ const openStudentArea = (event) => {
 const closeStudentArea = () => {
   if (!studentArea) return;
   clearStudentTimer();
+  stopStudentWorkoutsRefresh();
   clearPrepCountdown();
   clearRunCountdown();
   clearRestCountdown();
@@ -18988,6 +19080,7 @@ const initStudentArea = () => {
     if (document.visibilityState !== 'visible') return;
     if (studentInLoginStage) return;
     playStudentLoadingVideo();
+    void checkStudentWorkoutsRevisionInBackground({ force: true });
   });
 
   studentAuthTabs.forEach((tab) => {
@@ -19816,9 +19909,9 @@ const initStudentArea = () => {
       ).trim();
 
       const confirmed = await requestSiteConfirm({
-        title: 'Excluir treino inativo',
+        title: 'Excluir treino',
         identification: workoutName,
-        message: `Tem certeza que deseja excluir o treino inativo "${workoutName}"? Essa ação não pode ser desfeita.`,
+        message: `Tem certeza que deseja excluir o treino "${workoutName}"? Essa ação não pode ser desfeita.`,
         confirmLabel: 'Excluir treino',
         cancelLabel: 'Cancelar',
         triggerButton: deleteButton
@@ -19826,7 +19919,7 @@ const initStudentArea = () => {
       if (!confirmed) return;
 
       deleteButton.disabled = true;
-      setAdminOverviewFeedback('Excluindo treino inativo...', false);
+      setAdminOverviewFeedback('Excluindo treino...', false);
 
       void requestInstructorWorkoutDelete(workoutId)
         .then(async (response) => {
@@ -19846,7 +19939,7 @@ const initStudentArea = () => {
         .catch((error) => {
           const errorMessage = error && error.message
             ? error.message
-            : 'Falha ao excluir treino inativo.';
+            : 'Falha ao excluir treino.';
           setAdminOverviewFeedback(errorMessage, false);
           setTrainerManagementFeedback(errorMessage, false);
         })
@@ -20678,6 +20771,7 @@ const initStudentArea = () => {
   if (studentLogoutButton) {
     studentLogoutButton.addEventListener('click', () => {
       stopSessionHeartbeat();
+      stopStudentWorkoutsRefresh();
       resetAuthIdentityToDefault({
         clearStoredToken: true,
         clearStoredProfile: !loadRememberPreference(),

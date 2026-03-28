@@ -68,6 +68,17 @@ function findWorkoutById(response, workoutId) {
   return workouts.find((workout) => Number(workout && workout.id) === Number(workoutId)) || null;
 }
 
+function getRevisionValue(response) {
+  return String(
+    response &&
+    response.body &&
+    response.body.revision &&
+    response.body.revision.revision
+      ? response.body.revision.revision
+      : ""
+  ).trim();
+}
+
 async function main() {
   const suffix = `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
   const rawPassword = "Teste@123";
@@ -143,6 +154,20 @@ async function main() {
     const studentToken = String(studentLogin.body && studentLogin.body.token ? studentLogin.body.token : "").trim();
     assert(studentToken, "token do aluno vazio");
 
+    console.log("[test:designacao] aluno consulta revisão inicial");
+    const initialRevisionResponse = await requestJson({
+      port,
+      method: "GET",
+      path: "/api/student/workouts/revision",
+      token: studentToken,
+    });
+    assert(
+      initialRevisionResponse.status === 200,
+      `revisao inicial do aluno falhou (${initialRevisionResponse.status})`
+    );
+    const initialRevision = getRevisionValue(initialRevisionResponse);
+    assert(initialRevision, "revisao inicial vazia");
+
     console.log("[test:designacao] instrutor cria treino com dias Seg e Qua");
     const createResponse = await requestJson({
       port,
@@ -179,6 +204,22 @@ async function main() {
       : "";
     assert(initialWeekDays === "Seg,Qua", `dias iniciais inesperados: ${initialWeekDays}`);
 
+    const revisionAfterCreateResponse = await requestJson({
+      port,
+      method: "GET",
+      path: "/api/student/workouts/revision",
+      token: studentToken,
+    });
+    assert(
+      revisionAfterCreateResponse.status === 200,
+      `revisao apos criacao falhou (${revisionAfterCreateResponse.status})`
+    );
+    const revisionAfterCreate = getRevisionValue(revisionAfterCreateResponse);
+    assert(
+      revisionAfterCreate && revisionAfterCreate !== initialRevision,
+      "revisao do aluno nao mudou apos criacao do treino"
+    );
+
     console.log("[test:designacao] instrutor atualiza dias para Ter, Qui e Sex");
     const updateResponse = await requestJson({
       port,
@@ -208,51 +249,66 @@ async function main() {
       : "";
     assert(updatedWeekDays === "Ter,Qui,Sex", `dias atualizados inesperados: ${updatedWeekDays}`);
 
-    console.log("[test:designacao] instrutor desativa treino e aluno deixa de ver");
-    const deactivateResponse = await requestJson({
-      port,
-      method: "PATCH",
-      path: `/api/instructor/workouts/${createdWorkoutId}/deactivate`,
-      token: instructorToken,
-    });
-    assert(deactivateResponse.status === 200, `desativacao falhou (${deactivateResponse.status})`);
-
-    const studentListAfterDeactivate = await requestJson({
+    const revisionAfterUpdateResponse = await requestJson({
       port,
       method: "GET",
-      path: "/api/student/workouts",
+      path: "/api/student/workouts/revision",
       token: studentToken,
     });
     assert(
-      studentListAfterDeactivate.status === 200,
-      `listagem do aluno apos desativacao falhou (${studentListAfterDeactivate.status})`
+      revisionAfterUpdateResponse.status === 200,
+      `revisao apos update falhou (${revisionAfterUpdateResponse.status})`
     );
-    const studentWorkoutAfterDeactivate = findWorkoutById(studentListAfterDeactivate, createdWorkoutId);
-    assert(!studentWorkoutAfterDeactivate, "treino desativado ainda aparece para o aluno");
+    const revisionAfterUpdate = getRevisionValue(revisionAfterUpdateResponse);
+    assert(
+      revisionAfterUpdate && revisionAfterUpdate !== revisionAfterCreate,
+      "revisao do aluno nao mudou apos atualizacao do treino"
+    );
 
-    console.log("[test:designacao] removendo treino de teste");
+    console.log("[test:designacao] instrutor remove treino e aluno deixa de ver");
     const deleteResponse = await requestJson({
       port,
       method: "DELETE",
       path: `/api/instructor/workouts/${createdWorkoutId}`,
       token: instructorToken,
     });
-    assert(deleteResponse.status === 200, `exclusao falhou (${deleteResponse.status})`);
+    assert(
+      deleteResponse.status === 200,
+      `exclusao falhou (${deleteResponse.status})`
+    );
+    const studentListAfterDelete = await requestJson({
+      port,
+      method: "GET",
+      path: "/api/student/workouts",
+      token: studentToken,
+    });
+    assert(
+      studentListAfterDelete.status === 200,
+      `listagem do aluno apos exclusao falhou (${studentListAfterDelete.status})`
+    );
+    const studentWorkoutAfterDelete = findWorkoutById(studentListAfterDelete, createdWorkoutId);
+    assert(!studentWorkoutAfterDelete, "treino excluido ainda aparece para o aluno");
     createdWorkoutId = 0;
+
+    const revisionAfterDeleteResponse = await requestJson({
+      port,
+      method: "GET",
+      path: "/api/student/workouts/revision",
+      token: studentToken,
+    });
+    assert(
+      revisionAfterDeleteResponse.status === 200,
+      `revisao apos exclusao falhou (${revisionAfterDeleteResponse.status})`
+    );
+    const revisionAfterDelete = getRevisionValue(revisionAfterDeleteResponse);
+    assert(
+      revisionAfterDelete && revisionAfterDelete !== revisionAfterUpdate,
+      "revisao do aluno nao mudou apos exclusao do treino"
+    );
 
     console.log("[ok] fluxo de designacao validado com sucesso");
   } finally {
     if (createdWorkoutId && port > 0 && instructorToken) {
-      try {
-        await requestJson({
-          port,
-          method: "PATCH",
-          path: `/api/instructor/workouts/${createdWorkoutId}/deactivate`,
-          token: instructorToken,
-        });
-      } catch (_error) {
-        // noop
-      }
       try {
         await requestJson({
           port,

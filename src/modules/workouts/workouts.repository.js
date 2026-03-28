@@ -234,7 +234,7 @@ SET cover_image_url = EXCLUDED.cover_image_url,
 
     const rows = await prisma.$queryRawUnsafe(
       `
-SELECT workout_id, objective, description, week_days
+SELECT workout_id, objective, description, week_days, updated_at
 FROM workout_metadata
 WHERE workout_id = ANY($1::int[])
       `,
@@ -263,6 +263,7 @@ WHERE workout_id = ANY($1::int[])
         objective: normalizeString(row && row.objective),
         description: normalizeString(row && row.description),
         weekDays: normalizeWeekDaysFromMetadata(parsedWeekDays),
+        updatedAt: toIsoDate(row && row.updated_at),
       });
     });
 
@@ -463,6 +464,60 @@ SET objective = EXCLUDED.objective,
     });
 
     return withWorkoutCompatibilityList(workouts);
+  }
+
+  async function getStudentWorkoutsRevision(studentId) {
+    const normalizedStudentId = Number(studentId) || 0;
+    if (!normalizedStudentId) {
+      return {
+        totalCount: 0,
+        activeCount: 0,
+        latestUpdatedAt: null,
+        revision: "0:0:none",
+      };
+    }
+
+    const workouts = await prisma.workout.findMany({
+      where: {
+        studentId: normalizedStudentId,
+      },
+      select: {
+        id: true,
+        isActive: true,
+        updatedAt: true,
+        createdAt: true,
+      },
+      orderBy: [
+        { updatedAt: "desc" },
+        { id: "desc" },
+      ],
+    });
+
+    const totalCount = Array.isArray(workouts) ? workouts.length : 0;
+    const activeCount = (Array.isArray(workouts) ? workouts : []).filter(
+      (workout) => workout && workout.isActive !== false
+    ).length;
+    const metadataById = await listWorkoutMetadataByIds(
+      (Array.isArray(workouts) ? workouts : []).map((workout) => workout && workout.id)
+    );
+    const latestTimestamp = (Array.isArray(workouts) ? workouts : []).reduce((maxTimestamp, workout) => {
+      const workoutTimestamp = new Date(
+        (workout && (workout.updatedAt || workout.createdAt)) || 0
+      ).getTime();
+      const metadata = metadataById.get(Number(workout && workout.id) || 0) || null;
+      const metadataTimestamp = new Date((metadata && metadata.updatedAt) || 0).getTime();
+      const candidateTimestamps = [workoutTimestamp, metadataTimestamp].filter(Number.isFinite);
+      if (!candidateTimestamps.length) return maxTimestamp;
+      return Math.max(maxTimestamp, ...candidateTimestamps);
+    }, 0);
+    const latestUpdatedAt = latestTimestamp ? new Date(latestTimestamp).toISOString() : null;
+
+    return {
+      totalCount,
+      activeCount,
+      latestUpdatedAt,
+      revision: `${totalCount}:${activeCount}:${latestUpdatedAt || "none"}`,
+    };
   }
 
   async function findByInstructorId(instructorId) {
@@ -736,6 +791,7 @@ SET objective = EXCLUDED.objective,
     updateWorkout,
     deleteWorkout,
     findByStudentId,
+    getStudentWorkoutsRevision,
     findByInstructorId,
     listStudentIdsByInstructorId,
     listAll,

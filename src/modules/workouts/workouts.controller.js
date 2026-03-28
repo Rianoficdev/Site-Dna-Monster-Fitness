@@ -28,6 +28,13 @@ function createWorkoutsController({ workoutsService }) {
     return res.status(200).json({ workouts });
   });
 
+  const getStudentWorkoutsRevision = asyncHandler(async (req, res) => {
+    const revision = await workoutsService.getStudentWorkoutsRevision({
+      authUser: req.user,
+    });
+    return res.status(200).json({ revision });
+  });
+
   const updateInstructorWorkout = asyncHandler(async (req, res) => {
     const workout = await workoutsService.updateInstructorWorkout({
       ...req.body,
@@ -207,6 +214,7 @@ function createWorkoutsController({ workoutsService }) {
     createInstructorWorkout,
     listInstructorWorkouts,
     listStudentWorkouts,
+    getStudentWorkoutsRevision,
     updateInstructorWorkout,
     deactivateInstructorWorkout,
     deleteInstructorWorkout,

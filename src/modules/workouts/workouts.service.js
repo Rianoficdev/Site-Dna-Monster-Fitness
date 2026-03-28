@@ -472,10 +472,7 @@ function createWorkoutsService({
       });
     }
 
-    const resolvedIsActive =
-      isActive !== undefined
-        ? normalizeBoolean(isActive, true)
-        : normalizeStatusToActive(status, true);
+    const resolvedIsActive = true;
 
     const workout = await workoutsRepository.createWorkout({
       name: normalizedName,
@@ -569,11 +566,7 @@ function createWorkoutsService({
       payload.studentId = Number(student.id);
     }
     if (weekDays !== undefined) payload.weekDays = normalizeWeekDays(weekDays);
-    if (isActive !== undefined) {
-      payload.isActive = normalizeBoolean(isActive, true);
-    } else if (status !== undefined) {
-      payload.isActive = normalizeStatusToActive(status, currentWorkout.isActive !== false);
-    }
+    if (isActive !== undefined || status !== undefined) payload.isActive = true;
     if (startDate !== undefined) payload.startDate = normalizedStartDate;
     if (endDate !== undefined) payload.endDate = normalizedEndDate;
 
@@ -1087,17 +1080,15 @@ function createWorkoutsService({
       studentId: Number(student.id),
       createdBy: Number(instructor.id),
       originTemplateId: Number(template.id),
-      isActive:
-        isActive !== undefined
-          ? normalizeBoolean(isActive, true)
-          : normalizeStatusToActive(status, true),
+      isActive: true,
       startDate: normalizeDate(startDate, "startDate"),
       endDate: normalizeDate(endDate, "endDate"),
       weekDays: normalizeWeekDays(weekDays),
     });
 
+    let copiedExercises = [];
     try {
-      const copiedExercises = await Promise.all(
+      copiedExercises = await Promise.all(
         templateExercises.map((item) => {
           const libraryExercise =
             libraryExercisesMap.get(normalizeId(item && item.exerciseId)) || null;
@@ -1189,9 +1180,7 @@ function createWorkoutsService({
 
     let workouts = [];
     if (role === "ALUNO") {
-      workouts = (await workoutsRepository
-        .findByStudentId(userId))
-        .filter((workout) => workout && workout.isActive !== false);
+      workouts = await workoutsRepository.findByStudentId(userId);
     } else if (role === "INSTRUTOR") {
       workouts = await workoutsRepository.findByInstructorId(userId);
     } else if (role === "ADMIN_GERAL") {
@@ -1236,11 +1225,28 @@ function createWorkoutsService({
       throw new AppError("Acesso negado para listar treinos do aluno.", 403, "FORBIDDEN");
     }
 
-    const workouts = (await workoutsRepository
-      .findByStudentId(userId))
-      .filter((workout) => workout && workout.isActive !== false);
+    const workouts = await workoutsRepository.findByStudentId(userId);
 
     return sortWorkoutsByCreatedAt(workouts);
+  }
+
+  async function getStudentWorkoutsRevision({ authUser } = {}) {
+    const role = normalizeRole(authUser && authUser.role);
+    const userId = normalizeId(authUser && authUser.id);
+    if (role !== "ALUNO") {
+      throw new AppError("Acesso negado para consultar revisão dos treinos do aluno.", 403, "FORBIDDEN");
+    }
+
+    if (!workoutsRepository || typeof workoutsRepository.getStudentWorkoutsRevision !== "function") {
+      return {
+        totalCount: 0,
+        activeCount: 0,
+        latestUpdatedAt: null,
+        revision: "0:0:none",
+      };
+    }
+
+    return workoutsRepository.getStudentWorkoutsRevision(userId);
   }
 
   async function updateInstructorWorkout({ authUser, workoutId, ...payload }) {
@@ -1261,14 +1267,6 @@ function createWorkoutsService({
 
   async function deleteWorkout({ authUser, workoutId }) {
     const workout = await ensureWorkoutAccess(authUser, workoutId, { forManagement: true });
-
-    if (workout && workout.isActive !== false) {
-      throw new AppError(
-        "Apenas treinos inativos podem ser excluidos.",
-        400,
-        "WORKOUT_MUST_BE_INACTIVE"
-      );
-    }
 
     if (
       exercisesRepository &&
@@ -1315,6 +1313,7 @@ function createWorkoutsService({
     listMyWorkouts,
     listInstructorWorkouts,
     listStudentWorkouts,
+    getStudentWorkoutsRevision,
     listAssignableStudents,
     createWorkoutTemplate,
     updateWorkoutTemplate,
