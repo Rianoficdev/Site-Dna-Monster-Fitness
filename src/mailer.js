@@ -41,7 +41,7 @@ async function sendSupportNotification({
   const resendApiKey = String(process.env.RESEND_API_KEY || "").trim();
   const adminEmail = String(process.env.ADMIN_EMAIL || "").trim();
   const fromEmail = String(
-    process.env.RESEND_FROM_EMAIL || process.env.MAIL_FROM_EMAIL || adminEmail
+    process.env.RESEND_FROM_EMAIL || process.env.MAIL_FROM_EMAIL || "onboarding@resend.dev"
   ).trim();
 
   if (!resendApiKey || !adminEmail) {
