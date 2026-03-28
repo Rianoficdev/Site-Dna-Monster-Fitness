@@ -1,4 +1,5 @@
 const { asyncHandler } = require("../../utils/asyncHandler");
+const { sendSupportNotification } = require("../../mailer");
 
 function createSupportController({ supportService }) {
   const createPublicTicket = asyncHandler(async (req, res) => {
@@ -19,6 +20,17 @@ function createSupportController({ supportService }) {
       authUser: req.user,
       ...req.body,
     });
+
+    try {
+      await sendSupportNotification({
+        studentName: ticket && ticket.requesterName,
+        subject: ticket && ticket.subject,
+        message: ticket && ticket.description,
+        createdAt: ticket && ticket.createdAt,
+      });
+    } catch (mailError) {
+      console.error("Falha ao enviar e-mail de suporte:", mailError);
+    }
 
     return res.status(201).json({
       message: "Solicitação enviada para o suporte com sucesso.",
