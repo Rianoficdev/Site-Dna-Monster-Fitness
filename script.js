@@ -7702,6 +7702,75 @@ const getAdminOverviewWorkoutById = (workoutId) => {
   return adminOverviewState.workouts.find((item) => Number(item && item.id) === safeId) || null;
 };
 
+const syncAdminOverviewWorkoutStatsLocally = () => {
+  if (!adminOverviewState.stats || typeof adminOverviewState.stats !== 'object') return;
+  const workouts = Array.isArray(adminOverviewState.workouts) ? adminOverviewState.workouts : [];
+  const inactiveCount = workouts.filter((workout) => isWorkoutInactive(workout)).length;
+  adminOverviewState.stats = {
+    ...adminOverviewState.stats,
+    totalWorkouts: workouts.length,
+    totalWorkoutsInativos: inactiveCount,
+    totalWorkoutsAtivos: Math.max(0, workouts.length - inactiveCount)
+  };
+};
+
+const replaceAdminOverviewWorkoutLocally = (workoutLike) => {
+  const workoutId = Number(workoutLike && workoutLike.id) || 0;
+  if (!workoutId) return 0;
+
+  const currentWorkouts = Array.isArray(adminOverviewState.workouts)
+    ? adminOverviewState.workouts.slice()
+    : [];
+  const existingIndex = currentWorkouts.findIndex(
+    (item) => Number(item && item.id) === workoutId
+  );
+  const nextWorkout = { ...(workoutLike || {}), id: workoutId };
+
+  if (existingIndex >= 0) {
+    currentWorkouts[existingIndex] = {
+      ...currentWorkouts[existingIndex],
+      ...nextWorkout
+    };
+  } else {
+    currentWorkouts.push(nextWorkout);
+  }
+
+  currentWorkouts.sort(
+    (first, second) => (Number(first && first.id) || 0) - (Number(second && second.id) || 0)
+  );
+  adminOverviewState.workouts = currentWorkouts;
+  syncAdminOverviewWorkoutStatsLocally();
+  if (adminOverviewState.loaded && !adminOverviewState.loading) {
+    renderAdminOverviewPanel();
+  }
+  return workoutId;
+};
+
+const updateAdminOverviewWorkoutLocally = (workoutId, patch = {}) => {
+  const normalizedWorkoutId = Number(workoutId) || 0;
+  if (!normalizedWorkoutId) return 0;
+  const currentWorkout = getAdminOverviewWorkoutById(normalizedWorkoutId) || { id: normalizedWorkoutId };
+  return replaceAdminOverviewWorkoutLocally({
+    ...currentWorkout,
+    ...patch,
+    id: normalizedWorkoutId
+  });
+};
+
+const removeAdminOverviewWorkoutLocally = (workoutId) => {
+  const normalizedWorkoutId = Number(workoutId) || 0;
+  if (!normalizedWorkoutId) return;
+
+  adminOverviewState.workouts = (Array.isArray(adminOverviewState.workouts)
+    ? adminOverviewState.workouts
+    : []
+  ).filter((item) => Number(item && item.id) !== normalizedWorkoutId);
+  syncAdminOverviewWorkoutStatsLocally();
+  if (adminOverviewState.loaded && !adminOverviewState.loading) {
+    renderAdminOverviewPanel();
+  }
+};
+
 const getAdminExerciseEditGroupKeys = (exercise = null) => {
   const groupKeysSet = new Set(Object.keys(LIBRARY_GROUP_LABELS));
   groupKeysSet.add('geral');
@@ -10360,12 +10429,9 @@ const resolveCreatedWorkoutIdFromResponse = (response) => {
   return 0;
 };
 
-const upsertTrainerAssignedWorkoutLocally = (response) => {
-  const workout = response && response.workout && typeof response.workout === 'object'
-    ? response.workout
-    : null;
-  const workoutId = resolveCreatedWorkoutIdFromResponse(response);
-  if (!workoutId) return;
+const replaceTrainerWorkoutLocally = (workoutLike) => {
+  const workoutId = Number(workoutLike && workoutLike.id) || 0;
+  if (!workoutId) return 0;
 
   const currentWorkouts = Array.isArray(trainerManagementState.workouts)
     ? trainerManagementState.workouts.slice()
@@ -10373,7 +10439,7 @@ const upsertTrainerAssignedWorkoutLocally = (response) => {
   const existingIndex = currentWorkouts.findIndex(
     (item) => Number(item && item.id) === workoutId
   );
-  const nextWorkout = workout ? { ...workout } : { id: workoutId };
+  const nextWorkout = { ...(workoutLike || {}), id: workoutId };
 
   if (existingIndex >= 0) {
     currentWorkouts[existingIndex] = {
@@ -10388,19 +10454,247 @@ const upsertTrainerAssignedWorkoutLocally = (response) => {
     (first, second) => (Number(first && first.id) || 0) - (Number(second && second.id) || 0)
   );
   trainerManagementState.workouts = currentWorkouts;
+  replaceAdminOverviewWorkoutLocally(nextWorkout);
+  return workoutId;
+};
+
+const updateTrainerWorkoutLocally = (workoutId, patch = {}) => {
+  const normalizedWorkoutId = Number(workoutId) || 0;
+  if (!normalizedWorkoutId) return 0;
+  const currentWorkout = getTrainerWorkoutById(normalizedWorkoutId) || { id: normalizedWorkoutId };
+  return replaceTrainerWorkoutLocally({
+    ...currentWorkout,
+    ...patch,
+    id: normalizedWorkoutId
+  });
+};
+
+const removeTrainerWorkoutLocally = (workoutId) => {
+  const normalizedWorkoutId = Number(workoutId) || 0;
+  if (!normalizedWorkoutId) return;
+
+  trainerManagementState.workouts = (Array.isArray(trainerManagementState.workouts)
+    ? trainerManagementState.workouts
+    : []
+  ).filter((item) => Number(item && item.id) !== normalizedWorkoutId);
+
+  if (trainerManagementState.exercisesByWorkoutId && typeof trainerManagementState.exercisesByWorkoutId === 'object') {
+    delete trainerManagementState.exercisesByWorkoutId[String(normalizedWorkoutId)];
+  }
+
+  trainerManagedWorkoutExpandedIds.delete(normalizedWorkoutId);
+  trainerHiddenWorkoutIds.delete(normalizedWorkoutId);
+  removeAdminOverviewWorkoutLocally(normalizedWorkoutId);
+};
+
+const replaceTrainerTemplateLocally = (templateLike) => {
+  const templateId = Number(templateLike && templateLike.id) || 0;
+  if (!templateId) return 0;
+
+  const currentTemplates = Array.isArray(trainerManagementState.templates)
+    ? trainerManagementState.templates.slice()
+    : [];
+  const existingIndex = currentTemplates.findIndex(
+    (item) => Number(item && item.id) === templateId
+  );
+  const nextTemplate = { ...(templateLike || {}), id: templateId };
+
+  if (existingIndex >= 0) {
+    currentTemplates[existingIndex] = {
+      ...currentTemplates[existingIndex],
+      ...nextTemplate
+    };
+  } else {
+    currentTemplates.push(nextTemplate);
+  }
+
+  trainerManagementState.templates = currentTemplates;
+  return templateId;
+};
+
+const updateTrainerTemplateLocally = (templateId, patch = {}) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  if (!normalizedTemplateId) return 0;
+  const currentTemplate = getTrainerTemplateById(normalizedTemplateId) || { id: normalizedTemplateId };
+  return replaceTrainerTemplateLocally({
+    ...currentTemplate,
+    ...patch,
+    id: normalizedTemplateId
+  });
+};
+
+const removeTrainerTemplateLocally = (templateId) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  if (!normalizedTemplateId) return;
+
+  trainerManagementState.templates = (Array.isArray(trainerManagementState.templates)
+    ? trainerManagementState.templates
+    : []
+  ).filter((item) => Number(item && item.id) !== normalizedTemplateId);
+
+  if (
+    trainerManagementState.templateExercisesByTemplateId &&
+    typeof trainerManagementState.templateExercisesByTemplateId === 'object'
+  ) {
+    delete trainerManagementState.templateExercisesByTemplateId[String(normalizedTemplateId)];
+  }
+};
+
+const sortTrainerExercisesLocally = (exercises) => (Array.isArray(exercises) ? exercises : [])
+  .slice()
+  .sort((first, second) => {
+    const firstOrder = Number(first && first.order) || 0;
+    const secondOrder = Number(second && second.order) || 0;
+    if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+    return (Number(first && first.id) || 0) - (Number(second && second.id) || 0);
+  });
+
+const replaceTrainerWorkoutExercisesLocally = (workoutId, exercises = []) => {
+  const normalizedWorkoutId = Number(workoutId) || 0;
+  if (!normalizedWorkoutId) return [];
+  if (!trainerManagementState.exercisesByWorkoutId || typeof trainerManagementState.exercisesByWorkoutId !== 'object') {
+    trainerManagementState.exercisesByWorkoutId = {};
+  }
+  const nextExercises = sortTrainerExercisesLocally(exercises);
+  trainerManagementState.exercisesByWorkoutId[String(normalizedWorkoutId)] = nextExercises;
+  return nextExercises;
+};
+
+const upsertTrainerWorkoutExerciseLocally = (workoutId, exerciseLike) => {
+  const normalizedWorkoutId = Number(workoutId) || 0;
+  const normalizedExerciseId = Number(exerciseLike && exerciseLike.id) || 0;
+  if (!normalizedWorkoutId || !normalizedExerciseId) return 0;
+
+  const workoutKey = String(normalizedWorkoutId);
+  const currentExercises = Array.isArray(trainerManagementState.exercisesByWorkoutId[workoutKey])
+    ? trainerManagementState.exercisesByWorkoutId[workoutKey].slice()
+    : [];
+  const existingIndex = currentExercises.findIndex(
+    (exercise) => Number(exercise && exercise.id) === normalizedExerciseId
+  );
+  const nextExercise = { ...(exerciseLike || {}), id: normalizedExerciseId };
+
+  if (existingIndex >= 0) {
+    currentExercises[existingIndex] = {
+      ...currentExercises[existingIndex],
+      ...nextExercise
+    };
+  } else {
+    currentExercises.push(nextExercise);
+  }
+
+  replaceTrainerWorkoutExercisesLocally(normalizedWorkoutId, currentExercises);
+  return normalizedExerciseId;
+};
+
+const removeTrainerWorkoutExerciseLocally = (workoutId, workoutExerciseId) => {
+  const normalizedWorkoutId = Number(workoutId) || 0;
+  const normalizedWorkoutExerciseId = Number(workoutExerciseId) || 0;
+  if (!normalizedWorkoutId || !normalizedWorkoutExerciseId) return;
+
+  const workoutKey = String(normalizedWorkoutId);
+  const currentExercises = Array.isArray(trainerManagementState.exercisesByWorkoutId[workoutKey])
+    ? trainerManagementState.exercisesByWorkoutId[workoutKey]
+    : [];
+  trainerManagementState.exercisesByWorkoutId[workoutKey] = currentExercises.filter(
+    (exercise) => Number(exercise && exercise.id) !== normalizedWorkoutExerciseId
+  );
+};
+
+const replaceTrainerTemplateExercisesLocally = (templateId, exercises = []) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  if (!normalizedTemplateId) return [];
+  if (
+    !trainerManagementState.templateExercisesByTemplateId ||
+    typeof trainerManagementState.templateExercisesByTemplateId !== 'object'
+  ) {
+    trainerManagementState.templateExercisesByTemplateId = {};
+  }
+  const nextExercises = sortTrainerExercisesLocally(exercises);
+  trainerManagementState.templateExercisesByTemplateId[String(normalizedTemplateId)] = nextExercises;
+  return nextExercises;
+};
+
+const upsertTrainerTemplateExerciseLocally = (templateId, exerciseLike) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  const normalizedExerciseId = Number(exerciseLike && exerciseLike.id) || 0;
+  if (!normalizedTemplateId || !normalizedExerciseId) return 0;
+
+  const templateKey = String(normalizedTemplateId);
+  const currentExercises = Array.isArray(trainerManagementState.templateExercisesByTemplateId[templateKey])
+    ? trainerManagementState.templateExercisesByTemplateId[templateKey].slice()
+    : [];
+  const existingIndex = currentExercises.findIndex(
+    (exercise) => Number(exercise && exercise.id) === normalizedExerciseId
+  );
+  const nextExercise = { ...(exerciseLike || {}), id: normalizedExerciseId };
+
+  if (existingIndex >= 0) {
+    currentExercises[existingIndex] = {
+      ...currentExercises[existingIndex],
+      ...nextExercise
+    };
+  } else {
+    currentExercises.push(nextExercise);
+  }
+
+  replaceTrainerTemplateExercisesLocally(normalizedTemplateId, currentExercises);
+  return normalizedExerciseId;
+};
+
+const removeTrainerTemplateExerciseLocally = (templateId, templateExerciseId) => {
+  const normalizedTemplateId = Number(templateId) || 0;
+  const normalizedTemplateExerciseId = Number(templateExerciseId) || 0;
+  if (!normalizedTemplateId || !normalizedTemplateExerciseId) return;
+
+  const templateKey = String(normalizedTemplateId);
+  const currentExercises = Array.isArray(trainerManagementState.templateExercisesByTemplateId[templateKey])
+    ? trainerManagementState.templateExercisesByTemplateId[templateKey]
+    : [];
+  trainerManagementState.templateExercisesByTemplateId[templateKey] = currentExercises.filter(
+    (exercise) => Number(exercise && exercise.id) !== normalizedTemplateExerciseId
+  );
+};
+
+const upsertTrainerAssignedWorkoutLocally = (response) => {
+  const workout = response && response.workout && typeof response.workout === 'object'
+    ? response.workout
+    : null;
+  const workoutId = resolveCreatedWorkoutIdFromResponse(response);
+  if (!workoutId) return;
+
+  if (workout) {
+    replaceTrainerWorkoutLocally(workout);
+  } else {
+    updateTrainerWorkoutLocally(workoutId);
+  }
 
   if (!trainerManagementState.exercisesByWorkoutId || typeof trainerManagementState.exercisesByWorkoutId !== 'object') {
     trainerManagementState.exercisesByWorkoutId = {};
   }
 
   const exercises = Array.isArray(response && response.exercises)
-    ? response.exercises
-      .slice()
-      .sort((first, second) => (Number(first && first.order) || 0) - (Number(second && second.order) || 0))
+    ? sortTrainerExercisesLocally(response.exercises)
     : [];
   if (exercises.length) {
-    trainerManagementState.exercisesByWorkoutId[String(workoutId)] = exercises;
+    replaceTrainerWorkoutExercisesLocally(workoutId, exercises);
   }
+};
+
+const refreshTrainerDataInBackground = ({
+  includeManagement = true,
+  includeProgress = true,
+  includeStudentWorkouts = true,
+  includeAdminOverview = false
+} = {}) => {
+  void (async () => {
+    const refreshTasks = [];
+    if (includeManagement) refreshTasks.push(loadTrainerManagementData(true));
+    if (includeProgress) refreshTasks.push(loadTrainerProgressData(true));
+    if (includeStudentWorkouts) refreshTasks.push(syncWorkoutsFromBackend({ silent: true }));
+    if (includeAdminOverview) refreshTasks.push(fetchAdminOverview(true));
+    await Promise.allSettled(refreshTasks);
+  })();
 };
 
 const findTrainerWorkoutIdByTitle = (title, { studentId = 0 } = {}) => {
@@ -11270,15 +11564,14 @@ const handleTrainerWorkoutModalLibraryActions = async (event) => {
         );
 
       if (isTemplateMode) {
+        removeTrainerTemplateExerciseLocally(templateId, exerciseActionId);
         buildTrainerTemplatePreviewWorkout(templateId);
       } else {
         trainerExerciseTargetWorkoutId = workoutId;
+        removeTrainerWorkoutExerciseLocally(workoutId, exerciseActionId);
       }
-      await loadTrainerManagementData(true);
-      await syncWorkoutsFromBackend({ silent: true });
-      if (!isTemplateMode) await loadTrainerProgressData(true);
-      if (isGeneralAdminUser()) await fetchAdminOverview(true);
-      if (isTemplateMode) buildTrainerTemplatePreviewWorkout(templateId);
+      renderTrainerManagementPanel();
+      if (!isTemplateMode) renderTrainerProgressPanel();
       renderTrainerWorkoutModalLibraryGuide();
 
       const successMessage = (response && response.message) || (
@@ -11287,6 +11580,12 @@ const handleTrainerWorkoutModalLibraryActions = async (event) => {
       setTrainerWorkoutModalFeedback(successMessage, true);
       setTrainerManagementFeedback(successMessage, true);
       setTrainerExerciseFeedback(successMessage, true);
+      refreshTrainerDataInBackground({
+        includeManagement: true,
+        includeProgress: !isTemplateMode,
+        includeStudentWorkouts: true,
+        includeAdminOverview: isGeneralAdminUser()
+      });
     } catch (error) {
       removeButton.disabled = false;
       const errorMessage = error && error.message
@@ -11408,30 +11707,25 @@ const handleTrainerWorkoutModalLibraryActions = async (event) => {
         }
       });
 
-    if (!isTemplateMode) {
+    if (isTemplateMode) {
+      const templateExercise = response && response.templateExercise ? response.templateExercise : null;
+      if (templateExercise) {
+        upsertTrainerTemplateExerciseLocally(templateId, {
+          ...templateExercise,
+          exercise: templateExercise.exercise || libraryExercise || null
+        });
+      }
+      buildTrainerTemplatePreviewWorkout(templateId);
+    } else {
       const createdExercise = response && response.exercise ? response.exercise : null;
       if (createdExercise) {
-        const workoutKey = String(workoutId);
-        const currentExercises = Array.isArray(trainerManagementState.exercisesByWorkoutId[workoutKey])
-          ? trainerManagementState.exercisesByWorkoutId[workoutKey].slice()
-          : [];
-        currentExercises.push(createdExercise);
-        currentExercises.sort((first, second) => {
-          const firstOrder = Number(first && first.order) || 0;
-          const secondOrder = Number(second && second.order) || 0;
-          if (firstOrder !== secondOrder) return firstOrder - secondOrder;
-          return (Number(first && first.id) || 0) - (Number(second && second.id) || 0);
-        });
-        trainerManagementState.exercisesByWorkoutId[workoutKey] = currentExercises;
+        upsertTrainerWorkoutExerciseLocally(workoutId, createdExercise);
       }
       trainerExerciseTargetWorkoutId = workoutId;
     }
 
-    await loadTrainerManagementData(true);
-    if (!isTemplateMode) await loadTrainerProgressData(true);
-    await syncWorkoutsFromBackend({ silent: true });
-    if (isGeneralAdminUser()) await fetchAdminOverview(true);
-    if (isTemplateMode) buildTrainerTemplatePreviewWorkout(templateId);
+    renderTrainerManagementPanel();
+    if (!isTemplateMode) renderTrainerProgressPanel();
 
     const successMessage = (response && response.message) || (
       isTemplateMode
@@ -11442,6 +11736,12 @@ const handleTrainerWorkoutModalLibraryActions = async (event) => {
     setTrainerManagementFeedback(successMessage, true);
     setTrainerExerciseFeedback(successMessage, true);
     renderTrainerWorkoutModalLibraryGuide();
+    refreshTrainerDataInBackground({
+      includeManagement: true,
+      includeProgress: !isTemplateMode,
+      includeStudentWorkouts: true,
+      includeAdminOverview: isGeneralAdminUser()
+    });
   } catch (error) {
     addButton.disabled = false;
     addButton.textContent = initialButtonLabel;
@@ -12934,19 +13234,54 @@ async function handleTrainerWorkoutCoverSave({
   setTrainerWorkoutCoverFeedback('Enviando capa do treino...', false);
 
   try {
+    let persistedCoverUrl = '';
     if (targetWorkoutIds.length) {
-      await persistTrainerWorkoutCoverForWorkoutIds(targetWorkoutIds, trainerWorkoutPendingCoverFile);
+      persistedCoverUrl = await persistTrainerWorkoutCoverForWorkoutIds(
+        targetWorkoutIds,
+        trainerWorkoutPendingCoverFile
+      );
+      targetWorkoutIds.forEach((workoutId) => {
+        updateTrainerWorkoutLocally(workoutId, {
+          coverImageUrl: persistedCoverUrl,
+          cover_image_url: persistedCoverUrl,
+          coverUrl: persistedCoverUrl,
+          cover_url: persistedCoverUrl
+        });
+      });
     } else {
-      await persistTrainerWorkoutCoverForTemplateId(targetTemplateId, trainerWorkoutPendingCoverFile);
+      persistedCoverUrl = await persistTrainerWorkoutCoverForTemplateId(
+        targetTemplateId,
+        trainerWorkoutPendingCoverFile
+      );
+      updateTrainerTemplateLocally(targetTemplateId, {
+        coverImageUrl: persistedCoverUrl,
+        cover_image_url: persistedCoverUrl,
+        coverUrl: persistedCoverUrl,
+        cover_url: persistedCoverUrl
+      });
+      getTrainerWorkoutIdsByTemplateId(targetTemplateId).forEach((workoutId) => {
+        updateTrainerWorkoutLocally(workoutId, {
+          coverImageUrl: persistedCoverUrl,
+          cover_image_url: persistedCoverUrl,
+          coverUrl: persistedCoverUrl,
+          cover_url: persistedCoverUrl
+        });
+      });
+      buildTrainerTemplatePreviewWorkout(targetTemplateId);
     }
     trainerWorkoutPendingCoverFile = null;
     if (trainerWorkoutCoverFileInput) trainerWorkoutCoverFileInput.value = '';
     updateTrainerWorkoutCoverPreview(null);
-    await loadTrainerManagementData(true);
-    await syncWorkoutsFromBackend({ silent: true });
-    if (isGeneralAdminUser()) await fetchAdminOverview(true);
+    renderTrainerManagementPanel();
+    renderTrainerWorkoutCoverBuilder();
     setTrainerWorkoutCoverFeedback(successMessage, true);
     setTrainerManagementFeedback(successMessage, true);
+    refreshTrainerDataInBackground({
+      includeManagement: true,
+      includeProgress: false,
+      includeStudentWorkouts: true,
+      includeAdminOverview: isGeneralAdminUser()
+    });
     return true;
   } catch (error) {
     const errorMessage = error && error.message
@@ -16953,10 +17288,15 @@ const handleTrainerTemplateWorkoutSubmit = async (event) => {
     }
 
     if (trainerTemplateWorkoutForm) trainerTemplateWorkoutForm.reset();
-    await loadTrainerManagementData(true);
-    await loadTrainerProgressData(true);
-    await syncWorkoutsFromBackend({ silent: true });
-    if (isGeneralAdminUser()) await fetchAdminOverview(true);
+    upsertTrainerAssignedWorkoutLocally(response);
+    if (createdWorkoutId) {
+      replaceTrainerWorkoutExercisesLocally(
+        createdWorkoutId,
+        Array.isArray(response && response.exercises) ? response.exercises : []
+      );
+    }
+    renderTrainerManagementPanel();
+    renderTrainerProgressPanel();
 
     if (createdWorkoutId) {
       unhideTrainerWorkoutById(createdWorkoutId);
@@ -16971,6 +17311,12 @@ const handleTrainerTemplateWorkoutSubmit = async (event) => {
         : (response && response.message) || 'Treino criado por modelo com sucesso.',
       true
     );
+    refreshTrainerDataInBackground({
+      includeManagement: true,
+      includeProgress: true,
+      includeStudentWorkouts: true,
+      includeAdminOverview: isGeneralAdminUser()
+    });
   } catch (error) {
     setTrainerManagementFeedback(
       error && error.message ? error.message : 'Falha ao criar treino por modelo.',
@@ -17025,7 +17371,17 @@ const handleTrainerTemplateFormSubmit = async (event) => {
     if (trainerTemplateForm) trainerTemplateForm.reset();
     if (trainerTemplateFormActiveSelect) trainerTemplateFormActiveSelect.value = 'true';
 
-    await loadTrainerManagementData(true);
+    if (response && response.template) {
+      replaceTrainerTemplateLocally(response.template);
+    } else if (createdTemplateId) {
+      replaceTrainerTemplateLocally({
+        id: createdTemplateId,
+        name,
+        description,
+        isActive
+      });
+    }
+    renderTrainerManagementPanel();
     if (createdTemplateId) {
       trainerTemplateExerciseSelectedId = String(createdTemplateId);
       trainerExerciseComposerSelectedId = String(createdTemplateId);
@@ -17040,6 +17396,7 @@ const handleTrainerTemplateFormSubmit = async (event) => {
       isTrainerExerciseComposerOpen = true;
       syncTrainerExerciseComposerUi({ scroll: true, focus: false });
       setTrainerExerciseFeedback('Treino criado. Agora adicione os exercícios.', true);
+      buildTrainerTemplatePreviewWorkout(createdTemplateId);
     }
     setTrainerManagementFeedback(
       coverAutoApplied
@@ -17047,6 +17404,12 @@ const handleTrainerTemplateFormSubmit = async (event) => {
         : 'Treino criado com sucesso.',
       true
     );
+    refreshTrainerDataInBackground({
+      includeManagement: true,
+      includeProgress: false,
+      includeStudentWorkouts: false,
+      includeAdminOverview: false
+    });
   } catch (error) {
     setTrainerManagementFeedback(
       error && error.message ? error.message : 'Falha ao criar treino.',
@@ -17103,7 +17466,12 @@ const handleTrainerTemplateEditorSubmit = async (event) => {
     trainerTemplateEditorSelectedId = String(templateId);
     trainerTemplateExerciseSelectedId = String(templateId);
     trainerExerciseComposerSelectedId = String(templateId);
-    await loadTrainerManagementData(true);
+    if (response && response.template) {
+      replaceTrainerTemplateLocally(response.template);
+    } else {
+      updateTrainerTemplateLocally(templateId, body);
+    }
+    renderTrainerManagementPanel();
 
     if (trainerTemplateExercisesFilterSelect) {
       trainerTemplateExercisesFilterSelect.value = String(templateId);
@@ -17116,6 +17484,12 @@ const handleTrainerTemplateEditorSubmit = async (event) => {
       (response && response.message) || 'Template atualizado com sucesso.',
       true
     );
+    refreshTrainerDataInBackground({
+      includeManagement: true,
+      includeProgress: false,
+      includeStudentWorkouts: false,
+      includeAdminOverview: false
+    });
   } catch (error) {
     setTrainerManagementFeedback(
       error && error.message ? error.message : 'Falha ao atualizar template.',
@@ -17169,7 +17543,17 @@ const handleTrainerTemplateExerciseSubmit = async (event) => {
     trainerTemplateExerciseSelectedId = String(templateId);
     trainerExerciseComposerSelectedId = String(templateId);
     trainerExerciseTargetWorkoutId = 0;
-    await loadTrainerManagementData(true);
+    if (response && response.templateExercise) {
+      const linkedExercise =
+        (Array.isArray(trainerManagementState.library) ? trainerManagementState.library : [])
+          .find((exercise) => Number(exercise && exercise.id) === exerciseId) || null;
+      upsertTrainerTemplateExerciseLocally(templateId, {
+        ...response.templateExercise,
+        exercise: response.templateExercise.exercise || linkedExercise || null
+      });
+    }
+    buildTrainerTemplatePreviewWorkout(templateId);
+    renderTrainerManagementPanel();
 
     if (trainerTemplateExerciseTemplateSelect) {
       trainerTemplateExerciseTemplateSelect.value = String(templateId);
@@ -17191,6 +17575,12 @@ const handleTrainerTemplateExerciseSubmit = async (event) => {
       (response && response.message) || 'Exercício vinculado ao template com sucesso.',
       true
     );
+    refreshTrainerDataInBackground({
+      includeManagement: true,
+      includeProgress: false,
+      includeStudentWorkouts: false,
+      includeAdminOverview: false
+    });
   } catch (error) {
     setTrainerManagementFeedback(
       error && error.message ? error.message : 'Falha ao vincular exercício ao template.',
@@ -17597,6 +17987,7 @@ const handleTrainerExerciseSubmit = async (event) => {
     }, 0) + 1;
     let successMessage = 'Exercício adicionado ao treino com sucesso.';
     let isPartialSave = false;
+    const savedTemplateExercises = [];
 
     if (hasPendingQueue) {
       const pendingFailures = [];
@@ -17637,7 +18028,7 @@ const handleTrainerExerciseSubmit = async (event) => {
         );
 
         try {
-          await requestStudentApi(
+          const response = await requestStudentApi(
             `/workouts/templates/${encodeURIComponent(String(templateId))}/exercises`,
             {
               method: 'POST',
@@ -17651,6 +18042,12 @@ const handleTrainerExerciseSubmit = async (event) => {
               }
             }
           );
+          if (response && response.templateExercise) {
+            savedTemplateExercises.push({
+              ...response.templateExercise,
+              exercise: response.templateExercise.exercise || libraryExercise || null
+            });
+          }
           savedCount += 1;
           nextOrder += 1;
         } catch (error) {
@@ -17702,6 +18099,12 @@ const handleTrainerExerciseSubmit = async (event) => {
         }
       );
 
+      if (response && response.templateExercise) {
+        savedTemplateExercises.push({
+          ...response.templateExercise,
+          exercise: response.templateExercise.exercise || selectedLibraryExercise || null
+        });
+      }
       successMessage = (response && response.message) || 'Exercício adicionado ao treino com sucesso.';
     }
 
@@ -17735,7 +18138,11 @@ const handleTrainerExerciseSubmit = async (event) => {
         successMessage: 'Capa da nomeclatura salva com sucesso.'
       });
     }
-    await loadTrainerManagementData(true);
+    savedTemplateExercises.forEach((templateExercise) => {
+      upsertTrainerTemplateExerciseLocally(templateId, templateExercise);
+    });
+    buildTrainerTemplatePreviewWorkout(templateId);
+    renderTrainerManagementPanel();
     isTrainerExerciseComposerOpen = true;
     syncTrainerExerciseComposerUi();
 
@@ -17745,6 +18152,12 @@ const handleTrainerExerciseSubmit = async (event) => {
     setTrainerManagementFeedback(finalSuccessMessage, !isPartialSave);
     setTrainerExerciseFeedback(finalSuccessMessage, !isPartialSave);
     renderTrainerExerciseLibraryPicker();
+    refreshTrainerDataInBackground({
+      includeManagement: true,
+      includeProgress: false,
+      includeStudentWorkouts: false,
+      includeAdminOverview: false
+    });
   } catch (error) {
     const errorMessage = error && error.message ? error.message : 'Falha ao adicionar exercício ao treino.';
     setTrainerManagementFeedback(errorMessage, false);
@@ -17830,6 +18243,14 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
       const linkedWorkoutIds = getTrainerWorkoutIdsByTemplateId(templateId);
       if (linkedWorkoutIds.length) {
         await applyTrainerWorkoutCoverUrlToWorkoutIds(linkedWorkoutIds, uploadedCoverUrl);
+        linkedWorkoutIds.forEach((linkedWorkoutId) => {
+          updateTrainerWorkoutLocally(linkedWorkoutId, {
+            coverImageUrl: uploadedCoverUrl,
+            cover_image_url: uploadedCoverUrl,
+            coverUrl: uploadedCoverUrl,
+            cover_url: uploadedCoverUrl
+          });
+        });
       }
     }
 
@@ -17837,13 +18258,43 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
       trainerTemplateEditorSelectedId = String(templateId);
       trainerTemplateExerciseSelectedId = String(templateId);
       trainerExerciseComposerSelectedId = String(templateId);
+      if (response && response.template) {
+        replaceTrainerTemplateLocally(response.template);
+      } else {
+        updateTrainerTemplateLocally(templateId, {
+          name: title,
+          title,
+          isActive: status === 'ATIVO',
+          ...(uploadedCoverUrl ? {
+            coverImageUrl: uploadedCoverUrl,
+            cover_image_url: uploadedCoverUrl,
+            coverUrl: uploadedCoverUrl,
+            cover_url: uploadedCoverUrl
+          } : {})
+        });
+      }
     } else {
       trainerExerciseTargetWorkoutId = workoutId;
+      if (response && response.workout) {
+        replaceTrainerWorkoutLocally(response.workout);
+      } else {
+        updateTrainerWorkoutLocally(workoutId, {
+          name: title,
+          title,
+          objective,
+          status,
+          isActive: true,
+          ...(uploadedCoverUrl ? {
+            coverImageUrl: uploadedCoverUrl,
+            cover_image_url: uploadedCoverUrl,
+            coverUrl: uploadedCoverUrl,
+            cover_url: uploadedCoverUrl
+          } : {})
+        });
+      }
     }
-    await loadTrainerManagementData(true);
-    if (!isTemplateMode) await loadTrainerProgressData(true);
-    await syncWorkoutsFromBackend({ silent: true });
-    if (isGeneralAdminUser()) await fetchAdminOverview(true);
+    renderTrainerManagementPanel();
+    if (!isTemplateMode) renderTrainerProgressPanel();
     if (isTemplateMode) buildTrainerTemplatePreviewWorkout(templateId);
 
     const successMessage = `${(response && response.message) || (
@@ -17857,6 +18308,12 @@ const handleTrainerWorkoutModalSubmit = async (event) => {
       setTrainerWorkoutModalCoverFeedback('Capa atualizada com sucesso.', true);
     }
     closeTrainerWorkoutModal({ keepFocus: true, force: true });
+    refreshTrainerDataInBackground({
+      includeManagement: true,
+      includeProgress: !isTemplateMode,
+      includeStudentWorkouts: true,
+      includeAdminOverview: isGeneralAdminUser()
+    });
   } catch (error) {
     const errorMessage = error && error.message
       ? error.message
@@ -17937,6 +18394,7 @@ const handleTrainerWorkoutExerciseModalSubmit = async (event) => {
   );
 
   try {
+    const currentExercise = getTrainerWorkoutExerciseById({ workoutId, workoutExerciseId });
     const response = isTemplateMode
       ? await requestWorkoutTemplateExerciseUpdate({
         templateId,
@@ -17964,14 +18422,49 @@ const handleTrainerWorkoutExerciseModalSubmit = async (event) => {
 
     if (!isTemplateMode) {
       trainerExerciseTargetWorkoutId = workoutId;
+      upsertTrainerWorkoutExerciseLocally(
+        workoutId,
+        (response && response.exercise) || {
+          ...(currentExercise || {}),
+          id: workoutExerciseId,
+          series,
+          repetitions,
+          reps: repetitions,
+          loadKg,
+          load: loadKg,
+          restSeconds,
+          restTime: restSeconds,
+          observation,
+          observacao: observation
+        }
+      );
     } else {
       trainerTemplateExerciseSelectedId = String(templateId);
       trainerExerciseComposerSelectedId = String(templateId);
+      upsertTrainerTemplateExerciseLocally(
+        templateId,
+        (response && response.templateExercise)
+          ? {
+            ...response.templateExercise,
+            exercise: response.templateExercise.exercise || (currentExercise && currentExercise.exercise) || null
+          }
+          : {
+            ...(currentExercise || {}),
+            id: templateExerciseId,
+            templateId,
+            series,
+            repetitions,
+            reps: repetitions,
+            defaultLoad: loadKg,
+            loadKg,
+            restTime: restSeconds,
+            restSeconds
+          }
+      );
+      buildTrainerTemplatePreviewWorkout(templateId);
     }
-    await loadTrainerManagementData(true);
-    if (isTemplateMode) buildTrainerTemplatePreviewWorkout(templateId);
-    await syncWorkoutsFromBackend({ silent: true });
-    if (isGeneralAdminUser()) await fetchAdminOverview(true);
+    renderTrainerManagementPanel();
+    if (!isTemplateMode) renderTrainerProgressPanel();
     renderTrainerWorkoutModalLibraryGuide();
 
     setTrainerManagementFeedback(
@@ -17991,6 +18484,12 @@ const handleTrainerWorkoutExerciseModalSubmit = async (event) => {
       true
     );
     closeTrainerWorkoutExerciseModal({ keepFocus: true, force: true });
+    refreshTrainerDataInBackground({
+      includeManagement: true,
+      includeProgress: !isTemplateMode,
+      includeStudentWorkouts: true,
+      includeAdminOverview: isGeneralAdminUser()
+    });
   } catch (error) {
     const errorMessage = error && error.message
       ? error.message
@@ -18078,10 +18577,8 @@ const handleTrainerWorkoutsTableActions = async (event) => {
     setTrainerManagementFeedback('Desativando nomeclatura de treino...', false);
     try {
       await requestWorkoutTemplateDeactivate(templateId);
-      await loadTrainerManagementData(true);
-      await loadTrainerProgressData(true);
-      await syncWorkoutsFromBackend({ silent: true });
-      if (isGeneralAdminUser()) await fetchAdminOverview(true);
+      updateTrainerTemplateLocally(templateId, { isActive: false, status: 'INATIVO' });
+      renderTrainerManagementPanel();
 
       const refreshedTemplate = getTrainerTemplateById(templateId);
       if (refreshedTemplate && refreshedTemplate.isActive !== false) {
@@ -18091,6 +18588,12 @@ const handleTrainerWorkoutsTableActions = async (event) => {
       const successMessage = `Nomeclatura de treino "${definitionName}" desativada com sucesso.`;
       setTrainerManagementFeedback(successMessage, true);
       setTrainerExerciseFeedback(successMessage, true);
+      refreshTrainerDataInBackground({
+        includeManagement: true,
+        includeProgress: true,
+        includeStudentWorkouts: true,
+        includeAdminOverview: isGeneralAdminUser()
+      });
     } catch (error) {
       const errorMessage = error && error.message
         ? error.message
@@ -18137,14 +18640,18 @@ const handleTrainerWorkoutsTableActions = async (event) => {
       if (trainerTemplateExerciseSelectedId === deletedTemplateId) trainerTemplateExerciseSelectedId = '';
       if (trainerExerciseComposerSelectedId === deletedTemplateId) trainerExerciseComposerSelectedId = '';
       if (trainerTemplateEditorSelectedId === deletedTemplateId) trainerTemplateEditorSelectedId = '';
-      await loadTrainerManagementData(true);
-      await loadTrainerProgressData(true);
-      await syncWorkoutsFromBackend({ silent: true });
-      if (isGeneralAdminUser()) await fetchAdminOverview(true);
+      removeTrainerTemplateLocally(templateId);
+      renderTrainerManagementPanel();
 
       const successMessage = `Nomeclatura de treino "${definitionName}" excluída com sucesso.`;
       setTrainerManagementFeedback(successMessage, true);
       setTrainerExerciseFeedback(successMessage, true);
+      refreshTrainerDataInBackground({
+        includeManagement: true,
+        includeProgress: true,
+        includeStudentWorkouts: true,
+        includeAdminOverview: isGeneralAdminUser()
+      });
     } catch (error) {
       const errorMessage = error && error.message
         ? error.message
@@ -18182,19 +18689,24 @@ const handleTrainerWorkoutsTableActions = async (event) => {
     setTrainerManagementFeedback('Excluindo treino...', false);
 
     void requestInstructorWorkoutDelete(workoutId)
-      .then(async (response) => {
+      .then((response) => {
         const currentTargetWorkoutId = Number(trainerExerciseTargetWorkoutId) || 0;
         if (currentTargetWorkoutId === workoutId) {
           trainerExerciseTargetWorkoutId = 0;
         }
-        await loadTrainerManagementData(true);
-        await loadTrainerProgressData(true);
-        await syncWorkoutsFromBackend({ silent: true });
-        if (isGeneralAdminUser()) await fetchAdminOverview(true);
+        removeTrainerWorkoutLocally(workoutId);
+        renderTrainerManagementPanel();
+        renderTrainerProgressPanel();
 
         const successMessage = (response && response.message) || 'Treino excluído com sucesso.';
         setTrainerManagementFeedback(successMessage, true);
         setTrainerExerciseFeedback(successMessage, true);
+        refreshTrainerDataInBackground({
+          includeManagement: true,
+          includeProgress: true,
+          includeStudentWorkouts: true,
+          includeAdminOverview: isGeneralAdminUser()
+        });
       })
       .catch((error) => {
         const errorMessage = error && error.message
@@ -18233,12 +18745,15 @@ const handleTrainerWorkoutsTableActions = async (event) => {
   setTrainerManagementFeedback('Desativando treino...', false);
 
   void requestInstructorWorkoutDeactivate(workoutId, { workout })
-    .then(async (response) => {
+    .then((response) => {
       trainerExerciseTargetWorkoutId = workoutId;
-      await loadTrainerManagementData(true);
-      await loadTrainerProgressData(true);
-      await syncWorkoutsFromBackend({ silent: true });
-      if (isGeneralAdminUser()) await fetchAdminOverview(true);
+      if (response && response.workout) {
+        replaceTrainerWorkoutLocally(response.workout);
+      } else {
+        updateTrainerWorkoutLocally(workoutId, { isActive: false, status: 'INATIVO' });
+      }
+      renderTrainerManagementPanel();
+      renderTrainerProgressPanel();
 
       const refreshedWorkout = getTrainerWorkoutById(workoutId);
       const deactivationConfirmed = refreshedWorkout ? isWorkoutInactive(refreshedWorkout) : true;
@@ -18249,6 +18764,12 @@ const handleTrainerWorkoutsTableActions = async (event) => {
       const successMessage = (response && response.message) || 'Treino desativado com sucesso.';
       setTrainerManagementFeedback(successMessage, true);
       setTrainerExerciseFeedback(successMessage, true);
+      refreshTrainerDataInBackground({
+        includeManagement: true,
+        includeProgress: true,
+        includeStudentWorkouts: true,
+        includeAdminOverview: isGeneralAdminUser()
+      });
     })
     .catch((error) => {
       const errorMessage = error && error.message
@@ -18330,15 +18851,21 @@ const handleTrainerWorkoutExercisesTableActions = async (event) => {
     `/workouts/${encodeURIComponent(String(workoutId))}/exercises/${encodeURIComponent(String(workoutExerciseId))}`,
     { method: 'DELETE' }
   )
-    .then(async (response) => {
+    .then((response) => {
       trainerExerciseTargetWorkoutId = workoutId;
-      await loadTrainerManagementData(true);
-      await syncWorkoutsFromBackend({ silent: true });
-      if (isGeneralAdminUser()) await fetchAdminOverview(true);
+      removeTrainerWorkoutExerciseLocally(workoutId, workoutExerciseId);
+      renderTrainerManagementPanel();
+      renderTrainerProgressPanel();
 
       const successMessage = (response && response.message) || 'Exercício removido com sucesso.';
       setTrainerManagementFeedback(successMessage, true);
       setTrainerExerciseFeedback(successMessage, true);
+      refreshTrainerDataInBackground({
+        includeManagement: true,
+        includeProgress: true,
+        includeStudentWorkouts: true,
+        includeAdminOverview: isGeneralAdminUser()
+      });
     })
     .catch((error) => {
       const errorMessage = error && error.message
@@ -19987,8 +20514,11 @@ const initStudentArea = () => {
         setAdminOverviewFeedback('Carregando detalhes do treino...', false);
 
         try {
-          await loadTrainerManagementData(true);
-          const workout = getTrainerWorkoutById(workoutId);
+          let workout = getTrainerWorkoutById(workoutId) || getAdminOverviewWorkoutById(workoutId);
+          if (!workout) {
+            await loadTrainerManagementData(true);
+            workout = getTrainerWorkoutById(workoutId) || getAdminOverviewWorkoutById(workoutId);
+          }
           if (!workout) {
             throw new Error('Não foi possível carregar os detalhes completos do treino para edição.');
           }
@@ -20034,15 +20564,19 @@ const initStudentArea = () => {
         setAdminOverviewFeedback('Desativando treino...', false);
 
         void requestInstructorWorkoutDeactivate(workoutId, { workout })
-          .then(async (response) => {
+          .then((response) => {
             trainerExerciseTargetWorkoutId = workoutId;
-            await loadTrainerManagementData(true);
-            await loadTrainerProgressData(true);
-            await syncWorkoutsFromBackend({ silent: true });
-            await fetchAdminOverview(true);
+            if (response && response.workout) {
+              replaceTrainerWorkoutLocally(response.workout);
+            } else {
+              updateTrainerWorkoutLocally(workoutId, { isActive: false, status: 'INATIVO' });
+            }
+            renderTrainerManagementPanel();
+            renderTrainerProgressPanel();
+            renderAdminOverviewPanel();
 
             const refreshedWorkout = getAdminOverviewWorkoutById(workoutId);
-            const deactivationConfirmed = refreshedWorkout ? refreshedWorkout.isActive === false : true;
+            const deactivationConfirmed = refreshedWorkout ? isWorkoutInactive(refreshedWorkout) : true;
             if (!deactivationConfirmed) {
               throw new Error('Não foi possível confirmar a desativação. Atualize os dados e tente novamente.');
             }
@@ -20050,6 +20584,12 @@ const initStudentArea = () => {
             const successMessage = (response && response.message) || 'Treino desativado com sucesso.';
             setAdminOverviewFeedback(successMessage, true);
             setTrainerManagementFeedback(successMessage, true);
+            refreshTrainerDataInBackground({
+              includeManagement: true,
+              includeProgress: true,
+              includeStudentWorkouts: true,
+              includeAdminOverview: true
+            });
           })
           .catch((error) => {
             const errorMessage = error && error.message
@@ -20086,23 +20626,29 @@ const initStudentArea = () => {
       if (!confirmed) return;
 
       deleteButton.disabled = true;
-      setAdminOverviewFeedback('Excluindo treino...', false);
+        setAdminOverviewFeedback('Excluindo treino...', false);
 
-      void requestInstructorWorkoutDelete(workoutId)
-        .then(async (response) => {
-          const currentTargetWorkoutId = Number(trainerExerciseTargetWorkoutId) || 0;
-          if (currentTargetWorkoutId === workoutId) {
-            trainerExerciseTargetWorkoutId = 0;
-          }
-          await loadTrainerManagementData(true);
-          await loadTrainerProgressData(true);
-          await syncWorkoutsFromBackend({ silent: true });
-          await fetchAdminOverview(true);
+        void requestInstructorWorkoutDelete(workoutId)
+          .then((response) => {
+            const currentTargetWorkoutId = Number(trainerExerciseTargetWorkoutId) || 0;
+            if (currentTargetWorkoutId === workoutId) {
+              trainerExerciseTargetWorkoutId = 0;
+            }
+            removeTrainerWorkoutLocally(workoutId);
+            renderTrainerManagementPanel();
+            renderTrainerProgressPanel();
+            renderAdminOverviewPanel();
 
-          const successMessage = (response && response.message) || 'Treino excluído com sucesso.';
-          setAdminOverviewFeedback(successMessage, true);
-          setTrainerManagementFeedback(successMessage, true);
-        })
+            const successMessage = (response && response.message) || 'Treino excluído com sucesso.';
+            setAdminOverviewFeedback(successMessage, true);
+            setTrainerManagementFeedback(successMessage, true);
+            refreshTrainerDataInBackground({
+              includeManagement: true,
+              includeProgress: true,
+              includeStudentWorkouts: true,
+              includeAdminOverview: true
+            });
+          })
         .catch((error) => {
           const errorMessage = error && error.message
             ? error.message
