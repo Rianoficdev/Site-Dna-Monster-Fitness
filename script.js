@@ -10360,6 +10360,49 @@ const resolveCreatedWorkoutIdFromResponse = (response) => {
   return 0;
 };
 
+const upsertTrainerAssignedWorkoutLocally = (response) => {
+  const workout = response && response.workout && typeof response.workout === 'object'
+    ? response.workout
+    : null;
+  const workoutId = resolveCreatedWorkoutIdFromResponse(response);
+  if (!workoutId) return;
+
+  const currentWorkouts = Array.isArray(trainerManagementState.workouts)
+    ? trainerManagementState.workouts.slice()
+    : [];
+  const existingIndex = currentWorkouts.findIndex(
+    (item) => Number(item && item.id) === workoutId
+  );
+  const nextWorkout = workout ? { ...workout } : { id: workoutId };
+
+  if (existingIndex >= 0) {
+    currentWorkouts[existingIndex] = {
+      ...currentWorkouts[existingIndex],
+      ...nextWorkout
+    };
+  } else {
+    currentWorkouts.push(nextWorkout);
+  }
+
+  currentWorkouts.sort(
+    (first, second) => (Number(first && first.id) || 0) - (Number(second && second.id) || 0)
+  );
+  trainerManagementState.workouts = currentWorkouts;
+
+  if (!trainerManagementState.exercisesByWorkoutId || typeof trainerManagementState.exercisesByWorkoutId !== 'object') {
+    trainerManagementState.exercisesByWorkoutId = {};
+  }
+
+  const exercises = Array.isArray(response && response.exercises)
+    ? response.exercises
+      .slice()
+      .sort((first, second) => (Number(first && first.order) || 0) - (Number(second && second.order) || 0))
+    : [];
+  if (exercises.length) {
+    trainerManagementState.exercisesByWorkoutId[String(workoutId)] = exercises;
+  }
+};
+
 const findTrainerWorkoutIdByTitle = (title, { studentId = 0 } = {}) => {
   const normalizedTitle = normalizeText(String(title || '').trim());
   if (!normalizedTitle) return 0;
@@ -16685,34 +16728,61 @@ const handleTrainerWorkoutSubmit = async (event) => {
     const createdWorkoutsPayloads = [];
     const multipleAssignments = dayAssignments.length > 1;
 
-    for (const assignment of dayAssignments) {
-      const assignmentTemplateId = Number(assignment && assignment.templateId) || 0;
-      const assignmentDay = String(assignment && assignment.day || '').trim();
-      if (!assignmentTemplateId || !assignmentDay) continue;
+    const assignmentResults = await Promise.all(
+      dayAssignments.map(async (assignment) => {
+        const assignmentTemplateId = Number(assignment && assignment.templateId) || 0;
+        const assignmentDay = String(assignment && assignment.day || '').trim();
+        if (!assignmentTemplateId || !assignmentDay) {
+          return { assignment, error: new Error('Designação inválida.') };
+        }
 
-      const resolvedTemplateName = String(assignment && assignment.templateName || '').trim();
-      const assignmentName = multipleAssignments
-        ? resolvedTemplateName
-          ? `${resolvedTemplateName} - ${assignmentDay}`
-          : `Treino - ${assignmentDay}`
-        : resolvedTemplateName || 'Treino';
-      try {
-        const response = await requestStudentApi('/workout/from-template', {
-          method: 'POST',
-          body: {
-            templateId: assignmentTemplateId,
-            studentId,
-            instructorId,
-            name: assignmentName,
-            objective,
-            description,
-            status,
-            weekDays: [assignmentDay]
-          }
-        });
+        const resolvedTemplateName = String(assignment && assignment.templateName || '').trim();
+        const assignmentName = multipleAssignments
+          ? resolvedTemplateName
+            ? `${resolvedTemplateName} - ${assignmentDay}`
+            : `Treino - ${assignmentDay}`
+          : resolvedTemplateName || 'Treino';
+
+        try {
+          const response = await requestStudentApi('/workout/from-template', {
+            method: 'POST',
+            body: {
+              templateId: assignmentTemplateId,
+              studentId,
+              instructorId,
+              name: assignmentName,
+              objective,
+              description,
+              status,
+              weekDays: [assignmentDay]
+            }
+          });
+
+          return {
+            assignment,
+            response,
+            createdWorkoutId: resolveCreatedWorkoutIdFromResponse(response)
+          };
+        } catch (error) {
+          return {
+            assignment,
+            error
+          };
+        }
+      })
+    );
+
+    assignmentResults.forEach((result) => {
+      const assignmentTemplateId = Number(result && result.assignment && result.assignment.templateId) || 0;
+      const assignmentDay = String(result && result.assignment && result.assignment.day || '').trim();
+      const response = result && result.response ? result.response : null;
+      const error = result && result.error ? result.error : null;
+
+      if (response) {
         responses.push(response);
+        upsertTrainerAssignedWorkoutLocally(response);
 
-        const createdWorkoutId = resolveCreatedWorkoutIdFromResponse(response);
+        const createdWorkoutId = Number(result && result.createdWorkoutId) || 0;
         if (createdWorkoutId > 0) {
           createdWorkoutIds.push(createdWorkoutId);
           createdWorkoutsPayloads.push({
@@ -16720,14 +16790,15 @@ const handleTrainerWorkoutSubmit = async (event) => {
             exercises: Array.isArray(response && response.exercises) ? response.exercises.slice() : []
           });
         }
-      } catch (error) {
-        failedAssignments.push({
-          templateId: assignmentTemplateId,
-          weekDays: [assignmentDay],
-          message: error && error.message ? error.message : 'Falha ao designar treino.'
-        });
+        return;
       }
-    }
+
+      failedAssignments.push({
+        templateId: assignmentTemplateId,
+        weekDays: assignmentDay ? [assignmentDay] : [],
+        message: error && error.message ? error.message : 'Falha ao designar treino.'
+      });
+    });
 
     if (!createdWorkoutIds.length && failedAssignments.length) {
       throw new Error(failedAssignments[0].message);
@@ -16750,10 +16821,7 @@ const handleTrainerWorkoutSubmit = async (event) => {
       trainerWorkoutDayAssignments = {};
       trainerWorkoutStudentConfirmed = false;
     }
-    await loadTrainerManagementData(true);
-    await loadTrainerProgressData(true);
-    await syncWorkoutsFromBackend({ silent: true });
-    if (isGeneralAdminUser()) await fetchAdminOverview(true);
+    renderTrainerManagementPanel();
 
     createdWorkoutsPayloads.forEach(({ workoutId, exercises }) => {
       const workoutKey = String(Number(workoutId) || 0);
@@ -16808,6 +16876,18 @@ const handleTrainerWorkoutSubmit = async (event) => {
         false
       );
     }
+
+    void (async () => {
+      const refreshTasks = [
+        loadTrainerManagementData(true),
+        loadTrainerProgressData(true),
+        syncWorkoutsFromBackend({ silent: true })
+      ];
+      if (isGeneralAdminUser()) {
+        refreshTasks.push(fetchAdminOverview(true));
+      }
+      await Promise.allSettled(refreshTasks);
+    })();
   } catch (error) {
     setTrainerManagementFeedback(
       error && error.message ? error.message : 'Falha ao designar treino ao aluno.',
