@@ -36,7 +36,7 @@ const STUDENT_API_UPLOAD_TIMEOUT_MS = 120000;
 const STUDENT_API_MAX_RETRIES = 3;
 const STUDENT_API_RETRY_DELAY_MS = 350;
 const STUDENT_FORGOT_STATUS_POLL_MS = 12000;
-const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 5000;
+const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 2000;
 const TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT = 3;
 const ADMIN_TEAM_MIN_MEMBERS = 1;
 const ADMIN_TEAM_MAX_MEMBERS = 8;
@@ -4085,6 +4085,7 @@ const checkStudentWorkoutsRevisionInBackground = async ({ force = false } = {}) 
 const startStudentWorkoutsRefresh = () => {
   stopStudentWorkoutsRefresh();
   if (!canRefreshStudentWorkoutsInBackground()) return;
+  void checkStudentWorkoutsRevisionInBackground({ force: true });
   studentWorkoutsRefreshTimer = window.setInterval(() => {
     void checkStudentWorkoutsRevisionInBackground();
   }, STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS);
@@ -4880,6 +4881,83 @@ const getStudentWorkoutWeekdayKeys = (workout) => {
   );
 };
 
+const getStudentWorkoutWeekdaySortIndex = (workout) => {
+  const dayIndexes = getStudentWorkoutWeekdayKeys(workout)
+    .map((dayKey) => STUDENT_WEEKDAY_ORDER.indexOf(dayKey))
+    .filter((index) => index >= 0);
+  if (dayIndexes.length) return Math.min(...dayIndexes);
+
+  const normalizedLabel = normalizeText(
+    String((workout && (workout.name || workout.title || workout.code || workout.day)) || '').trim()
+  ).replace(/\s+/g, ' ');
+  if (!normalizedLabel) return 99;
+
+  if (/\bseg(?:unda)?(?:-feira)?\b/.test(normalizedLabel)) return 0;
+  if (/\bter(?:ca)?(?:-feira)?\b/.test(normalizedLabel)) return 1;
+  if (/\bqua(?:rta)?(?:-feira)?\b/.test(normalizedLabel)) return 2;
+  if (/\bqui(?:nta)?(?:-feira)?\b/.test(normalizedLabel)) return 3;
+  if (/\bsex(?:ta)?(?:-feira)?\b/.test(normalizedLabel)) return 4;
+  if (/\bsab(?:ado)?\b/.test(normalizedLabel)) return 5;
+  if (/\bdom(?:ingo)?\b/.test(normalizedLabel)) return 6;
+  return 99;
+};
+
+const getStructuredWorkoutTemplateSortMeta = (workoutLike) => {
+  const rawName = String((workoutLike && (workoutLike.name || workoutLike.title || workoutLike.label)) || '').trim();
+  const normalizedName = normalizeText(rawName).replace(/\s+/g, ' ').trim();
+  const normalizedCollapsedName = normalizedName.replace(/\s+/g, '');
+  const genderRank =
+    normalizedCollapsedName.includes('masculino') ||
+    normalizedCollapsedName.includes('masculina') ||
+    normalizedCollapsedName.includes('homens') ||
+    normalizedCollapsedName.includes('homem')
+    ? 0
+    : normalizedCollapsedName.includes('feminino') ||
+      normalizedCollapsedName.includes('feminina') ||
+      normalizedCollapsedName.includes('mulheres') ||
+      normalizedCollapsedName.includes('mulher')
+      ? 1
+      : 2;
+  const levelMatch = normalizedName.match(/\ba\s*(\d+)/) || normalizedCollapsedName.match(/a(\d+)/);
+  const levelRank = levelMatch ? Number(levelMatch[1]) || 99 : 99;
+  const dayRank = getStudentWorkoutWeekdaySortIndex(workoutLike);
+  const hasStructuredOrder = genderRank < 2 && levelRank < 99;
+
+  return {
+    hasStructuredOrder,
+    genderRank,
+    levelRank,
+    dayRank,
+    name: rawName,
+    id: Number(workoutLike && workoutLike.id) || 0
+  };
+};
+
+const compareStructuredWorkoutTemplates = (first, second) => {
+  const firstMeta = getStructuredWorkoutTemplateSortMeta(first);
+  const secondMeta = getStructuredWorkoutTemplateSortMeta(second);
+
+  if (firstMeta.hasStructuredOrder !== secondMeta.hasStructuredOrder) {
+    return firstMeta.hasStructuredOrder ? -1 : 1;
+  }
+  if (firstMeta.genderRank !== secondMeta.genderRank) {
+    return firstMeta.genderRank - secondMeta.genderRank;
+  }
+  if (firstMeta.levelRank !== secondMeta.levelRank) {
+    return firstMeta.levelRank - secondMeta.levelRank;
+  }
+  if (firstMeta.dayRank !== secondMeta.dayRank) {
+    return firstMeta.dayRank - secondMeta.dayRank;
+  }
+
+  const nameCompare = firstMeta.name.localeCompare(secondMeta.name, 'pt-BR', {
+    numeric: true,
+    sensitivity: 'base'
+  });
+  if (nameCompare !== 0) return nameCompare;
+  return firstMeta.id - secondMeta.id;
+};
+
 const getStudentWorkoutDisplayName = (workout) => {
   const rawName = String((workout && (workout.name || workout.title || workout.code)) || '').trim();
   if (!rawName) return 'Treino';
@@ -4891,6 +4969,11 @@ const getStudentWorkoutDisplayName = (workout) => {
   }
   normalizedName = normalizedName.replace(/\s*-\s*(seg|ter|qua|qui|sex|sab|dom)\s*$/i, '').trim();
   return normalizedName || rawName;
+};
+
+const getStudentWorkoutStartButtonLabel = (workout) => {
+  const dayLabel = String((workout && (workout._visibleDayLabel || workout.day)) || '').trim();
+  return dayLabel ? `Iniciar treino - ${dayLabel}` : 'Iniciar treino';
 };
 
 const getVisibleStudentWorkouts = () => {
@@ -4982,6 +5065,14 @@ const renderDashboard = () => {
   const nextWorkoutLabel = String(summary.next._displayName || summary.next.name || summary.next.code || 'Treino').trim();
   if (dashboardCurrent) dashboardCurrent.textContent = currentWorkoutLabel;
   if (dashboardNext) dashboardNext.textContent = nextWorkoutLabel;
+  if (openWorkoutsButton) {
+    const openWorkoutsLabel = openWorkoutsButton.querySelector('span');
+    if (openWorkoutsLabel) {
+      openWorkoutsLabel.textContent = summary.total
+        ? getStudentWorkoutStartButtonLabel(summary.current)
+        : 'Iniciar treino';
+    }
+  }
   if (dashboardCurrentMeta) dashboardCurrentMeta.textContent = `${summary.current.exercises.length} exercícios - ${summary.current.duration}`;
   if (dashboardNextMeta) dashboardNextMeta.textContent = `${summary.next.exercises.length} exercícios - ${summary.next.duration}`;
   if (dashboardUpcomingDayCurrent || dashboardUpcomingDayNext) {
@@ -6497,10 +6588,7 @@ const renderWorkoutList = () => {
     workoutsStartButton.disabled = !selected;
     const label = workoutsStartButton.querySelector('span');
     if (label) {
-      const selectedName = selected
-        ? String(selected._displayName || selected.name || selected.code || 'Treino').trim()
-        : '';
-      label.textContent = selected ? `Iniciar treino (${selectedName})` : 'Iniciar treino';
+      label.textContent = selected ? getStudentWorkoutStartButtonLabel(selected) : 'Iniciar treino';
     }
   }
 };
@@ -13004,13 +13092,7 @@ function renderTrainerWeekdayAssignmentSelectors(templates = []) {
     ? templates
       .filter((template) => Number(template && template.id) > 0 && template && template.isActive !== false)
       .slice()
-      .sort((first, second) =>
-        String((first && first.name) || '').localeCompare(
-          String((second && second.name) || ''),
-          'pt-BR',
-          { numeric: true, sensitivity: 'base' }
-        )
-      )
+      .sort(compareStructuredWorkoutTemplates)
     : [];
   const validWorkoutIds = new Set(
     availableTemplates
@@ -19080,6 +19162,11 @@ const initStudentArea = () => {
     if (document.visibilityState !== 'visible') return;
     if (studentInLoginStage) return;
     playStudentLoadingVideo();
+    void checkStudentWorkoutsRevisionInBackground({ force: true });
+  });
+
+  window.addEventListener('focus', () => {
+    if (studentInLoginStage) return;
     void checkStudentWorkoutsRevisionInBackground({ force: true });
   });
 
