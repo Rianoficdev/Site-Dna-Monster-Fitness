@@ -4,6 +4,8 @@
   "description": "Backend base para o sistema DNA Monster Fitness",
   "main": "src/server.js",
   "scripts": {
+    "build": "npm run build:pages",
+    "build:pages": "node scripts/build-cloudflare-pages.js",
     "postinstall": "prisma generate",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
