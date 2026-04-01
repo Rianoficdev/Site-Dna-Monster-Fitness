@@ -893,6 +893,7 @@ const trainerExerciseLibraryPickerEmpty = document.querySelector('[data-trainer-
 const trainerExerciseLibraryPickerList = document.querySelector('[data-trainer-exercise-library-picker-list]');
 const trainerExerciseLibraryPickerGroupLabel = document.querySelector('[data-trainer-exercise-library-picker-group]');
 const trainerExerciseLibraryPickerPendingLabel = document.querySelector('[data-trainer-exercise-library-picker-pending]');
+const trainerExerciseLibraryPickerAddedToggleButton = document.querySelector('[data-trainer-exercise-library-picker-added-toggle]');
 const trainerExerciseLibraryPickerCloseButton = document.querySelector('[data-trainer-exercise-library-picker-close]');
 const trainerExerciseLibraryPickerScrim = document.querySelector('[data-trainer-exercise-library-picker-scrim]');
 const trainerExerciseWorkoutSelect = document.querySelector('[data-trainer-exercise-workout]');
@@ -1182,6 +1183,7 @@ const trainerManagedWorkoutBaselineIds = new Set();
 let trainerManagedWorkoutBaselineCaptured = false;
 let trainerWorkoutDayAssignments = {};
 let trainerExerciseLibraryPickerSearchTerm = '';
+let trainerExerciseLibraryPickerShowAddedOnly = false;
 let trainerExercisePendingWorkoutId = 0;
 let trainerExercisePendingLibraryIds = [];
 let trainerExerciseTargetWorkoutId = 0;
@@ -13653,6 +13655,51 @@ function updateTrainerExerciseLibraryPickerPendingLabel(workoutId) {
     : `Pendentes para salvar: ${pendingCount}`;
 }
 
+function getTrainerExerciseAddedCountsByExerciseId(workoutId) {
+  const resolvedWorkoutId = Number(workoutId) || 0;
+  if (!resolvedWorkoutId) return {};
+
+  const templateExercises =
+    trainerManagementState.templateExercisesByTemplateId[String(resolvedWorkoutId)] || [];
+  return templateExercises.reduce((acc, exercise) => {
+    const linkedExerciseId = getLinkedLibraryExerciseId(exercise);
+    if (!linkedExerciseId) return acc;
+    acc[linkedExerciseId] = (acc[linkedExerciseId] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function updateTrainerExerciseLibraryPickerAddedToggle(workoutId, existingExerciseCounts = null) {
+  if (!trainerExerciseLibraryPickerAddedToggleButton) return;
+
+  const counts =
+    existingExerciseCounts && typeof existingExerciseCounts === 'object'
+      ? existingExerciseCounts
+      : getTrainerExerciseAddedCountsByExerciseId(workoutId);
+  const addedCount = Object.values(counts).reduce((total, count) => (
+    Number(count) > 0 ? total + 1 : total
+  ), 0);
+
+  if (!addedCount && trainerExerciseLibraryPickerShowAddedOnly) {
+    trainerExerciseLibraryPickerShowAddedOnly = false;
+  }
+
+  const useCompactLabel =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(max-width: 700px)').matches;
+  const labelPrefix = useCompactLabel ? 'Adicionados' : 'Já adicionados';
+  const isActive = trainerExerciseLibraryPickerShowAddedOnly && addedCount > 0;
+
+  trainerExerciseLibraryPickerAddedToggleButton.textContent = `${labelPrefix}: ${addedCount}`;
+  trainerExerciseLibraryPickerAddedToggleButton.disabled = addedCount <= 0;
+  trainerExerciseLibraryPickerAddedToggleButton.classList.toggle('is-active', isActive);
+  trainerExerciseLibraryPickerAddedToggleButton.setAttribute('aria-pressed', String(isActive));
+  trainerExerciseLibraryPickerAddedToggleButton.title = isActive
+    ? 'Mostrar todos os exercícios da biblioteca'
+    : 'Mostrar somente exercícios já adicionados';
+}
+
 function setTrainerExercisePendingQueue(workoutId, pendingExerciseIds) {
   const resolvedWorkoutId = Number(workoutId) || 0;
   if (!resolvedWorkoutId) {
@@ -14262,6 +14309,7 @@ async function openTrainerExerciseLibraryPicker({ focusSearch = false } = {}) {
   }
   trainerExerciseLibraryPicker.classList.add('is-floating');
 
+  trainerExerciseLibraryPickerShowAddedOnly = false;
   isTrainerExerciseLibraryPickerOpen = true;
   renderTrainerExerciseLibraryPicker();
   if (studentAppShell) studentAppShell.classList.add('is-trainer-exercise-library-picker-open');
@@ -14291,6 +14339,8 @@ function renderTrainerExerciseLibraryPicker() {
   }
   const templateId = getSelectedTrainerExerciseTemplateId();
   updateTrainerExerciseLibraryPickerPendingLabel(templateId);
+  const existingExerciseCounts = getTrainerExerciseAddedCountsByExerciseId(templateId);
+  updateTrainerExerciseLibraryPickerAddedToggle(templateId, existingExerciseCounts);
 
   const canRenderPicker =
     isTrainerExerciseComposerOpen &&
@@ -14320,27 +14370,30 @@ function renderTrainerExerciseLibraryPicker() {
     return;
   }
 
-  const templateExercises =
-    trainerManagementState.templateExercisesByTemplateId[String(templateId)] || [];
-  const existingExerciseCounts = templateExercises.reduce((acc, exercise) => {
-    const linkedExerciseId = getLinkedLibraryExerciseId(exercise);
-    if (!linkedExerciseId) return acc;
-    acc[linkedExerciseId] = (acc[linkedExerciseId] || 0) + 1;
-    return acc;
-  }, {});
   const pendingExerciseCounts = getTrainerExercisePendingCountsByExerciseId(templateId);
   const pickerExercises = getTrainerLibraryPickerExercises();
+  const visiblePickerExercises = trainerExerciseLibraryPickerShowAddedOnly
+    ? pickerExercises.filter((exercise) => Number(existingExerciseCounts[Number(exercise && exercise.id) || 0]) > 0)
+    : pickerExercises;
 
-  if (!pickerExercises.length) {
+  if (!visiblePickerExercises.length) {
     trainerExerciseLibraryPickerList.innerHTML = '';
     trainerExerciseLibraryPickerEmpty.hidden = false;
-    trainerExerciseLibraryPickerEmpty.textContent = hasGroupFilter
-      ? `Nenhum exercício encontrado em ${selectedGroupLabel} com esse filtro.`
-      : 'Nenhum exercício encontrado na biblioteca com esse filtro.';
+    trainerExerciseLibraryPickerEmpty.textContent = trainerExerciseLibraryPickerShowAddedOnly
+      ? (
+        hasGroupFilter
+          ? `Nenhum exercício já adicionado encontrado em ${selectedGroupLabel}.`
+          : 'Nenhum exercício já adicionado neste treino.'
+      )
+      : (
+        hasGroupFilter
+          ? `Nenhum exercício encontrado em ${selectedGroupLabel} com esse filtro.`
+          : 'Nenhum exercício encontrado na biblioteca com esse filtro.'
+      );
     return;
   }
 
-  trainerExerciseLibraryPickerList.innerHTML = pickerExercises
+  trainerExerciseLibraryPickerList.innerHTML = visiblePickerExercises
     .map((exercise) => {
       const exerciseId = Number(exercise && exercise.id) || 0;
       const exerciseName = String((exercise && exercise.name) || '').trim() || 'Exercício';
@@ -20362,6 +20415,14 @@ const initStudentArea = () => {
   if (trainerExerciseLibraryPickerCloseButton) {
     trainerExerciseLibraryPickerCloseButton.addEventListener('click', () => {
       closeTrainerExerciseLibraryPicker();
+    });
+  }
+
+  if (trainerExerciseLibraryPickerAddedToggleButton) {
+    trainerExerciseLibraryPickerAddedToggleButton.addEventListener('click', () => {
+      if (trainerExerciseLibraryPickerAddedToggleButton.disabled) return;
+      trainerExerciseLibraryPickerShowAddedOnly = !trainerExerciseLibraryPickerShowAddedOnly;
+      renderTrainerExerciseLibraryPicker();
     });
   }
 
