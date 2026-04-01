@@ -22019,17 +22019,34 @@ const initMojibakeDomRepair = () => {
 /* ==========================================================================
    Bootstrap
    ========================================================================== */
+const runAppInitStep = (label, initializer) => {
+  if (typeof initializer !== 'function') return null;
+
+  try {
+    const result = initializer();
+    if (result && typeof result.catch === 'function') {
+      result.catch((error) => {
+        console.error(`[init] ${label} failed`, error);
+      });
+    }
+    return result;
+  } catch (error) {
+    console.error(`[init] ${label} failed`, error);
+    return null;
+  }
+};
+
 const initApp = () => {
   document.body.classList.add('js-ready');
-  initMobileMenu();
-  initRevealAnimations();
-  initGymStatus();
-  initThemeToggle();
-  initContactLeadForm();
-  void syncSiteTeamMembersFromApi({ silent: true, syncAdminForm: false });
-  initStudentArea();
-  initMojibakeDomRepair();
-  hydrateLoopCheckIcons();
+  runAppInitStep('student-area', initStudentArea);
+  runAppInitStep('mobile-menu', initMobileMenu);
+  runAppInitStep('reveal-animations', initRevealAnimations);
+  runAppInitStep('gym-status', initGymStatus);
+  runAppInitStep('theme-toggle', initThemeToggle);
+  runAppInitStep('contact-lead-form', initContactLeadForm);
+  runAppInitStep('site-team-sync', () => syncSiteTeamMembersFromApi({ silent: true, syncAdminForm: false }));
+  runAppInitStep('mojibake-dom-repair', initMojibakeDomRepair);
+  runAppInitStep('hydrate-loop-check-icons', hydrateLoopCheckIcons);
 };
 
 initApp();
