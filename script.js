@@ -13655,49 +13655,30 @@ function updateTrainerExerciseLibraryPickerPendingLabel(workoutId) {
     : `Pendentes para salvar: ${pendingCount}`;
 }
 
-function getTrainerExerciseAddedCountsByExerciseId(workoutId) {
-  const resolvedWorkoutId = Number(workoutId) || 0;
-  if (!resolvedWorkoutId) return {};
-
-  const templateExercises =
-    trainerManagementState.templateExercisesByTemplateId[String(resolvedWorkoutId)] || [];
-  return templateExercises.reduce((acc, exercise) => {
-    const linkedExerciseId = getLinkedLibraryExerciseId(exercise);
-    if (!linkedExerciseId) return acc;
-    acc[linkedExerciseId] = (acc[linkedExerciseId] || 0) + 1;
-    return acc;
-  }, {});
-}
-
-function updateTrainerExerciseLibraryPickerAddedToggle(workoutId, existingExerciseCounts = null) {
+function updateTrainerExerciseLibraryPickerAddedToggle(workoutId, pendingExerciseCounts = null) {
   if (!trainerExerciseLibraryPickerAddedToggleButton) return;
 
-  const counts =
-    existingExerciseCounts && typeof existingExerciseCounts === 'object'
-      ? existingExerciseCounts
-      : getTrainerExerciseAddedCountsByExerciseId(workoutId);
-  const addedCount = Object.values(counts).reduce((total, count) => (
-    Number(count) > 0 ? total + 1 : total
+  const counts = pendingExerciseCounts && typeof pendingExerciseCounts === 'object'
+    ? pendingExerciseCounts
+    : getTrainerExercisePendingCountsByExerciseId(workoutId);
+  const selectedCount = Object.values(counts).reduce((total, count) => (
+    total + Math.max(0, Number(count) || 0)
   ), 0);
 
-  if (!addedCount && trainerExerciseLibraryPickerShowAddedOnly) {
+  if (!selectedCount && trainerExerciseLibraryPickerShowAddedOnly) {
     trainerExerciseLibraryPickerShowAddedOnly = false;
   }
 
-  const useCompactLabel =
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(max-width: 700px)').matches;
-  const labelPrefix = useCompactLabel ? 'Adicionados' : 'Já adicionados';
-  const isActive = trainerExerciseLibraryPickerShowAddedOnly && addedCount > 0;
+  const labelPrefix = 'Lista';
+  const isActive = trainerExerciseLibraryPickerShowAddedOnly && selectedCount > 0;
 
-  trainerExerciseLibraryPickerAddedToggleButton.textContent = `${labelPrefix}: ${addedCount}`;
-  trainerExerciseLibraryPickerAddedToggleButton.disabled = addedCount <= 0;
+  trainerExerciseLibraryPickerAddedToggleButton.textContent = `${labelPrefix}: ${selectedCount}`;
+  trainerExerciseLibraryPickerAddedToggleButton.disabled = selectedCount <= 0;
   trainerExerciseLibraryPickerAddedToggleButton.classList.toggle('is-active', isActive);
   trainerExerciseLibraryPickerAddedToggleButton.setAttribute('aria-pressed', String(isActive));
   trainerExerciseLibraryPickerAddedToggleButton.title = isActive
     ? 'Mostrar todos os exercícios da biblioteca'
-    : 'Mostrar somente exercícios já adicionados';
+    : 'Mostrar somente exercícios da fila atual';
 }
 
 function setTrainerExercisePendingQueue(workoutId, pendingExerciseIds) {
@@ -13706,6 +13687,7 @@ function setTrainerExercisePendingQueue(workoutId, pendingExerciseIds) {
     trainerExercisePendingWorkoutId = 0;
     trainerExercisePendingLibraryIds = [];
     updateTrainerExerciseLibraryPickerPendingLabel(0);
+    updateTrainerExerciseLibraryPickerAddedToggle(0, {});
     return;
   }
 
@@ -13717,6 +13699,10 @@ function setTrainerExercisePendingQueue(workoutId, pendingExerciseIds) {
     : [];
 
   updateTrainerExerciseLibraryPickerPendingLabel(resolvedWorkoutId);
+  updateTrainerExerciseLibraryPickerAddedToggle(
+    resolvedWorkoutId,
+    getTrainerExercisePendingCountsByExerciseId(resolvedWorkoutId)
+  );
 }
 
 function enqueueTrainerExercisePendingExercise(workoutId, exerciseId) {
@@ -13758,6 +13744,47 @@ function getTrainerExercisePendingCountsByExerciseId(workoutId) {
     acc[exerciseId] = (acc[exerciseId] || 0) + 1;
     return acc;
   }, {});
+}
+
+function getTrainerExercisePendingListExercises(workoutId) {
+  const resolvedWorkoutId = Number(workoutId) || 0;
+  if (!resolvedWorkoutId) return [];
+
+  const pendingQueue = getTrainerExercisePendingQueue(resolvedWorkoutId);
+  if (!pendingQueue.length) return [];
+
+  const normalizedSearch = normalizeText(trainerExerciseLibraryPickerSearchTerm || '');
+  const libraryExercises = Array.isArray(trainerManagementState.library)
+    ? trainerManagementState.library
+    : [];
+  const libraryById = new Map(
+    libraryExercises
+      .filter((exercise) => exercise && exercise.isActive !== false)
+      .map((exercise) => [Number(exercise && exercise.id) || 0, exercise])
+      .filter(([exerciseId]) => exerciseId > 0)
+  );
+  const queuedExerciseIds = new Set();
+
+  return pendingQueue.reduce((acc, exerciseId) => {
+    const normalizedExerciseId = Number(exerciseId) || 0;
+    if (!normalizedExerciseId || queuedExerciseIds.has(normalizedExerciseId)) return acc;
+    queuedExerciseIds.add(normalizedExerciseId);
+
+    const exercise = libraryById.get(normalizedExerciseId);
+    if (!exercise) return acc;
+    if (!normalizedSearch) {
+      acc.push(exercise);
+      return acc;
+    }
+
+    const exerciseGroup = normalizeLibraryGroupKey(exercise && exercise.group, '');
+    const exerciseName = normalizeText(exercise && exercise.name);
+    const groupLabel = normalizeText(LIBRARY_GROUP_LABELS[exerciseGroup] || exerciseGroup || '');
+    if (exerciseName.includes(normalizedSearch) || groupLabel.includes(normalizedSearch)) {
+      acc.push(exercise);
+    }
+    return acc;
+  }, []);
 }
 
 const shouldUseMobileSelectPicker = (select = null) => {
@@ -14332,15 +14359,20 @@ function renderTrainerExerciseLibraryPicker() {
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(max-width: 700px)').matches;
+  const hasSearchFilter = Boolean(normalizeText(trainerExerciseLibraryPickerSearchTerm || ''));
   if (trainerExerciseLibraryPickerGroupLabel) {
-    trainerExerciseLibraryPickerGroupLabel.textContent = useCompactHeaderLabels
-      ? `Grupo: ${selectedGroupLabel}`
-      : `Grupo selecionado: ${selectedGroupLabel}`;
+    trainerExerciseLibraryPickerGroupLabel.textContent = trainerExerciseLibraryPickerShowAddedOnly
+      ? (useCompactHeaderLabels ? 'Mostrando: Lista' : 'Mostrando: exercícios da fila')
+      : (
+        useCompactHeaderLabels
+          ? `Grupo: ${selectedGroupLabel}`
+          : `Grupo selecionado: ${selectedGroupLabel}`
+      );
   }
   const templateId = getSelectedTrainerExerciseTemplateId();
+  const pendingExerciseCounts = getTrainerExercisePendingCountsByExerciseId(templateId);
   updateTrainerExerciseLibraryPickerPendingLabel(templateId);
-  const existingExerciseCounts = getTrainerExerciseAddedCountsByExerciseId(templateId);
-  updateTrainerExerciseLibraryPickerAddedToggle(templateId, existingExerciseCounts);
+  updateTrainerExerciseLibraryPickerAddedToggle(templateId, pendingExerciseCounts);
 
   const canRenderPicker =
     isTrainerExerciseComposerOpen &&
@@ -14370,20 +14402,18 @@ function renderTrainerExerciseLibraryPicker() {
     return;
   }
 
-  const pendingExerciseCounts = getTrainerExercisePendingCountsByExerciseId(templateId);
-  const pickerExercises = getTrainerLibraryPickerExercises();
   const visiblePickerExercises = trainerExerciseLibraryPickerShowAddedOnly
-    ? pickerExercises.filter((exercise) => Number(existingExerciseCounts[Number(exercise && exercise.id) || 0]) > 0)
-    : pickerExercises;
+    ? getTrainerExercisePendingListExercises(templateId)
+    : getTrainerLibraryPickerExercises();
 
   if (!visiblePickerExercises.length) {
     trainerExerciseLibraryPickerList.innerHTML = '';
     trainerExerciseLibraryPickerEmpty.hidden = false;
     trainerExerciseLibraryPickerEmpty.textContent = trainerExerciseLibraryPickerShowAddedOnly
       ? (
-        hasGroupFilter
-          ? `Nenhum exercício já adicionado encontrado em ${selectedGroupLabel}.`
-          : 'Nenhum exercício já adicionado neste treino.'
+        hasSearchFilter
+          ? 'Nenhum exercício da fila corresponde à busca.'
+          : 'Nenhum exercício na fila deste treino.'
       )
       : (
         hasGroupFilter
