@@ -1655,25 +1655,35 @@ Core"
                   <div class="admin-overview-status-bars" data-admin-student-status-chart></div>
                 </article>
 
-                <article class="admin-overview-table-card">
-                  <header class="admin-overview-table-head">
-                    <h5>Usuários cadastrados</h5>
+                <article class="admin-overview-table-card" data-admin-users-card>
+                  <header class="admin-overview-table-head admin-overview-table-head--collapsible">
+                    <div class="admin-overview-table-head-row">
+                      <h5>Usuários cadastrados</h5>
+                      <button
+                        class="admin-overview-collapse-btn"
+                        type="button"
+                        data-admin-users-toggle
+                        aria-expanded="true"
+                      >Minimizar caixa</button>
+                    </div>
                   </header>
-                  <div class="admin-overview-table-wrap">
-                    <table class="admin-overview-table">
-                      <thead>
-                        <tr>
-                          <th>Nome</th>
-                          <th>E-mail</th>
-                          <th>Telefone</th>
-                          <th>Função</th>
-                          <th>Status</th>
-                          <th>Ações</th>
-                          <th>Criado em</th>
-                        </tr>
-                      </thead>
-                      <tbody data-admin-users-table-body></tbody>
-                    </table>
+                  <div data-admin-users-body>
+                    <div class="admin-overview-table-wrap">
+                      <table class="admin-overview-table">
+                        <thead>
+                          <tr>
+                            <th>Nome</th>
+                            <th>E-mail</th>
+                            <th>Telefone</th>
+                            <th>Função</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                            <th>Criado em</th>
+                          </tr>
+                        </thead>
+                        <tbody data-admin-users-table-body></tbody>
+                      </table>
+                    </div>
                   </div>
                 </article>
 

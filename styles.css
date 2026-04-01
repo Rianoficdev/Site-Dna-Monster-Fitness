@@ -12659,6 +12659,10 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   background: #f8fafc;
 }
 
+[data-admin-users-card].is-collapsed {
+  padding-bottom: 10px;
+}
+
 [data-admin-exercises-card].is-collapsed {
   padding-bottom: 10px;
 }

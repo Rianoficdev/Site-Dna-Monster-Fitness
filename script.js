@@ -27,6 +27,7 @@ const TRAINER_HIDDEN_WORKOUTS_INITIALIZED_KEY = 'dna_trainer_hidden_workouts_ini
 const TRAINER_TEMPLATE_CREATE_PANEL_COLLAPSED_KEY = 'dna_trainer_template_create_panel_collapsed';
 const TRAINER_WORKOUT_CREATE_PANEL_COLLAPSED_KEY = 'dna_trainer_workout_create_panel_collapsed';
 const TRAINER_MANAGED_WORKOUTS_PANEL_COLLAPSED_KEY = 'dna_trainer_managed_workouts_panel_collapsed';
+const ADMIN_USERS_PANEL_COLLAPSED_KEY = 'dna_admin_users_panel_collapsed';
 const ADMIN_WORKOUTS_PANEL_COLLAPSED_KEY = 'dna_admin_workouts_panel_collapsed';
 const ADMIN_EXERCISES_PANEL_COLLAPSED_KEY = 'dna_admin_exercises_panel_collapsed';
 const ADMIN_SUPPORT_PANEL_COLLAPSED_KEY = 'dna_admin_support_panel_collapsed';
@@ -689,6 +690,9 @@ const adminOverviewReportButton = document.querySelector('[data-admin-overview-r
 const adminOverviewTabButtons = document.querySelectorAll('[data-admin-overview-tab]');
 const adminOverviewTabPanes = document.querySelectorAll('[data-admin-overview-pane]');
 const adminUsersTableBody = document.querySelector('[data-admin-users-table-body]');
+const adminUsersCard = document.querySelector('[data-admin-users-card]');
+const adminUsersBody = document.querySelector('[data-admin-users-body]');
+const adminUsersToggleButton = document.querySelector('[data-admin-users-toggle]');
 const adminWorkoutsTableBody = document.querySelector('[data-admin-workouts-table-body]');
 const adminWorkoutsCard = document.querySelector('[data-admin-workouts-card]');
 const adminWorkoutsBody = document.querySelector('[data-admin-workouts-body]');
@@ -1258,6 +1262,7 @@ let adminOverviewExercisesGroupFilterValue = 'todos';
 let trainerTemplateCreatePanelCollapsed = false;
 let trainerWorkoutCreatePanelCollapsed = false;
 let trainerManagedWorkoutsPanelCollapsed = false;
+let adminUsersPanelCollapsed = false;
 let adminWorkoutsPanelCollapsed = false;
 let adminExercisesPanelCollapsed = false;
 let adminSupportPanelCollapsed = false;
@@ -8905,6 +8910,40 @@ const loadAdminWorkoutsPanelCollapsed = () => {
   } catch (_) {
     return false;
   }
+};
+
+const loadAdminUsersPanelCollapsed = () => {
+  try {
+    return localStorage.getItem(ADMIN_USERS_PANEL_COLLAPSED_KEY) === 'true';
+  } catch (_) {
+    return false;
+  }
+};
+
+const persistAdminUsersPanelCollapsed = (isCollapsed) => {
+  try {
+    localStorage.setItem(ADMIN_USERS_PANEL_COLLAPSED_KEY, isCollapsed ? 'true' : 'false');
+  } catch (_) {}
+};
+
+const syncAdminUsersPanelCollapseUi = () => {
+  const isCollapsed = Boolean(adminUsersPanelCollapsed);
+  if (adminUsersCard) adminUsersCard.classList.toggle('is-collapsed', isCollapsed);
+  if (adminUsersBody) adminUsersBody.hidden = isCollapsed;
+  if (adminUsersToggleButton) {
+    adminUsersToggleButton.textContent = isCollapsed ? 'Expandir caixa' : 'Minimizar caixa';
+    adminUsersToggleButton.setAttribute('aria-expanded', String(!isCollapsed));
+  }
+};
+
+const setAdminUsersPanelCollapsed = (collapsed, { persist = true } = {}) => {
+  adminUsersPanelCollapsed = Boolean(collapsed);
+  syncAdminUsersPanelCollapseUi();
+  if (persist) persistAdminUsersPanelCollapsed(adminUsersPanelCollapsed);
+};
+
+const toggleAdminUsersPanelCollapsed = () => {
+  setAdminUsersPanelCollapsed(!adminUsersPanelCollapsed);
 };
 
 const persistAdminWorkoutsPanelCollapsed = (isCollapsed) => {
@@ -19690,10 +19729,12 @@ const initStudentArea = () => {
   trainerTemplateCreatePanelCollapsed = loadTrainerTemplateCreatePanelCollapsed();
   trainerWorkoutCreatePanelCollapsed = loadTrainerWorkoutCreatePanelCollapsed();
   trainerManagedWorkoutsPanelCollapsed = loadTrainerManagedWorkoutsPanelCollapsed();
+  adminUsersPanelCollapsed = loadAdminUsersPanelCollapsed();
   adminWorkoutsPanelCollapsed = loadAdminWorkoutsPanelCollapsed();
   adminExercisesPanelCollapsed = loadAdminExercisesPanelCollapsed();
   adminSupportPanelCollapsed = loadAdminSupportPanelCollapsed();
   adminTeamPanelCollapsed = loadAdminTeamPanelCollapsed();
+  syncAdminUsersPanelCollapseUi();
   syncTrainerTemplateCreatePanelCollapseUi();
   syncTrainerWorkoutCreatePanelCollapseUi();
   syncTrainerManagedWorkoutsPanelCollapseUi();
@@ -19873,6 +19914,12 @@ const initStudentArea = () => {
   if (adminExercisesToggleButton) {
     adminExercisesToggleButton.addEventListener('click', () => {
       toggleAdminExercisesPanelCollapsed();
+    });
+  }
+
+  if (adminUsersToggleButton) {
+    adminUsersToggleButton.addEventListener('click', () => {
+      toggleAdminUsersPanelCollapsed();
     });
   }
 
