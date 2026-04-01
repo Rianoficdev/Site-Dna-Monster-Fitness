@@ -1357,18 +1357,18 @@ const LIBRARY_GROUP_ICONS = {
 };
 
 const LIBRARY_GROUP_IMAGES = {
-  peito: 'Foto do grupo muscular/logo dna (4)/Peitoral.png',
-  costas: 'Foto do grupo muscular/logo dna (4)/Costas.png',
-  abdomen: 'img/Abdomem.svg',
-  ombros: 'img/capa ombro.svg',
-  biceps: 'Foto do grupo muscular/logo dna (4)/Bíceps.png',
-  triceps: 'Foto do grupo muscular/logo dna (4)/Tríceps.png',
-  gluteos: 'img/Glueteo.svg',
-  quadriceps: 'img/capa quadriceps.svg',
-  posterior: 'img/posterior coxa.svg',
-  adutores: 'img/adutor.svg',
-  abdutores: 'img/abdutor.svg',
-  panturrilhas: 'img/panturrilha.svg'
+  peito: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/foto-do-grupo-muscular/logo-dna-4/67a7bad23d-peitoral.png',
+  costas: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/foto-do-grupo-muscular/logo-dna-4/319304a446-costas.png',
+  abdomen: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/057bd57cb7-abdomem.svg',
+  ombros: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/bdb73d429a-capa-ombro.svg',
+  biceps: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/foto-do-grupo-muscular/logo-dna-4/a3ce305e8b-biceps.png',
+  triceps: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/foto-do-grupo-muscular/logo-dna-4/e782e930f9-triceps.png',
+  gluteos: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/421c49b960-glueteo.svg',
+  quadriceps: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/85944dffd8-capa-quadriceps.svg',
+  posterior: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/41fcacb69f-posterior-coxa.svg',
+  adutores: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/629b3125fe-adutor.svg',
+  abdutores: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/5b5b6cf5d9-abdutor.svg',
+  panturrilhas: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/58ae86e77d-panturrilha.svg'
 };
 
 const getLibraryGroupImageSrc = (groupKey) => {
@@ -1587,8 +1587,8 @@ studentData.workouts = workoutSeed.map((item, index) => ({
 
 
 const workoutHeroMap = {
-  a: 'aba de img/botao-treino-hoje-1.png',
-  b: 'aba de img/treino funcional.png',
+  a: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/6f68b34f1d-botao-treino-hoje-1.png',
+  b: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/d9a7cfbd46-treino-funcional.png',
   c: 'https://images.unsplash.com/photo-1434682881908-b43d0467b798?auto=format&fit=crop&w=1400&q=80',
   d: 'https://images.unsplash.com/photo-1574680178050-55c6a6a96e0a?auto=format&fit=crop&w=1400&q=80',
   e: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1400&q=80',
@@ -4598,7 +4598,7 @@ const getWorkoutHistoryThumbnail = (workout) => {
     return resolveApiMediaUrl(String((firstImageExercise && firstImageExercise.imageUrl) || '').trim());
   }
 
-  return workoutHeroMap[workout && workout.id] || 'aba de img/nova logo.png';
+  return workoutHeroMap[workout && workout.id] || 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/e55317a732-nova-logo.png';
 };
 
 const getWorkoutHistoryDurationMinutes = (workout) => {
@@ -5493,16 +5493,16 @@ const WORKOUT_FALLBACK_SVG = `
   </svg>
 `;
 const PREP_SCREEN_DEFAULT_VIDEO_LIGHT_CANDIDATES = [
-  '/img/video_pre_treino_tema_claro.mp4',
-  '/videos do site/vídeo pre treino tema claro.mp4',
-  '/videos do site/video_pre_treino_tema_claro.mp4'
+  'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/videos/img/56583c8e77-video_pre_treino_tema_claro.mp4',
+  'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/videos/videos-do-site/e8269c7f7a-video-pre-treino-tema-claro.mp4',
+  'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/videos/img/56583c8e77-video_pre_treino_tema_claro.mp4'
 ];
 const PREP_SCREEN_DEFAULT_VIDEO_DARK_CANDIDATES = [
-  '/img/video_pre_treino_tema_escuro.mp4',
-  '/videos do site/video pre treino tema preto.mp4',
-  '/videos do site/video_pre_treino_tema_escuro.mp4'
+  'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/videos/img/c5db1f7710-video_pre_treino_tema_escuro.mp4',
+  'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/videos/videos-do-site/8dbaabe649-video-pre-treino-tema-preto.mp4',
+  'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/videos/img/c5db1f7710-video_pre_treino_tema_escuro.mp4'
 ];
-const PREP_SCREEN_DEFAULT_VIDEO_FALLBACK = '/img/carregamento.mp4';
+const PREP_SCREEN_DEFAULT_VIDEO_FALLBACK = 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/videos/img/384728ece9-carregamento.mp4';
 
 const setWorkoutFigure = (target, figureValue) => {
   if (!target) return;
@@ -6659,7 +6659,7 @@ const buildProgressHistoryRecords = () => {
         ? /^(https?:|data:|blob:|\/uploads\/|uploads\/)/i.test(rawThumbnail)
           ? resolveApiMediaUrl(rawThumbnail)
           : rawThumbnail
-        : getLibraryGroupImageSrc(groupKey) || 'aba de img/nova logo.png';
+        : getLibraryGroupImageSrc(groupKey) || 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/e55317a732-nova-logo.png';
       return {
         id: String(record.id || `${record.workoutId || 'workout'}-${index}`),
         workoutId: Number(record.workoutId) || 0,

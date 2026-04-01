@@ -12,6 +12,7 @@
     "db:migrate:sql": "node scripts/apply-sql-migrations.js",
     "storage:bootstrap": "node scripts/bootstrap-supabase-storage.js",
     "migrate:storage": "node scripts/migrate-media-to-supabase-storage.js",
+    "migrate:repo-media": "node scripts/migrate-repo-media-to-supabase-storage.js",
     "check:rotina": "node scripts/check-rotina.js",
     "test:designacao": "node scripts/test-designacao.js",
     "test:designacao:template": "node scripts/test-designacao-template.js",

@@ -4194,7 +4194,7 @@ body.theme-dark .student-dashboard-hero p {
 }
 
 body.theme-dark .student-dashboard-hero.has-image-cta {
-  background: url("aba de img/botao-treino-hoje-3.svg") center/contain no-repeat;
+  background: url("https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/c5c14bc2c4-botao-treino-hoje-3.svg") center/contain no-repeat;
 }
 
 body.theme-dark .student-upcoming-item {
@@ -4523,7 +4523,7 @@ body.theme-dark .student-exercise-detail-stepper button {
   margin-bottom: 16px;
   padding: 0;
   border: 0;
-  background: url("aba de img/botao-treino-hoje-1.svg") center/contain no-repeat;
+  background: url("https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/597d11b706-botao-treino-hoje-1.svg") center/contain no-repeat;
   box-shadow: 0 12px 28px rgba(8, 35, 20, 0.08);
   overflow: hidden;
   aspect-ratio: 320 / 143;
@@ -8068,7 +8068,7 @@ body.theme-dark .student-group-guide-card[data-group-card] .student-group-guide-
   min-height: 82vh;
   display: flex;
   align-items: center;
-  background: url("aba de img/BAANNER DA ABA DE INICIO (1).png") center/cover no-repeat;
+  background: url("https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/373e1ad8bc-baanner-da-aba-de-inicio-1.png") center/cover no-repeat;
   overflow: visible;
 }
 
@@ -8498,11 +8498,11 @@ body.theme-dark .student-group-guide-card[data-group-card] .student-group-guide-
 }
 
 .image-2 {
-  background-image: url("aba de img/treino funcional.png");
+  background-image: url("https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/d9a7cfbd46-treino-funcional.png");
 }
 
 .image-3 {
-  background-image: url("aba de img/cardio.jpg");
+  background-image: url("https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/cde3b3ef44-cardio.jpg");
 }
 
 .image-4 {
@@ -8567,7 +8567,7 @@ body.theme-dark .avaliacao-title-image-dark {
   height: 140px;
   margin: 0 auto 16px;
   border-radius: 50%;
-  background: url("aba de img/foto do personal.jpg") center/cover no-repeat;
+  background: url("https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/3da07a8f83-foto-do-personal.jpg") center/cover no-repeat;
   box-shadow: var(--shadow);
 }
 
@@ -8936,7 +8936,7 @@ body.theme-dark .avaliacao-title-image-dark {
   width: 114px;
   height: 13px;
   border-radius: 6px;
-  background: url("aba de img/peso (2).png") center/contain no-repeat;
+  background: url("https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/817f046bc7-peso-2.png") center/contain no-repeat;
   border: 1px solid rgba(18, 169, 75, 0.28);
   margin: 0 auto 8px;
 }
@@ -9303,7 +9303,7 @@ body.theme-dark .avaliacao-title-image-dark {
   }
 
   .hero {
-    background-image: url("aba de img/BAANNER DA ABA DE INICIO (Story) ofic.png");
+    background-image: url("https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/563a89df9e-baanner-da-aba-de-inicio-story-ofic.png");
     background-position: center top;
   }
 
