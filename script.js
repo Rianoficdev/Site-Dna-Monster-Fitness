@@ -37,7 +37,7 @@ const STUDENT_API_UPLOAD_TIMEOUT_MS = 120000;
 const STUDENT_API_MAX_RETRIES = 3;
 const STUDENT_API_RETRY_DELAY_MS = 350;
 const STUDENT_FORGOT_STATUS_POLL_MS = 12000;
-const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 10000;
+const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 2000;
 const TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT = 3;
 const ADMIN_TEAM_MIN_MEMBERS = 1;
 const ADMIN_TEAM_MAX_MEMBERS = 8;
@@ -3988,7 +3988,6 @@ const stopSessionHeartbeat = () => {
 };
 
 const STUDENT_WORKOUTS_REFRESH_BLOCKED_PANELS = new Set([
-  'treinos',
   'pre-treino',
   'treino-ativo',
   'treino-execucao',
@@ -4024,7 +4023,9 @@ const refreshStudentWorkoutsInBackground = async ({ force = false } = {}) => {
   studentWorkoutsRefreshInFlight = true;
   try {
     await syncWorkoutsFromBackend({ silent: true });
-    renderStudentApp();
+    renderStudentApp({
+      animateWorkoutListItems: String(currentStudentPanel || '').trim() !== 'treinos'
+    });
     return true;
   } catch (_) {
     return false;
@@ -4046,11 +4047,18 @@ const checkStudentWorkoutsRevisionInBackground = async ({ force = false } = {}) 
     if (!nextRevision) return false;
 
     const previousRevision = normalizeStudentWorkoutsRevision(studentLatestWorkoutsRevision);
+    const localRevision = computeStudentWorkoutsRevisionFromList(studentData.workouts || []);
     studentLatestWorkoutsRevision = nextRevision;
-    if (!previousRevision || previousRevision === nextRevision) return false;
+    if (previousRevision) {
+      if (previousRevision === nextRevision) return false;
+    } else if (localRevision === nextRevision) {
+      return false;
+    }
 
     await syncWorkoutsFromBackend({ silent: true });
-    renderStudentApp();
+    renderStudentApp({
+      animateWorkoutListItems: String(currentStudentPanel || '').trim() !== 'treinos'
+    });
     return true;
   } catch (_) {
     return false;
@@ -6510,7 +6518,7 @@ const renderActiveWorkout = () => {
   }
 };
 
-const renderWorkoutList = () => {
+const renderWorkoutList = ({ animateItems = true } = {}) => {
   if (!workoutList) return;
 
   const visibleWorkouts = getVisibleStudentWorkouts();
@@ -6539,8 +6547,12 @@ const renderWorkoutList = () => {
   visibleWorkouts.forEach((w, index) => {
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `student-workout-item is-entering${selectedWorkoutId === w.id ? ' is-active' : ''}`;
-    btn.style.animationDelay = `${index * 40}ms`;
+    btn.className = `student-workout-item${animateItems ? ' is-entering' : ''}${selectedWorkoutId === w.id ? ' is-active' : ''}`;
+    if (animateItems) {
+      btn.style.animationDelay = `${index * 40}ms`;
+    } else {
+      btn.style.removeProperty('animation-delay');
+    }
     const displayName = String(w._displayName || w.name || w.code || 'Treino').trim();
     const dayLabel = String(w._visibleDayLabel || w.day || 'Plano ativo').trim();
     btn.innerHTML = `
@@ -17245,11 +17257,11 @@ const renderTrainerProgressPanel = () => {
   }
 };
 
-const renderStudentApp = () => {
+const renderStudentApp = ({ animateWorkoutListItems = true } = {}) => {
   applyRoleBasedUiMode();
   renderDashboard();
   renderAllWorkoutsCards();
-  renderWorkoutList();
+  renderWorkoutList({ animateItems: animateWorkoutListItems });
   renderWorkoutDetail();
   renderActiveWorkout();
   renderProgress();
