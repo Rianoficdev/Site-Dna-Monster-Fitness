@@ -37,7 +37,7 @@ const STUDENT_API_UPLOAD_TIMEOUT_MS = 120000;
 const STUDENT_API_MAX_RETRIES = 3;
 const STUDENT_API_RETRY_DELAY_MS = 350;
 const STUDENT_FORGOT_STATUS_POLL_MS = 12000;
-const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 2000;
+const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 10000;
 const TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT = 3;
 const ADMIN_TEAM_MIN_MEMBERS = 1;
 const ADMIN_TEAM_MAX_MEMBERS = 8;
@@ -1556,42 +1556,6 @@ studentData.profilePersonalInfo = [
 studentData.profileSettings = [
   { id: 'support', icon: 'help', label: 'Ajuda e Suporte' }
 ];
-
-const workoutSeed = [
-  { id: 'a', code: 'Treino A', name: 'Peito e triceps', day: 'Segunda e quinta', duration: '60 min' },
-  { id: 'b', code: 'Treino B', name: 'Costas e biceps', day: 'Terca e sexta', duration: '55 min' },
-  { id: 'c', code: 'Treino C', name: 'Pernas', day: 'Quarta e sabado', duration: '70 min' },
-  { id: 'd', code: 'Treino D', name: 'Ombros', day: 'Segunda e quarta', duration: '48 min' },
-  { id: 'e', code: 'Treino E', name: 'Abdomen', day: 'Terca e quinta', duration: '40 min' },
-  { id: 'f', code: 'Treino F', name: 'Funcional', day: 'Quarta e sexta', duration: '45 min' },
-  { id: 'g', code: 'Treino G', name: 'Gluteo', day: 'Segunda e sexta', duration: '52 min' },
-  { id: 'h', code: 'Treino H', name: 'Full body', day: 'Sabado', duration: '65 min' },
-  { id: 'i', code: 'Treino I', name: 'Cardio', day: 'Terca e sabado', duration: '35 min' },
-  { id: 'j', code: 'Treino J', name: 'Mobilidade', day: 'Domingo', duration: '30 min' }
-];
-
-const exercisePool = [
-  { name: 'Supino reto', series: '4x', reps: '10', load: '50kg' },
-  { name: 'Supino inclinado', series: '3x', reps: '12', load: '40kg' },
-  { name: 'Triceps corda', series: '3x', reps: '12', load: '25kg' },
-  { name: 'Puxada frontal', series: '4x', reps: '10', load: '55kg' },
-  { name: 'Remada baixa', series: '3x', reps: '12', load: '45kg' },
-  { name: 'Rosca direta', series: '3x', reps: '12', load: '20kg' },
-  { name: 'Agachamento livre', series: '4x', reps: '10', load: '60kg' },
-  { name: 'Leg press', series: '4x', reps: '12', load: '180kg' },
-  { name: 'Extensora', series: '3x', reps: '15', load: '50kg' },
-  { name: 'Prancha abdominal', series: '3x', reps: '40', load: '0kg' }
-];
-
-const buildWorkoutExercises = (offset = 0) =>
-  Array.from({ length: 10 }, (_, index) => ({ ...exercisePool[(index + offset) % exercisePool.length] }));
-
-studentData.workouts = workoutSeed.map((item, index) => ({
-  ...item,
-  done: false,
-  exercises: buildWorkoutExercises(index)
-}));
-
 
 const workoutHeroMap = {
   a: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/6f68b34f1d-botao-treino-hoje-1.png',
@@ -4024,6 +3988,7 @@ const stopSessionHeartbeat = () => {
 };
 
 const STUDENT_WORKOUTS_REFRESH_BLOCKED_PANELS = new Set([
+  'treinos',
   'pre-treino',
   'treino-ativo',
   'treino-execucao',
@@ -4097,7 +4062,7 @@ const checkStudentWorkoutsRevisionInBackground = async ({ force = false } = {}) 
 const startStudentWorkoutsRefresh = () => {
   stopStudentWorkoutsRefresh();
   if (!canRefreshStudentWorkoutsInBackground()) return;
-  void checkStudentWorkoutsRevisionInBackground({ force: true });
+  void checkStudentWorkoutsRevisionInBackground();
   studentWorkoutsRefreshTimer = window.setInterval(() => {
     void checkStudentWorkoutsRevisionInBackground();
   }, STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS);
@@ -12460,6 +12425,7 @@ const normalizeTrainerUserRecord = (user) => ({
   id: Number(user && user.id) || 0,
   name: String((user && user.name) || '').trim() || `Usuário ${Number(user && user.id) || '-'}`,
   email: String((user && user.email) || '').trim().toLowerCase(),
+  avatarUrl: resolveProfileAvatarUrl(getProfileAvatarFromSource(user)),
   role: normalizeRole(user && user.role),
   isEnabled: user && user.isEnabled !== false
 });
@@ -15407,6 +15373,7 @@ const buildTrainerManagedStudentEntries = ({ workouts = [], usersById = new Map(
 
     const studentId = Number(workout && workout.studentId) || 0;
     const knownStudent = usersById.get(studentId) || null;
+    const studentAvatarUrl = resolveProfileAvatarUrl(getProfileAvatarFromSource(knownStudent));
     const studentName = String(
       (knownStudent && knownStudent.name) ||
       (workout && (workout.studentName || workout.student || workout.aluno)) ||
@@ -15426,6 +15393,7 @@ const buildTrainerManagedStudentEntries = ({ workouts = [], usersById = new Map(
         key: studentKey,
         id: studentId,
         name: studentName,
+        avatarUrl: studentAvatarUrl,
         initials: getTrainerManagedStudentInitials(studentName),
         workouts: [],
         workoutsCount: 0,
@@ -15436,6 +15404,7 @@ const buildTrainerManagedStudentEntries = ({ workouts = [], usersById = new Map(
     }
 
     const entry = studentMap.get(studentKey);
+    if (!entry.avatarUrl && studentAvatarUrl) entry.avatarUrl = studentAvatarUrl;
     entry.workouts.push(workout);
     entry.workoutsCount += 1;
     entry.totalExercises += exercisesCount;
@@ -15879,7 +15848,12 @@ const renderTrainerManagedWorkoutsExperience = ({
           >
             <div class="trainer-managed-student-top">
               <div class="trainer-managed-student-identity">
-                <span class="trainer-managed-avatar">${safeCell(entry.initials)}</span>
+                <span class="trainer-managed-avatar${entry.avatarUrl ? ' has-image' : ''}">
+                  ${entry.avatarUrl
+                    ? `<img class="trainer-managed-avatar-image" src="${safeCell(entry.avatarUrl)}" alt="Foto de perfil de ${safeCell(entry.name)}" loading="lazy" decoding="async" />`
+                    : ''}
+                  <span class="trainer-managed-avatar-fallback">${safeCell(entry.initials)}</span>
+                </span>
                 <div class="trainer-managed-student-copy">
                   <strong>${safeCell(entry.name)}</strong>
                   <span>${safeCell(entry.workoutsCount)} treino(s) atribuídos</span>
@@ -20273,12 +20247,12 @@ const initStudentArea = () => {
     if (document.visibilityState !== 'visible') return;
     if (studentInLoginStage) return;
     playStudentLoadingVideo();
-    void checkStudentWorkoutsRevisionInBackground({ force: true });
+    void checkStudentWorkoutsRevisionInBackground();
   });
 
   window.addEventListener('focus', () => {
     if (studentInLoginStage) return;
-    void checkStudentWorkoutsRevisionInBackground({ force: true });
+    void checkStudentWorkoutsRevisionInBackground();
   });
 
   studentAuthTabs.forEach((tab) => {

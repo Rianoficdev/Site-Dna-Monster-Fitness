@@ -11797,6 +11797,8 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
 .trainer-managed-workouts-context {
   display: grid;
   gap: 6px;
+  justify-items: center;
+  text-align: center;
 }
 
 .trainer-managed-workouts-context small {
@@ -11831,6 +11833,8 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
+  justify-items: stretch;
+  text-align: left;
 }
 
 .trainer-managed-workouts-search-wrap {
@@ -11992,6 +11996,8 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   height: 52px;
   border-radius: 16px;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -12002,6 +12008,29 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.trainer-managed-avatar.has-image {
+  background: rgba(18, 27, 46, 0.96);
+}
+
+.trainer-managed-avatar-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.trainer-managed-avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.trainer-managed-avatar.has-image .trainer-managed-avatar-fallback {
+  display: none;
 }
 
 .trainer-managed-student-copy,
