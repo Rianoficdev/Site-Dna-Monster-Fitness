@@ -195,54 +195,16 @@ function createAdminService({
     const normalizedWorkouts = workouts.map((workout) => {
       const student = usersById.get(Number(workout.studentId));
       const instructor = usersById.get(Number(workout.instructorId));
-      const weekDays = Array.isArray(workout && workout.weekDays)
-        ? workout.weekDays.map((day) => String(day || "").trim()).filter(Boolean)
-        : [];
-      const objective = String(
-        (workout && (workout.objective || workout.objetivo)) || ""
-      ).trim();
-      const description = String(
-        (workout && (workout.description || workout.observations || workout.observacoes)) || ""
-      ).trim();
-      const studentName = String(
-        (workout && workout.studentName) ||
-        (student && student.name) ||
-        "Não encontrado"
-      ).trim() || "Não encontrado";
-      const instructorName = String(
-        (workout && workout.instructorName) ||
-        (instructor && instructor.name) ||
-        "Não encontrado"
-      ).trim() || "Não encontrado";
-      const isActive = workout && workout.isActive !== false;
 
       return {
         id: workout.id,
         title: workout.title,
-        description,
-        objective,
+        description: workout.description || "",
         studentId: workout.studentId,
-        studentName,
-        studentStatus:
-          String((workout && workout.studentStatus) || (student && (student.isEnabled ? "Habilitado" : "Desabilitado")) || "").trim(),
+        studentName: student ? student.name : "Não encontrado",
         instructorId: workout.instructorId,
-        instructorName,
-        instructorStatus:
-          String((workout && workout.instructorStatus) || (instructor && (instructor.isEnabled ? "Habilitado" : "Desabilitado")) || "").trim(),
-        weekDays,
-        daysLabel: weekDays.length ? weekDays.join(", ") : "Sem dias definidos",
-        isActive,
-        status: isActive ? "ATIVO" : "INATIVO",
-        startDate: workout && workout.startDate ? workout.startDate : null,
-        endDate: workout && workout.endDate ? workout.endDate : null,
-        coverImageUrl: String(
-          (workout && (
-            workout.coverImageUrl ||
-            workout.cover_image_url ||
-            workout.coverUrl ||
-            workout.cover_url
-          )) || ""
-        ).trim(),
+        instructorName: instructor ? instructor.name : "Não encontrado",
+        isActive: workout.isActive !== false,
         createdAt: workout.createdAt,
         updatedAt: workout.updatedAt,
       };
