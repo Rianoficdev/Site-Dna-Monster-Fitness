@@ -10345,8 +10345,7 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
 }
 
 .student-app-shell.is-admin-geral-mode .student-app-nav-btn[data-student-app-tab="dashboard"],
-.student-app-shell.is-admin-geral-mode .student-app-nav-btn[data-student-app-tab="treinos"],
-.student-app-shell.is-admin-geral-mode .student-app-nav-btn[data-student-app-tab="progresso"] {
+.student-app-shell.is-admin-geral-mode .student-app-nav-btn[data-student-app-tab="treinos"] {
   display: none;
 }
 

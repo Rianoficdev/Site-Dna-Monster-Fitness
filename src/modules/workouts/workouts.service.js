@@ -139,6 +139,121 @@ function createWorkoutsService({
     );
   }
 
+  async function listUsersSafe() {
+    if (!userRepository) return [];
+    if (typeof userRepository.listUsers === "function") {
+      const users = await userRepository.listUsers();
+      return Array.isArray(users) ? users : [];
+    }
+    return [];
+  }
+
+  async function getUsersMapByIds(userIds = []) {
+    const ids = Array.from(
+      new Set(
+        (Array.isArray(userIds) ? userIds : [])
+          .map((value) => normalizeId(value))
+          .filter(Boolean)
+      )
+    );
+    if (!ids.length) return new Map();
+
+    const users = await listUsersSafe();
+    if (users.length) {
+      return new Map(
+        users
+          .filter((user) => ids.includes(normalizeId(user && user.id)))
+          .map((user) => [normalizeId(user && user.id), user])
+      );
+    }
+
+    if (!userRepository || typeof userRepository.findById !== "function") {
+      return new Map();
+    }
+
+    const resolvedUsers = await Promise.all(
+      ids.map(async (userId) => {
+        try {
+          return await userRepository.findById(userId);
+        } catch (_error) {
+          return null;
+        }
+      })
+    );
+
+    return new Map(
+      resolvedUsers
+        .filter(Boolean)
+        .map((user) => [normalizeId(user && user.id), user])
+    );
+  }
+
+  function getUserStatusLabel(userLike, fallback = "") {
+    if (!userLike || typeof userLike !== "object") return normalizeString(fallback);
+    return userLike.isEnabled === false ? "Desabilitado" : "Habilitado";
+  }
+
+  function getResolvedWorkoutStudentId(workout) {
+    return normalizeId(workout && (workout.studentId || workout.student_id));
+  }
+
+  async function enrichWorkoutsWithAssignments(workouts) {
+    const list = Array.isArray(workouts)
+      ? workouts.filter(Boolean)
+      : workouts
+        ? [workouts]
+        : [];
+    if (!list.length) {
+      return Array.isArray(workouts) ? [] : null;
+    }
+
+    const usersById = await getUsersMapByIds(
+      list.flatMap((workout) => [
+        getResolvedWorkoutStudentId(workout),
+        getWorkoutInstructorId(workout),
+      ])
+    );
+
+    const enriched = list.map((workout) => {
+      const studentId = getResolvedWorkoutStudentId(workout);
+      const instructorId = getWorkoutInstructorId(workout);
+      const student = usersById.get(studentId) || null;
+      const instructor = usersById.get(instructorId) || null;
+
+      return {
+        ...workout,
+        studentId,
+        student_id: studentId,
+        studentName:
+          normalizeString(
+            (student && student.name) ||
+            (workout && (workout.studentName || workout.student || workout.aluno))
+          ) || (studentId ? `Aluno ${studentId}` : "Aluno não informado"),
+        studentEmail: normalizeString(
+          (student && student.email) ||
+          (workout && workout.studentEmail)
+        ),
+        studentStatus: getUserStatusLabel(student, workout && workout.studentStatus),
+        instructorId,
+        instructor_id: instructorId,
+        instructorName:
+          normalizeString(
+            (instructor && instructor.name) ||
+            (workout && (workout.instructorName || workout.instructor || workout.instrutor))
+          ) || (instructorId ? `Instrutor ${instructorId}` : "Instrutor não informado"),
+        instructorEmail: normalizeString(
+          (instructor && instructor.email) ||
+          (workout && workout.instructorEmail)
+        ),
+        instructorRole:
+          normalizeRole((instructor && instructor.role) || (workout && workout.instructorRole)) || "",
+        instructorStatus: getUserStatusLabel(instructor, workout && workout.instructorStatus),
+      };
+    });
+
+    return Array.isArray(workouts) ? enriched : enriched[0] || null;
+  }
+
   async function ensureInstructorCanManageStudent({ instructorId, studentId }) {
     const normalizedInstructorId = normalizeId(instructorId);
     const normalizedStudentId = normalizeId(studentId);
@@ -493,7 +608,7 @@ function createWorkoutsService({
       exercises,
     });
 
-    return withWorkoutProgress(workout);
+    return enrichWorkoutsWithAssignments(await withWorkoutProgress(workout));
   }
 
   async function updateWorkout({
@@ -575,7 +690,7 @@ function createWorkoutsService({
       throw new AppError("Treino não encontrado.", 404, "WORKOUT_NOT_FOUND");
     }
 
-    return withWorkoutProgress(updated);
+    return enrichWorkoutsWithAssignments(await withWorkoutProgress(updated));
   }
 
   async function createWorkoutTemplate({
@@ -1120,7 +1235,7 @@ function createWorkoutsService({
       );
 
       return {
-        workout: await withWorkoutProgress(createdWorkout),
+        workout: await enrichWorkoutsWithAssignments(await withWorkoutProgress(createdWorkout)),
         exercises: copiedExercises,
         template: {
           id: template.id,
@@ -1165,7 +1280,7 @@ function createWorkoutsService({
     }
 
     return {
-      workout: await withWorkoutProgress(createdWorkout),
+      workout: await enrichWorkoutsWithAssignments(await withWorkoutProgress(createdWorkout)),
       exercises: copiedExercises,
       template: {
         id: template.id,
@@ -1189,7 +1304,7 @@ function createWorkoutsService({
       workouts = [];
     }
 
-    return sortWorkoutsByCreatedAt(workouts);
+    return enrichWorkoutsWithAssignments(await sortWorkoutsByCreatedAt(workouts));
   }
 
   async function createInstructorWorkout({ authUser, ...payload }) {
@@ -1215,7 +1330,7 @@ function createWorkoutsService({
       ? workouts
       : workouts.filter((workout) => workout && workout.isActive !== false);
 
-    return sortWorkoutsByCreatedAt(filtered);
+    return enrichWorkoutsWithAssignments(await sortWorkoutsByCreatedAt(filtered));
   }
 
   async function listStudentWorkouts({ authUser } = {}) {
@@ -1227,7 +1342,7 @@ function createWorkoutsService({
 
     const workouts = await workoutsRepository.findByStudentId(userId);
 
-    return sortWorkoutsByCreatedAt(workouts);
+    return enrichWorkoutsWithAssignments(await sortWorkoutsByCreatedAt(workouts));
   }
 
   async function getStudentWorkoutsRevision({ authUser } = {}) {
@@ -1293,7 +1408,7 @@ function createWorkoutsService({
       throw new AppError("Treino nao encontrado.", 404, "WORKOUT_NOT_FOUND");
     }
 
-    return withWorkoutProgress(removed);
+    return enrichWorkoutsWithAssignments(await withWorkoutProgress(removed));
   }
 
   async function listAssignableStudents({ authUser }) {

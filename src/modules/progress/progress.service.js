@@ -712,11 +712,21 @@ function createProgressService({
           ? workout.weekDays.map((day) => String(day || "").trim()).filter(Boolean)
           : [];
         const weeklySessions = Math.max(1, weekDays.length);
+        const instructorId = Number(
+          workout && (workout.instructorId || workout.createdBy || workout.created_by)
+        ) || 0;
+        const instructorName = normalizeString(
+          workout && (workout.instructorName || workout.instructor || workout.instrutor)
+        ) || (instructorId ? `Instrutor ${instructorId}` : "Instrutor não informado");
 
         workoutHistory.push({
           workoutId: Number(workout && workout.id) || 0,
           title: String((workout && workout.title) || "Treino").trim(),
           description: String((workout && workout.description) || "").trim(),
+          objective: String((workout && (workout.objective || workout.objetivo)) || "").trim(),
+          status: workout && workout.isActive === false ? "Inativo" : "Ativo",
+          instructorId,
+          instructorName,
           days: weekDays,
           daysLabel: weekDays.length ? weekDays.join(", ") : "Sem dias definidos",
           exercisesCount: exercises.length,

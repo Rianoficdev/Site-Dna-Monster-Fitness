@@ -4956,6 +4956,38 @@ const getStudentWorkoutDisplayName = (workout) => {
   return normalizedName || rawName;
 };
 
+const getTodayStudentWeekdayKey = (referenceDate = new Date()) => {
+  const safeDate = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
+  if (Number.isNaN(safeDate.getTime())) return '';
+  const weekdayIndex = (safeDate.getDay() + 6) % 7;
+  return STUDENT_WEEKDAY_ORDER[weekdayIndex] || '';
+};
+
+const resolvePreferredStudentWorkoutFromList = (workouts = [], { referenceDate = new Date() } = {}) => {
+  const visibleWorkouts = Array.isArray(workouts) ? workouts.filter(Boolean) : [];
+  if (!visibleWorkouts.length) return null;
+
+  const activeWorkouts = visibleWorkouts.filter((workout) => !isWorkoutInactive(workout));
+  const candidatePool = activeWorkouts.length ? activeWorkouts : visibleWorkouts;
+  const todayKey = getTodayStudentWeekdayKey(referenceDate);
+  const todayWorkouts = todayKey
+    ? candidatePool.filter((workout) => getStudentWorkoutWeekdayKeys(workout).includes(todayKey))
+    : [];
+  const unfinishedTodayWorkout = todayWorkouts.find((workout) => !workout.done);
+  if (unfinishedTodayWorkout) return unfinishedTodayWorkout;
+
+  const anyTodayWorkout = todayWorkouts[0];
+  if (anyTodayWorkout) return anyTodayWorkout;
+
+  const unfinishedWorkout = candidatePool.find((workout) => !workout.done);
+  if (unfinishedWorkout) return unfinishedWorkout;
+
+  return candidatePool[0] || visibleWorkouts[0] || null;
+};
+
+const getPreferredStudentWorkout = ({ referenceDate = new Date() } = {}) =>
+  resolvePreferredStudentWorkoutFromList(getVisibleStudentWorkouts(), { referenceDate });
+
 const getStudentWorkoutStartButtonLabel = (workout) => {
   const dayLabel = String((workout && (workout._visibleDayLabel || workout.day)) || '').trim();
   return dayLabel ? `Iniciar treino - ${dayLabel}` : 'Iniciar treino';
@@ -5016,7 +5048,7 @@ const getWorkoutSummary = () => {
   }
 
   const done = visibleWorkouts.filter((w) => w.done).length;
-  const current = visibleWorkouts.find((w) => !w.done) || visibleWorkouts[0];
+  const current = getPreferredStudentWorkout() || visibleWorkouts[0];
   const next = visibleWorkouts.find((w) => w.id !== current.id) || current;
   return { total, done, current, next };
 };
@@ -5027,10 +5059,13 @@ const getWorkoutObjectiveLabel = (workout) =>
   ).trim();
 
 const getDashboardObjectiveTitle = () => {
-  const currentWorkout = studentData.workouts.find((workout) => !workout.done);
+  const currentWorkout = getPreferredStudentWorkout()
+    || getVisibleStudentWorkouts().find((workout) => !workout.done)
+    || studentData.workouts.find((workout) => !workout.done);
   const workoutWithObjective = currentWorkout && getWorkoutObjectiveLabel(currentWorkout)
     ? currentWorkout
-    : studentData.workouts.find((workout) => getWorkoutObjectiveLabel(workout));
+    : getVisibleStudentWorkouts().find((workout) => getWorkoutObjectiveLabel(workout))
+      || studentData.workouts.find((workout) => getWorkoutObjectiveLabel(workout));
   const objective = String(
     (workoutWithObjective && getWorkoutObjectiveLabel(workoutWithObjective)) || studentData.objective || ''
   ).trim();
@@ -6541,7 +6576,8 @@ const renderWorkoutList = ({ animateItems = true } = {}) => {
   }
 
   if (!visibleWorkouts.some((workout) => workout.id === selectedWorkoutId)) {
-    selectedWorkoutId = visibleWorkouts[0].id;
+    const preferredWorkout = resolvePreferredStudentWorkoutFromList(visibleWorkouts);
+    selectedWorkoutId = preferredWorkout ? preferredWorkout.id : visibleWorkouts[0].id;
   }
 
   visibleWorkouts.forEach((w, index) => {
@@ -9490,11 +9526,17 @@ const renderAdminOverviewPanel = () => {
         workout && workout.instructorName,
         workout && workout.instructorId
       );
+      const daysLabel = getManagedWorkoutDaysLabel(workout);
+      const objectiveLabel = String((workout && (workout.objective || workout.objetivo)) || '').trim();
+      const statusLabel = isWorkoutInactive(workout) ? 'Inativo' : 'Ativo';
       const searchIndex = normalizeText([
         Number(workout && workout.id) || 0,
         String(workout && workout.title || ''),
         studentLabel,
         instructorLabel,
+        daysLabel,
+        objectiveLabel,
+        statusLabel,
         formatAdminDate(workout && workout.createdAt)
       ].join(' '));
       return searchIndex.includes(normalizedWorkoutsSearch);
@@ -9502,13 +9544,13 @@ const renderAdminOverviewPanel = () => {
 
   if (adminWorkoutsTableBody) {
     if (!showPanelData) {
-      adminWorkoutsTableBody.innerHTML = '<tr><td colspan="6">Acesso exclusivo do Administrador Geral.</td></tr>';
+      adminWorkoutsTableBody.innerHTML = '<tr><td colspan="9">Acesso exclusivo do Administrador Geral.</td></tr>';
     } else if (!workoutsForDisplay.length) {
-      adminWorkoutsTableBody.innerHTML = '<tr><td colspan="6">Nenhum treino cadastrado.</td></tr>';
+      adminWorkoutsTableBody.innerHTML = '<tr><td colspan="9">Nenhum treino cadastrado.</td></tr>';
     } else if (!sortedAdminWorkouts.length) {
       adminWorkoutsTableBody.innerHTML = normalizedWorkoutsSearchRaw
-        ? `<tr><td colspan="6">Nenhum treino encontrado para "${escapeAdminCell(adminOverviewWorkoutsSearchTerm)}".</td></tr>`
-        : '<tr><td colspan="6">Nenhum treino encontrado com esse filtro.</td></tr>';
+        ? `<tr><td colspan="9">Nenhum treino encontrado para "${escapeAdminCell(adminOverviewWorkoutsSearchTerm)}".</td></tr>`
+        : '<tr><td colspan="9">Nenhum treino encontrado com esse filtro.</td></tr>';
     } else {
       adminWorkoutsTableBody.innerHTML = sortedAdminWorkouts
         .map((workout) => {
@@ -9520,6 +9562,9 @@ const renderAdminOverviewPanel = () => {
             workout && workout.instructorName,
             workout && workout.instructorId
           );
+          const daysLabel = getManagedWorkoutDaysLabel(workout);
+          const objectiveLabel = String((workout && (workout.objective || workout.objetivo)) || '').trim() || '-';
+          const statusLabel = isWorkoutInactive(workout) ? 'Inativo' : 'Ativo';
           const workoutId = Number(workout && workout.id) || 0;
           return `
             <tr>
@@ -9527,6 +9572,9 @@ const renderAdminOverviewPanel = () => {
               <td data-label="Título">${escapeAdminCell(workout.title || '-')}</td>
               <td data-label="Aluno">${escapeAdminCell(studentLabel)}</td>
               <td data-label="Instrutor">${escapeAdminCell(instructorLabel)}</td>
+              <td data-label="Dias">${escapeAdminCell(daysLabel)}</td>
+              <td data-label="Objetivo">${escapeAdminCell(objectiveLabel)}</td>
+              <td data-label="Status">${escapeAdminCell(statusLabel)}</td>
               <td data-label="Criado em">${escapeAdminCell(formatAdminDate(workout.createdAt))}</td>
               <td data-label="Ações">
                 <div class="admin-overview-actions-group">
@@ -10262,16 +10310,19 @@ const exportAdminOverviewPdf = async () => {
       doc.autoTable({
         startY: cursorY,
         margin: { left: marginX, right: marginX },
-        head: [['ID', 'Titulo', 'Aluno', 'Instrutor', 'Criado em']],
+        head: [['ID', 'Titulo', 'Aluno', 'Instrutor', 'Dias', 'Objetivo', 'Status', 'Criado em']],
         body: workouts.length
           ? workouts.map((workout) => [
               workout.id || '-',
               workout.title || '-',
               workout.studentName || '-',
               workout.instructorName || '-',
+              getManagedWorkoutDaysLabel(workout),
+              String((workout && (workout.objective || workout.objetivo)) || '').trim() || '-',
+              isWorkoutInactive(workout) ? 'Inativo' : 'Ativo',
               formatAdminDate(workout.createdAt)
             ])
-          : [['Nenhum treino cadastrado.', '', '', '', '']],
+          : [['Nenhum treino cadastrado.', '', '', '', '', '', '', '']],
         styles: { fontSize: 9, cellPadding: 4 },
         headStyles: { fillColor: [16, 130, 72], textColor: 255 },
         didDrawPage: () => {
@@ -10342,7 +10393,9 @@ const exportAdminOverviewPdf = async () => {
         doc.text(
           `${workout.id || '-'} | ${workout.title || '-'} | ${workout.studentName || '-'} | ${
             workout.instructorName || '-'
-          }`,
+          } | ${getManagedWorkoutDaysLabel(workout)} | ${
+            String((workout && (workout.objective || workout.objetivo)) || '').trim() || '-'
+          } | ${isWorkoutInactive(workout) ? 'Inativo' : 'Ativo'}`,
           marginX,
           cursorY
         );
@@ -14914,10 +14967,13 @@ const syncWorkoutsFromBackend = async ({ silent = false } = {}) => {
     const preservedSelection = normalizedForUi.find(
       (workout) => String(workout && workout.id) === previousSelectedWorkoutId
     );
+    const preferredWorkout = resolvePreferredStudentWorkoutFromList(normalizedForUi);
     selectedWorkoutId = preservedSelection
       ? preservedSelection.id
-      : normalizedForUi[0]
-        ? normalizedForUi[0].id
+      : preferredWorkout
+        ? preferredWorkout.id
+        : normalizedForUi[0]
+          ? normalizedForUi[0].id
         : null;
     Object.keys(workoutExerciseChecks).forEach((key) => delete workoutExerciseChecks[key]);
     Object.keys(workoutExerciseDeferredQueue).forEach((key) => delete workoutExerciseDeferredQueue[key]);
@@ -15376,6 +15432,50 @@ const getTrainerManagedStudentInitials = (name) => {
     .toUpperCase();
 };
 
+const getManagedWorkoutDaysLabel = (workout) => {
+  const weekDays = Array.isArray(workout && workout.weekDays)
+    ? workout.weekDays.map((day) => String(day || '').trim()).filter(Boolean)
+    : [];
+  if (weekDays.length) return weekDays.join(', ');
+
+  const dayLabel = String(
+    (workout && (workout.daysLabel || workout._visibleDayLabel || workout.day)) || ''
+  ).trim();
+  return dayLabel || 'Sem dias definidos';
+};
+
+const getManagedWorkoutInstructorInfo = (workout, usersById = new Map()) => {
+  const instructorId = Number(
+    workout && (workout.instructorId || workout.createdBy || workout.created_by)
+  ) || 0;
+  const knownInstructor = usersById.get(instructorId) || null;
+  const name = String(
+    (knownInstructor && knownInstructor.name) ||
+    (workout && (workout.instructorName || workout.instructor || workout.instrutor)) ||
+    (instructorId > 0 ? `Instrutor ${instructorId}` : 'Instrutor não informado')
+  ).trim() || (instructorId > 0 ? `Instrutor ${instructorId}` : 'Instrutor não informado');
+  const status = String(
+    (workout && workout.instructorStatus) ||
+    (knownInstructor && (knownInstructor.isEnabled === false ? 'Desabilitado' : 'Habilitado')) ||
+    ''
+  ).trim();
+
+  return {
+    id: instructorId,
+    name,
+    status,
+  };
+};
+
+const formatManagedInstructorSummary = (names = []) => {
+  const safeNames = Array.isArray(names)
+    ? names.map((name) => String(name || '').trim()).filter(Boolean)
+    : [];
+  if (!safeNames.length) return 'Sem instrutor informado';
+  if (safeNames.length <= 2) return safeNames.join(', ');
+  return `${safeNames.slice(0, 2).join(', ')} +${safeNames.length - 2}`;
+};
+
 const buildTrainerManagedStudentEntries = ({ workouts = [], usersById = new Map() } = {}) => {
   const studentMap = new Map();
 
@@ -15399,6 +15499,7 @@ const buildTrainerManagedStudentEntries = ({ workouts = [], usersById = new Map(
       ? exercises.length
       : Math.max(0, Number(workout && workout.totalExercises) || 0);
     const statusMeta = getTrainerManagedWorkoutStatusMeta(workout);
+    const instructorInfo = getManagedWorkoutInstructorInfo(workout, usersById);
 
     if (!studentMap.has(studentKey)) {
       studentMap.set(studentKey, {
@@ -15411,17 +15512,26 @@ const buildTrainerManagedStudentEntries = ({ workouts = [], usersById = new Map(
         workoutsCount: 0,
         completedCount: 0,
         activeCount: 0,
-        totalExercises: 0
+        totalExercises: 0,
+        instructorNames: [],
       });
     }
 
     const entry = studentMap.get(studentKey);
     if (!entry.avatarUrl && studentAvatarUrl) entry.avatarUrl = studentAvatarUrl;
+    if (instructorInfo.name && !entry.instructorNames.includes(instructorInfo.name)) {
+      entry.instructorNames.push(instructorInfo.name);
+    }
     entry.workouts.push(workout);
     entry.workoutsCount += 1;
     entry.totalExercises += exercisesCount;
     if (statusMeta.isCompleted) entry.completedCount += 1;
     if (isWorkoutActive(workout)) entry.activeCount += 1;
+  });
+
+  studentMap.forEach((entry) => {
+    entry.instructorsCount = Array.isArray(entry.instructorNames) ? entry.instructorNames.length : 0;
+    entry.instructorsSummary = formatManagedInstructorSummary(entry.instructorNames);
   });
 
   return Array.from(studentMap.values()).sort((first, second) =>
@@ -15666,7 +15776,9 @@ const renderTrainerManagedWorkoutsExperience = ({
       ? selectedStudent.workouts.filter((workout) => {
           const workoutName = String((workout && (workout.title || workout.name)) || '').trim();
           const objectiveLabel = String((workout && (workout.objective || workout.objetivo)) || '').trim();
-          return normalizeText(`${workoutName} ${objectiveLabel}`).includes(normalizedSearchTerm);
+          const daysLabel = getManagedWorkoutDaysLabel(workout);
+          const instructorInfo = getManagedWorkoutInstructorInfo(workout, usersById);
+          return normalizeText(`${workoutName} ${objectiveLabel} ${daysLabel} ${instructorInfo.name}`).includes(normalizedSearchTerm);
         })
       : selectedStudent.workouts.slice();
     const completedCount = filteredWorkouts.filter(
@@ -15682,7 +15794,7 @@ const renderTrainerManagedWorkoutsExperience = ({
       <div class="trainer-managed-workouts-context-copy">
         <small>Treinos do aluno</small>
         <strong>Treinos - ${safeCell(selectedStudent.name)}</strong>
-        <p>${safeCell(completedCount)} de ${safeCell(filteredWorkouts.length)} treino(s) concluído(s) na visualização atual.</p>
+        <p>${safeCell(completedCount)} de ${safeCell(filteredWorkouts.length)} treino(s) concluído(s). Responsáveis: ${safeCell(selectedStudent.instructorsSummary || 'Sem instrutor informado')}.</p>
       </div>
       <div class="trainer-managed-view-toggle" role="tablist" aria-label="Visão dos treinos do aluno">
         <button
@@ -15733,6 +15845,8 @@ const renderTrainerManagedWorkoutsExperience = ({
           const workoutName = String((workout && (workout.title || workout.name)) || `Treino ${workoutId || '-'}`).trim() || '-';
           const objectiveLabel = String((workout && (workout.objective || workout.objetivo)) || '').trim() || 'Sem objetivo informado';
           const createdAtLabel = formatAdminDate(workout && workout.createdAt);
+          const daysLabel = getManagedWorkoutDaysLabel(workout);
+          const instructorInfo = getManagedWorkoutInstructorInfo(workout, usersById);
           const exercises = getTrainerWorkoutExercisesWithTemplateFallback(workout);
           const exercisesCount = Array.isArray(exercises) && exercises.length
             ? exercises.length
@@ -15754,12 +15868,22 @@ const renderTrainerManagedWorkoutsExperience = ({
               </div>
               <div class="trainer-managed-card-meta">
                 <span>${safeCell(exercisesCount)} exercício(s)</span>
+                <span>${safeCell(daysLabel)}</span>
+                <span>${safeCell(instructorInfo.name)}</span>
                 <span>Criado em ${safeCell(createdAtLabel)}</span>
               </div>
               <div class="trainer-managed-card-details">
                 <div class="trainer-managed-card-stat">
                   <small>Objetivo</small>
                   <strong>${safeCell(objectiveLabel)}</strong>
+                </div>
+                <div class="trainer-managed-card-stat">
+                  <small>Dias</small>
+                  <strong>${safeCell(daysLabel)}</strong>
+                </div>
+                <div class="trainer-managed-card-stat">
+                  <small>Responsável</small>
+                  <strong>${safeCell(instructorInfo.name)}</strong>
                 </div>
                 <div class="trainer-managed-card-stat">
                   <small>Status</small>
@@ -15813,7 +15937,9 @@ const renderTrainerManagedWorkoutsExperience = ({
   }
 
   const filteredStudents = normalizedSearchTerm
-    ? studentEntries.filter((entry) => normalizeText(entry.name).includes(normalizedSearchTerm))
+    ? studentEntries.filter((entry) =>
+        normalizeText(`${entry.name} ${entry.instructorsSummary || ''}`).includes(normalizedSearchTerm)
+      )
     : studentEntries;
 
   trainerManagedWorkoutsContext.innerHTML = [
@@ -15868,7 +15994,7 @@ const renderTrainerManagedWorkoutsExperience = ({
                 </span>
                 <div class="trainer-managed-student-copy">
                   <strong>${safeCell(entry.name)}</strong>
-                  <span>${safeCell(entry.workoutsCount)} treino(s) atribuídos</span>
+                  <span>${safeCell(entry.workoutsCount)} treino(s) atribuídos • ${safeCell(entry.instructorsCount || 0)} instrutor(es)</span>
                 </div>
               </div>
               <span class="trainer-managed-chevron" aria-hidden="true">
@@ -16883,6 +17009,7 @@ const buildTrainerProgressReportPdfHtml = ({ selectedStudent, weekLabel }) => {
       .map((item) => `
         <tr>
           <td>${escapeAdminCell(item && item.title ? item.title : '-')}</td>
+          <td>${escapeAdminCell(item && item.instructorName ? item.instructorName : '-')}</td>
           <td>${escapeAdminCell(item && item.daysLabel ? item.daysLabel : '-')}</td>
           <td>${escapeAdminCell(Number(item && item.exercisesCount) || 0)}</td>
           <td>${escapeAdminCell(`${Number(item && item.estimatedSessionMinutes) || 0} min`)}</td>
@@ -16891,7 +17018,7 @@ const buildTrainerProgressReportPdfHtml = ({ selectedStudent, weekLabel }) => {
         </tr>
       `)
       .join('')
-    : '<tr><td colspan="6">Nenhum treino delegado para este aluno.</td></tr>';
+    : '<tr><td colspan="7">Nenhum treino delegado para este aluno.</td></tr>';
 
   return `
     <style>
@@ -17040,6 +17167,7 @@ const buildTrainerProgressReportPdfHtml = ({ selectedStudent, weekLabel }) => {
           <thead>
             <tr>
               <th>Treino</th>
+              <th>Instrutor</th>
               <th>Dias</th>
               <th>Exercícios</th>
               <th>Tempo/sessão</th>
@@ -17239,12 +17367,13 @@ const renderTrainerProgressPanel = () => {
   if (trainerProgressHistoryBody) {
     const history = selectedStudent && Array.isArray(selectedStudent.history) ? selectedStudent.history : [];
     if (!history.length) {
-      trainerProgressHistoryBody.innerHTML = '<tr><td colspan="6">Nenhum treino delegado para este aluno.</td></tr>';
+      trainerProgressHistoryBody.innerHTML = '<tr><td colspan="7">Nenhum treino delegado para este aluno.</td></tr>';
     } else {
       trainerProgressHistoryBody.innerHTML = history
         .map((item) => `
           <tr>
             <td data-label="Treino">${escapeAdminCell(item && item.title ? item.title : '-')}</td>
+            <td data-label="Instrutor">${escapeAdminCell(item && item.instructorName ? item.instructorName : '-')}</td>
             <td data-label="Dias">${escapeAdminCell(item && item.daysLabel ? item.daysLabel : '-')}</td>
             <td data-label="Exercícios">${escapeAdminCell(Number(item && item.exercisesCount) || 0)}</td>
             <td data-label="Tempo/sessão">${escapeAdminCell(`${Number(item && item.estimatedSessionMinutes) || 0} min`)}</td>
@@ -17330,7 +17459,7 @@ const setStudentAppTab = (tabId, immediate = false) => {
   let resolvedTab = requestedTab;
 
   if (canGeneralAdmin) {
-    const allowedAdminTabs = new Set(['admin-geral', 'admin-treinos', 'biblioteca', 'perfil']);
+    const allowedAdminTabs = new Set(['admin-geral', 'admin-treinos', 'progresso', 'biblioteca', 'perfil']);
     if (!allowedAdminTabs.has(resolvedTab)) {
       resolvedTab = 'admin-geral';
     }
@@ -21799,8 +21928,7 @@ const initStudentArea = () => {
 
   if (openWorkoutsButton) {
     openWorkoutsButton.addEventListener('click', () => {
-      const visibleWorkouts = getVisibleStudentWorkouts();
-      const current = visibleWorkouts.find((workout) => !workout.done) || visibleWorkouts[0];
+      const current = getPreferredStudentWorkout();
       if (!current) {
         setStudentAppTab('treinos');
         return;
@@ -21818,7 +21946,10 @@ const initStudentArea = () => {
   if (workoutsStartButton) {
     workoutsStartButton.addEventListener('click', () => {
       const visibleWorkouts = getVisibleStudentWorkouts();
-      const workout = visibleWorkouts.find((item) => item.id === selectedWorkoutId) || visibleWorkouts[0];
+      const workout =
+        visibleWorkouts.find((item) => item.id === selectedWorkoutId) ||
+        resolvePreferredStudentWorkoutFromList(visibleWorkouts) ||
+        visibleWorkouts[0];
       if (!workout) {
         setStudentAppTab('treinos');
         return;
@@ -22196,7 +22327,12 @@ const initStudentArea = () => {
     if (studentArea && !studentArea.hidden) closeStudentArea();
   });
 
-  selectedWorkoutId = studentData.workouts[0] ? studentData.workouts[0].id : null;
+  const bootPreferredWorkout = resolvePreferredStudentWorkoutFromList(studentData.workouts);
+  selectedWorkoutId = bootPreferredWorkout
+    ? bootPreferredWorkout.id
+    : studentData.workouts[0]
+      ? studentData.workouts[0].id
+      : null;
   setAuthView('login');
   const bootTab = getDefaultMainTabForCurrentRole();
   setStudentAppTab(bootTab, true);
