@@ -1,4 +1,7 @@
 function createWorkoutsRepository({ prisma }) {
+  let workoutMetadataInitPromise = null;
+  let workoutTemplateMetadataInitPromise = null;
+
   function nowIso() {
     return new Date().toISOString();
   }
@@ -150,8 +153,9 @@ function createWorkoutsRepository({ prisma }) {
     };
   }
 
-  async function ensureWorkoutMetadataTable() {
-    await prisma.$executeRawUnsafe(`
+  function ensureWorkoutMetadataTable() {
+    if (!workoutMetadataInitPromise) {
+      workoutMetadataInitPromise = prisma.$executeRawUnsafe(`
 CREATE TABLE IF NOT EXISTS workout_metadata (
   workout_id integer PRIMARY KEY REFERENCES workout(id) ON DELETE CASCADE,
   objective text NOT NULL DEFAULT '',
@@ -160,18 +164,38 @@ CREATE TABLE IF NOT EXISTS workout_metadata (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-    `);
+      `).catch((error) => {
+        workoutMetadataInitPromise = null;
+        throw error;
+      });
+    }
+
+    return workoutMetadataInitPromise;
   }
 
-  async function ensureWorkoutTemplateMetadataTable() {
-    await prisma.$executeRawUnsafe(`
+  function ensureWorkoutTemplateMetadataTable() {
+    if (!workoutTemplateMetadataInitPromise) {
+      workoutTemplateMetadataInitPromise = prisma.$executeRawUnsafe(`
 CREATE TABLE IF NOT EXISTS workout_template_metadata (
   template_id integer PRIMARY KEY REFERENCES workout_template(id) ON DELETE CASCADE,
   cover_image_url text NOT NULL DEFAULT '',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-    `);
+      `).catch((error) => {
+        workoutTemplateMetadataInitPromise = null;
+        throw error;
+      });
+    }
+
+    return workoutTemplateMetadataInitPromise;
+  }
+
+  async function initializeCompatibilityTables() {
+    await Promise.all([
+      ensureWorkoutMetadataTable(),
+      ensureWorkoutTemplateMetadataTable(),
+    ]);
   }
 
   async function listWorkoutTemplateMetadataByIds(templateIds) {
@@ -624,6 +648,76 @@ SET objective = EXCLUDED.objective,
     );
   }
 
+  async function countTemplateExercisesByTemplateIds(templateIds) {
+    const ids = Array.isArray(templateIds)
+      ? [...new Set(templateIds.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0))]
+      : [];
+    if (!ids.length) return new Map();
+
+    const rows = await prisma.$queryRawUnsafe(
+      `
+SELECT template_id, COUNT(*)::int AS exercises_count
+FROM workout_template_exercise
+WHERE template_id = ANY($1::int[])
+GROUP BY template_id
+      `,
+      ids
+    );
+
+    const counts = new Map(ids.map((id) => [id, 0]));
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const templateId = Number(row && row.template_id) || 0;
+      if (!templateId) return;
+      counts.set(templateId, Number(row && row.exercises_count) || 0);
+    });
+
+    return counts;
+  }
+
+  async function getWorkoutStats() {
+    const [row] = await prisma.$queryRawUnsafe(`
+SELECT
+  COUNT(*)::int AS total_count,
+  COUNT(*) FILTER (WHERE is_active = true)::int AS active_count,
+  COUNT(*) FILTER (WHERE is_active = false)::int AS inactive_count
+FROM workout
+    `);
+
+    return {
+      totalCount: Number(row && row.total_count) || 0,
+      activeCount: Number(row && row.active_count) || 0,
+      inactiveCount: Number(row && row.inactive_count) || 0,
+    };
+  }
+
+  async function listOverviewWorkouts() {
+    const workouts = await prisma.workout.findMany({
+      select: {
+        id: true,
+        name: true,
+        studentId: true,
+        createdBy: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+    });
+
+    return (Array.isArray(workouts) ? workouts : []).map((workout) => ({
+      id: Number(workout && workout.id) || 0,
+      title: normalizeString(workout && workout.name),
+      studentId: normalizeInteger(workout && workout.studentId, 0),
+      instructorId: normalizeInteger(workout && workout.createdBy, 0),
+      isActive: workout && workout.isActive !== false,
+      createdAt: toIsoDate(workout && workout.createdAt) || nowIso(),
+      updatedAt: toIsoDate(workout && workout.updatedAt) || nowIso(),
+    }));
+  }
+
   async function findWorkoutTemplateById(id, { includeInactive = true } = {}) {
     const normalizedId = Number(id) || 0;
     if (!normalizedId) return null;
@@ -787,6 +881,7 @@ SET objective = EXCLUDED.objective,
   }
 
   return {
+    initializeCompatibilityTables,
     createWorkout,
     updateWorkout,
     deleteWorkout,
@@ -795,9 +890,12 @@ SET objective = EXCLUDED.objective,
     findByInstructorId,
     listStudentIdsByInstructorId,
     listAll,
+    listOverviewWorkouts,
+    getWorkoutStats,
     findById,
     createWorkoutTemplate,
     listWorkoutTemplates,
+    countTemplateExercisesByTemplateIds,
     findWorkoutTemplateById,
     updateWorkoutTemplate,
     deleteWorkoutTemplate,

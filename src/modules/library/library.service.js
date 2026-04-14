@@ -23,6 +23,7 @@ const ALLOWED_TYPES = new Set(["forca", "cardio", "mobilidade", "funcional", "re
 const ADMIN_ROLES = new Set(["ADMIN", "ADMIN_GERAL"]);
 const INSTRUCTOR_ROLE = "INSTRUTOR";
 const STUDENT_ROLE = "ALUNO";
+const LIBRARY_LIST_CACHE_TTL_MS = 30000;
 
 function createLibraryService({
   libraryRepository,
@@ -30,6 +31,9 @@ function createLibraryService({
   workoutsRepository,
   exercisesRepository
 }) {
+  let bootstrapDatabaseFromMemoryPromise = null;
+  const libraryListCache = new Map();
+
   function normalizeRole(role) {
     const normalized = String(role || "").trim().toUpperCase();
     if (normalized === "INSTRUCTOR") return INSTRUCTOR_ROLE;
@@ -113,6 +117,31 @@ function createLibraryService({
       role,
       userId,
     };
+  }
+
+  function clearLibraryListCache() {
+    libraryListCache.clear();
+  }
+
+  function buildLibraryListCacheKey({ role, includeInactive }) {
+    return `${String(role || "").trim().toUpperCase()}:${includeInactive ? "all" : "active"}`;
+  }
+
+  function getCachedLibraryList(key) {
+    const cached = libraryListCache.get(key);
+    if (!cached) return null;
+    if (cached.expiresAt <= Date.now()) {
+      libraryListCache.delete(key);
+      return null;
+    }
+    return cached.items;
+  }
+
+  function setCachedLibraryList(key, items) {
+    libraryListCache.set(key, {
+      items,
+      expiresAt: Date.now() + LIBRARY_LIST_CACHE_TTL_MS,
+    });
   }
 
   function ensureLibraryAdmin(authUser) {
@@ -219,18 +248,27 @@ function createLibraryService({
       return;
     }
 
-    const dbList = await libraryDatabaseRepository.listLibraryExercises({ includeInactive: true });
-    if (Array.isArray(dbList) && dbList.length) return;
+    if (!bootstrapDatabaseFromMemoryPromise) {
+      bootstrapDatabaseFromMemoryPromise = (async () => {
+        const dbList = await libraryDatabaseRepository.listLibraryExercises({ includeInactive: true });
+        if (Array.isArray(dbList) && dbList.length) return;
 
-    const memoryList = libraryRepository.listLibraryExercises({ includeInactive: true });
-    const safeList = Array.isArray(memoryList) ? memoryList : [];
-    for (const exercise of safeList) {
-      try {
-        await syncDatabaseExerciseRecord(exercise);
-      } catch (_error) {
-        // ignore bootstrap single-item error to keep API responsive
-      }
+        const memoryList = libraryRepository.listLibraryExercises({ includeInactive: true });
+        const safeList = Array.isArray(memoryList) ? memoryList : [];
+        for (const exercise of safeList) {
+          try {
+            await syncDatabaseExerciseRecord(exercise);
+          } catch (_error) {
+            // ignore bootstrap single-item error to keep API responsive
+          }
+        }
+      })().catch((error) => {
+        bootstrapDatabaseFromMemoryPromise = null;
+        throw error;
+      });
     }
+
+    await bootstrapDatabaseFromMemoryPromise;
 
   }
 
@@ -523,6 +561,12 @@ function createLibraryService({
     const actor = ensureAuthenticated(authUser);
     const shouldIncludeInactive = normalizeBoolean(includeInactive, false);
     const databaseEnabled = hasDatabaseRepository();
+    const cacheKey = buildLibraryListCacheKey({
+      role: actor.role,
+      includeInactive: actor.role === STUDENT_ROLE ? false : shouldIncludeInactive,
+    });
+    const cachedList = getCachedLibraryList(cacheKey);
+    if (cachedList) return cachedList;
     const syncListToMemory = (items) => {
       (Array.isArray(items) ? items : []).forEach((exercise) => {
         try {
@@ -541,9 +585,12 @@ function createLibraryService({
         });
         const merged = await mergeDatabaseExercisesWithMemoryMedia(exercises);
         syncListToMemory(merged);
+        setCachedLibraryList(cacheKey, merged);
         return merged;
       }
-      return libraryRepository.listLibraryExercises({ includeInactive: shouldIncludeInactive });
+      const items = libraryRepository.listLibraryExercises({ includeInactive: shouldIncludeInactive });
+      setCachedLibraryList(cacheKey, items);
+      return items;
     }
 
     if (actor.role === INSTRUCTOR_ROLE) {
@@ -552,9 +599,12 @@ function createLibraryService({
         const exercises = await libraryDatabaseRepository.listLibraryExercises({ includeInactive: false });
         const merged = await mergeDatabaseExercisesWithMemoryMedia(exercises);
         syncListToMemory(merged);
+        setCachedLibraryList(cacheKey, merged);
         return merged;
       }
-      return libraryRepository.listLibraryExercises({ includeInactive: false });
+      const items = libraryRepository.listLibraryExercises({ includeInactive: false });
+      setCachedLibraryList(cacheKey, items);
+      return items;
     }
 
     if (actor.role === STUDENT_ROLE) {
@@ -563,9 +613,12 @@ function createLibraryService({
         const exercises = await libraryDatabaseRepository.listLibraryExercises({ includeInactive: false });
         const merged = await mergeDatabaseExercisesWithMemoryMedia(exercises);
         syncListToMemory(merged);
+        setCachedLibraryList(cacheKey, merged);
         return merged;
       }
-      return libraryRepository.listLibraryExercises({ includeInactive: false });
+      const items = libraryRepository.listLibraryExercises({ includeInactive: false });
+      setCachedLibraryList(cacheKey, items);
+      return items;
     }
 
     throw new AppError("Acesso negado para este perfil.", 403, "FORBIDDEN");
@@ -594,10 +647,13 @@ function createLibraryService({
           }
           : created;
       syncMemoryExerciseRecord(createdWithSeries);
+      clearLibraryListCache();
       return createdWithSeries;
     }
 
-    return libraryRepository.createLibraryExercise(dataToCreate);
+    const created = libraryRepository.createLibraryExercise(dataToCreate);
+    clearLibraryListCache();
+    return created;
   }
 
   async function updateLibraryExercise({ authUser, exerciseId, ...data }) {
@@ -638,6 +694,7 @@ function createLibraryService({
         : updated;
 
     syncMemoryExerciseRecord(updatedWithSeries);
+    clearLibraryListCache();
 
     return updatedWithSeries;
   }
@@ -664,6 +721,7 @@ function createLibraryService({
     }
 
     syncMemoryExerciseRecord(updated);
+    clearLibraryListCache();
 
     return updated;
   }
@@ -684,6 +742,7 @@ function createLibraryService({
     }
 
     removeMemoryExerciseRecord(normalizedExerciseId);
+    clearLibraryListCache();
 
     return removed;
   }

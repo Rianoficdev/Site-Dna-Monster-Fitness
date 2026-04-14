@@ -379,6 +379,7 @@ ALTER TABLE workout_exercise
   }
 
   return {
+    initializeObservationColumn: ensureWorkoutExerciseObservationColumn,
     createExercise,
     listByWorkoutId,
     listByWorkoutIds,

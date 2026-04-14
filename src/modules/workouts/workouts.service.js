@@ -669,9 +669,15 @@ function createWorkoutsService({
       throw new AppError("Modelo de treino nao encontrado.", 404, "TEMPLATE_NOT_FOUND");
     }
 
+    const exerciseCountsByTemplateId =
+      workoutsRepository &&
+      typeof workoutsRepository.countTemplateExercisesByTemplateIds === "function"
+        ? await workoutsRepository.countTemplateExercisesByTemplateIds([updated.id])
+        : new Map();
+
     return {
       ...updated,
-      exercisesCount: (await workoutsRepository.listTemplateExercises(updated.id)).length,
+      exercisesCount: Number(exerciseCountsByTemplateId.get(Number(updated.id)) || 0),
     };
   }
 
@@ -683,12 +689,18 @@ function createWorkoutsService({
       includeInactive: shouldIncludeInactive,
     });
 
-    return Promise.all(
-      templates.map(async (template) => ({
-        ...template,
-        exercisesCount: (await workoutsRepository.listTemplateExercises(template.id)).length,
-      }))
-    );
+    const exerciseCountsByTemplateId =
+      workoutsRepository &&
+      typeof workoutsRepository.countTemplateExercisesByTemplateIds === "function"
+        ? await workoutsRepository.countTemplateExercisesByTemplateIds(
+            templates.map((template) => template && template.id)
+          )
+        : new Map();
+
+    return templates.map((template) => ({
+      ...template,
+      exercisesCount: Number(exerciseCountsByTemplateId.get(Number(template && template.id)) || 0),
+    }));
   }
 
   async function deleteWorkoutTemplate({ authUser, templateId }) {
@@ -1103,6 +1115,7 @@ function createWorkoutsService({
             completed: false,
             replacedFromExerciseId: null,
             name: libraryExercise ? libraryExercise.name : `ExercÃ­cio ${item.exerciseId}`,
+
             description: libraryExercise ? libraryExercise.description : "",
             animationUrl: libraryExercise ? libraryExercise.animationUrl : "",
             tutorialText: libraryExercise ? libraryExercise.tutorialText : "",
@@ -1127,34 +1140,8 @@ function createWorkoutsService({
           name: template.name,
         },
       };
-    for (const item of templateExercises) {
-      const libraryExercise = libraryRepository.findById(item.exerciseId, { includeInactive: true });
-      const copiedExercise = await exercisesRepository.createExercise({
-        workoutId: createdWorkout.id,
-        exerciseId: item.exerciseId,
-        order: item.order,
-        series: item.series,
-        reps: item.reps,
-        load: Number(item.defaultLoad) || 0,
-        restTime: item.restTime,
-        completed: false,
-        replacedFromExerciseId: null,
-        name: libraryExercise ? libraryExercise.name : `Exercício ${item.exerciseId}`,
-        description: libraryExercise ? libraryExercise.description : "",
-        animationUrl: libraryExercise ? libraryExercise.animationUrl : "",
-        tutorialText: libraryExercise ? libraryExercise.tutorialText : "",
-        level: libraryExercise ? libraryExercise.level : "intermediario",
-        type: libraryExercise ? libraryExercise.type : "forca",
-        isActive: libraryExercise ? libraryExercise.isActive !== false : true,
-        imageUrl: libraryExercise ? libraryExercise.imageUrl : "",
-        videoUrl: libraryExercise ? libraryExercise.videoUrl : "",
-        repetitions: item.reps,
-        loadKg: Number(item.defaultLoad) || 0,
-        restSeconds: item.restTime,
-        durationSeconds: libraryExercise ? Number(libraryExercise.durationSeconds) || 60 : 60,
-      });
-      copiedExercises.push(copiedExercise);
-    }
+
+
     } catch (error) {
       if (createdWorkout && createdWorkout.id) {
         try {
@@ -1163,15 +1150,6 @@ function createWorkoutsService({
       }
       throw error;
     }
-
-    return {
-      workout: await withWorkoutProgress(createdWorkout),
-      exercises: copiedExercises,
-      template: {
-        id: template.id,
-        name: template.name,
-      },
-    };
   }
 
   async function listMyWorkouts(authUser) {
@@ -1190,6 +1168,32 @@ function createWorkoutsService({
     }
 
     return sortWorkoutsByCreatedAt(workouts);
+  }
+
+  async function listOverviewWorkouts() {
+    if (!workoutsRepository || typeof workoutsRepository.listOverviewWorkouts !== "function") {
+      return [];
+    }
+
+    return workoutsRepository.listOverviewWorkouts();
+  }
+
+  async function getWorkoutStats() {
+    if (!workoutsRepository || typeof workoutsRepository.getWorkoutStats !== "function") {
+      const workouts = await listMyWorkouts({ id: 0, role: "ADMIN_GERAL" });
+      const totalCount = Array.isArray(workouts) ? workouts.length : 0;
+      const activeCount = (Array.isArray(workouts) ? workouts : []).filter(
+        (workout) => workout && workout.isActive !== false
+      ).length;
+
+      return {
+        totalCount,
+        activeCount,
+        inactiveCount: Math.max(0, totalCount - activeCount),
+      };
+    }
+
+    return workoutsRepository.getWorkoutStats();
   }
 
   async function createInstructorWorkout({ authUser, ...payload }) {
@@ -1268,22 +1272,6 @@ function createWorkoutsService({
   async function deleteWorkout({ authUser, workoutId }) {
     const workout = await ensureWorkoutAccess(authUser, workoutId, { forManagement: true });
 
-    if (
-      exercisesRepository &&
-      typeof exercisesRepository.listByWorkoutId === "function" &&
-      typeof exercisesRepository.deleteExercise === "function"
-    ) {
-      const workoutExercises = await exercisesRepository.listByWorkoutId(Number(workout.id));
-      for (const item of (Array.isArray(workoutExercises) ? workoutExercises : [])) {
-        const workoutExerciseId = Number(item && item.id) || 0;
-        if (!workoutExerciseId) continue;
-        await exercisesRepository.deleteExercise({
-          workoutId: Number(workout.id),
-          workoutExerciseId,
-        });
-      }
-    }
-
     if (!workoutsRepository || typeof workoutsRepository.deleteWorkout !== "function") {
       throw new AppError("Exclusao de treino nao disponivel.", 500, "WORKOUT_DELETE_NOT_AVAILABLE");
     }
@@ -1311,6 +1299,8 @@ function createWorkoutsService({
     deactivateWorkout,
     deleteWorkout,
     listMyWorkouts,
+    listOverviewWorkouts,
+    getWorkoutStats,
     listInstructorWorkouts,
     listStudentWorkouts,
     getStudentWorkoutsRevision,

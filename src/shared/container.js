@@ -1,4 +1,9 @@
-const bcrypt = require("bcryptjs");
+let bcrypt = null;
+try {
+  bcrypt = require("bcrypt");
+} catch (_error) {
+  bcrypt = require("bcryptjs");
+}
 const { createHash } = require("crypto");
 const { signAccessToken } = require("../config/jwt");
 const { env } = require("../config/env");
@@ -40,6 +45,19 @@ function createContainer() {
     libraryDatabaseRepository: createLibraryDatabaseRepository({ prisma }),
     supportRepository: createSupportRepository({ prisma }),
   };
+
+  if (
+    repositories.workoutsRepository &&
+    typeof repositories.workoutsRepository.initializeCompatibilityTables === "function"
+  ) {
+    void repositories.workoutsRepository.initializeCompatibilityTables().catch(() => {});
+  }
+  if (
+    repositories.exercisesRepository &&
+    typeof repositories.exercisesRepository.initializeObservationColumn === "function"
+  ) {
+    void repositories.exercisesRepository.initializeObservationColumn().catch(() => {});
+  }
 
   const services = {
     userService: createUserService({

@@ -2,6 +2,8 @@
 const { prisma } = require("../config/prisma");
 const { AppError } = require("../utils/AppError");
 const AUTH_DB_LOOKUP_TIMEOUT_MS = 1500;
+const AUTH_USER_CACHE_TTL_MS = 30000;
+const authUserCache = new Map();
 
 function hasDatabaseConnectivityError(error) {
   const knownCode = String(
@@ -32,6 +34,34 @@ function hasDatabaseConnectivityError(error) {
   );
 }
 
+function getCachedAuthUser(userId) {
+  const cacheKey = Number(userId) || 0;
+  if (!cacheKey) return null;
+
+  const cached = authUserCache.get(cacheKey);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    authUserCache.delete(cacheKey);
+    return null;
+  }
+
+  return cached.user;
+}
+
+function setCachedAuthUser(user) {
+  const cacheKey = Number(user && user.id) || 0;
+  if (!cacheKey) return;
+
+  authUserCache.set(cacheKey, {
+    user: {
+      id: cacheKey,
+      role: String(user.role || "").trim().toUpperCase(),
+      isEnabled: user.isEnabled !== false,
+    },
+    expiresAt: Date.now() + AUTH_USER_CACHE_TTL_MS,
+  });
+}
+
 async function authMiddleware(req, _res, next) {
   const authorization = req.headers.authorization;
 
@@ -51,6 +81,26 @@ async function authMiddleware(req, _res, next) {
 
     if (!userId) {
       return next(new AppError("Unauthorized", 401, "UNAUTHORIZED"));
+    }
+
+    const cachedUser = getCachedAuthUser(userId);
+    if (cachedUser) {
+      if (!cachedUser.isEnabled) {
+        return next(
+          new AppError(
+            "Conta desabilitada. Procure a administração para reativar o acesso.",
+            403,
+            "ACCOUNT_DISABLED"
+          )
+        );
+      }
+
+      req.user = {
+        id: Number(cachedUser.id),
+        role: String(cachedUser.role || "").trim().toUpperCase(),
+      };
+      req.userId = Number(cachedUser.id);
+      return next();
     }
 
     let user = null;
@@ -90,6 +140,8 @@ async function authMiddleware(req, _res, next) {
         )
       );
     }
+
+    setCachedAuthUser(user);
 
     req.user = {
       id: Number(user.id),

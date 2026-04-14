@@ -12,10 +12,12 @@ function createAdminService({
   validRoles = [],
   onlineWindowMinutes = 5,
 }) {
+  const ADMIN_OVERVIEW_CACHE_TTL_MS = 15000;
   const normalizedOnlineWindowMinutes = Math.max(1, Number(onlineWindowMinutes) || 5);
   const editableRoles = new Set(validRoles.map((role) => String(role || "").toUpperCase()));
   const defaultTeamPhotoPositionY = 50;
   const defaultTeamPhotoZoom = 1;
+  let overviewCache = null;
 
   function normalizeRole(role) {
     return String(role || "").trim().toUpperCase();
@@ -83,6 +85,26 @@ function createAdminService({
     if (typeof persistStore === "function") {
       persistStore(store);
     }
+  }
+
+  function clearOverviewCache() {
+    overviewCache = null;
+  }
+
+  function getCachedOverview() {
+    if (!overviewCache) return null;
+    if (overviewCache.expiresAt <= Date.now()) {
+      overviewCache = null;
+      return null;
+    }
+    return overviewCache.value;
+  }
+
+  function setCachedOverview(value) {
+    overviewCache = {
+      value,
+      expiresAt: Date.now() + ADMIN_OVERVIEW_CACHE_TTL_MS,
+    };
   }
 
   async function assertAdminPassword({ actorId, adminPassword }) {
@@ -159,8 +181,18 @@ function createAdminService({
   }
 
   async function getOverview() {
+    const cachedOverview = getCachedOverview();
+    if (cachedOverview) return cachedOverview;
+
     const users = await userService.listUsers();
-    const workouts = await workoutsService.listMyWorkouts({ id: 0, role: "ADMIN_GERAL" });
+    const [workoutStats, workouts] = await Promise.all([
+      workoutsService && typeof workoutsService.getWorkoutStats === "function"
+        ? workoutsService.getWorkoutStats()
+        : Promise.resolve({ totalCount: 0, activeCount: 0, inactiveCount: 0 }),
+      workoutsService && typeof workoutsService.listOverviewWorkouts === "function"
+        ? workoutsService.listOverviewWorkouts()
+        : workoutsService.listMyWorkouts({ id: 0, role: "ADMIN_GERAL" }),
+    ]);
     const libraryExercises =
       libraryRepository && typeof libraryRepository.listLibraryExercises === "function"
         ? libraryRepository.listLibraryExercises({ includeInactive: true })
@@ -210,8 +242,9 @@ function createAdminService({
       };
     });
 
-    const activeWorkouts = normalizedWorkouts.filter((workout) => workout.isActive !== false).length;
-    const inactiveWorkouts = normalizedWorkouts.filter((workout) => workout.isActive === false).length;
+    const activeWorkouts = Number(workoutStats && workoutStats.activeCount) || 0;
+    const inactiveWorkouts = Number(workoutStats && workoutStats.inactiveCount) || 0;
+    const totalWorkouts = Number(workoutStats && workoutStats.totalCount) || normalizedWorkouts.length;
     const totalExercises = Array.isArray(libraryExercises) ? libraryExercises.length : 0;
     const activeExercises = Array.isArray(libraryExercises)
       ? libraryExercises.filter((exercise) => exercise && exercise.isActive !== false).length
@@ -230,11 +263,11 @@ function createAdminService({
         ).length
       : 0;
 
-    return {
+    const overview = {
       stats: {
         totalUsers: users.length,
         totalUsersEnabled: enabledUsers,
-        totalWorkouts: normalizedWorkouts.length,
+        totalWorkouts,
         totalWorkoutsAtivos: activeWorkouts,
         totalWorkoutsInativos: inactiveWorkouts,
         totalExercises,
@@ -272,6 +305,9 @@ function createAdminService({
       workouts: normalizedWorkouts,
       supportTickets: Array.isArray(supportTickets) ? supportTickets : [],
     };
+
+    setCachedOverview(overview);
+    return overview;
   }
 
   async function updateUserRole({ actorId, userId, role }) {
@@ -300,10 +336,12 @@ function createAdminService({
       throw new AppError("Usuário não encontrado.", 404, "USER_NOT_FOUND");
     }
 
-    return userRepository.updateUserRole({
+    const updated = await userRepository.updateUserRole({
       userId: targetId,
       role: normalizedRole,
     });
+    clearOverviewCache();
+    return updated;
   }
 
   async function updateStudentStatus({ actorId, userId, isEnabled }) {
@@ -336,10 +374,12 @@ function createAdminService({
       );
     }
 
-    return userRepository.updateUserEnabledStatus({
+    const updated = await userRepository.updateUserEnabledStatus({
       userId: targetId,
       isEnabled: normalizedStatus,
     });
+    clearOverviewCache();
+    return updated;
   }
 
   async function deleteDisabledUser({ actorId, userId, adminPassword }) {
@@ -385,7 +425,9 @@ function createAdminService({
     });
 
     try {
-      return await userRepository.deleteUserById(targetId);
+      const deleted = await userRepository.deleteUserById(targetId);
+      clearOverviewCache();
+      return deleted;
     } catch (error) {
       const code = String(error && error.code ? error.code : "").toUpperCase();
       if (code === "P2003" || code === "P2014") {
@@ -429,6 +471,7 @@ function createAdminService({
     const siteContent = ensureSiteContentState();
     siteContent.teamMembers = normalizedMembers;
     saveStore();
+    clearOverviewCache();
     return normalizedMembers;
   }
 
