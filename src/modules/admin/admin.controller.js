@@ -1,8 +1,11 @@
 ﻿const { asyncHandler } = require("../../utils/asyncHandler");
 
 function createAdminController({ adminService }) {
-  const getOverview = asyncHandler(async (_req, res) => {
-    const overview = await adminService.getOverview();
+  const getOverview = asyncHandler(async (req, res) => {
+    const fresh = String(req.query && req.query.fresh ? req.query.fresh : "")
+      .trim()
+      .toLowerCase() === "true";
+    const overview = await adminService.getOverview({ fresh });
 
     return res.status(200).json({
       message: "Painel do administrador geral carregado com sucesso.",

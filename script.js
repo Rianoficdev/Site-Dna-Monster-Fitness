@@ -1541,6 +1541,7 @@ const profileSupportState = {
   error: '',
   tickets: []
 };
+const STUDENT_AUTOLOGIN_DELAY_MS = 250;
 
 /* Ajuste de dados para o app full-screen */
 studentData.status = 'Ativo';
@@ -9888,7 +9889,8 @@ const fetchAdminOverview = async (forceReload = false) => {
   renderAdminOverviewPanel();
 
   try {
-    const response = await requestStudentApi('/admin/overview');
+    const overviewPath = forceReload ? '/admin/overview?fresh=true' : '/admin/overview';
+    const response = await requestStudentApi(overviewPath);
     const overview = response && response.overview ? response.overview : {};
     let libraryExercises = [];
     let libraryLoadError = '';
@@ -14852,15 +14854,19 @@ const syncWorkoutsFromBackend = async ({ silent = false } = {}) => {
     const normalized = await Promise.all(
       workouts.map(async (workout, index) => {
         const workoutId = Number(workout && workout.id) || 0;
-        let exercises = [];
+        let exercises = Array.isArray(workout && workout.exercises)
+          ? workout.exercises
+          : [];
 
-        try {
-          const exercisesResponse = await requestStudentApi(`/workouts/${encodeURIComponent(String(workoutId))}/exercises`);
-          exercises = Array.isArray(exercisesResponse && exercisesResponse.exercises)
-            ? exercisesResponse.exercises
-            : [];
-        } catch (_) {
-          exercises = [];
+        if (!exercises.length) {
+          try {
+            const exercisesResponse = await requestStudentApi(`/workouts/${encodeURIComponent(String(workoutId))}/exercises`);
+            exercises = Array.isArray(exercisesResponse && exercisesResponse.exercises)
+              ? exercisesResponse.exercises
+              : [];
+          } catch (_) {
+            exercises = [];
+          }
         }
 
         const sortedExercises = exercises
@@ -19388,25 +19394,6 @@ const tryAutoLoginFromStoredSession = async ({
     });
     if (!authProfile) return false;
 
-    await syncLibraryFromBackend({ silent: true });
-    if (normalizeRole(studentData.userRole) === 'ALUNO') {
-      await syncWorkoutHistoryFromBackend({ silent: true });
-      await syncStudentBodyMetricsFromBackend({ silent: true });
-    }
-    await syncWorkoutsFromBackend({ silent: true });
-
-    if (isGeneralAdminUser()) {
-      await fetchAdminOverview(true);
-    }
-    if (isTrainerManagerUser()) {
-      await loadTrainerManagementData(true);
-      await loadTrainerProgressData(true);
-    } else {
-      try {
-        await syncWeeklySummaryFromBackend(new Date());
-      } catch (_) {}
-    }
-
     startSessionHeartbeat();
     setOverlayView('app');
     renderStudentApp();
@@ -19434,6 +19421,37 @@ const tryAutoLoginFromStoredSession = async ({
       tab: currentStudentTab,
       panel: currentStudentPanel
     });
+
+    void (async () => {
+      const backgroundTasks = [syncLibraryFromBackend({ silent: true })];
+
+      if (normalizeRole(studentData.userRole) === 'ALUNO') {
+        backgroundTasks.push(syncWorkoutHistoryFromBackend({ silent: true }));
+        backgroundTasks.push(syncStudentBodyMetricsFromBackend({ silent: true }));
+      }
+
+      backgroundTasks.push(syncWorkoutsFromBackend({ silent: true }));
+
+      if (isGeneralAdminUser()) {
+        backgroundTasks.push(fetchAdminOverview(true));
+      }
+      if (isTrainerManagerUser()) {
+        backgroundTasks.push(loadTrainerManagementData(true));
+        backgroundTasks.push(loadTrainerProgressData(true));
+      } else {
+        backgroundTasks.push(
+          (async () => {
+            try {
+              await syncWeeklySummaryFromBackend(new Date());
+            } catch (_) {}
+          })()
+        );
+      }
+
+      await Promise.allSettled(backgroundTasks);
+      renderStudentApp();
+    })();
+
     return true;
   } catch (_) {
     stopSessionHeartbeat();
@@ -19480,7 +19498,7 @@ const openStudentArea = (event) => {
     if (!autoLogged) {
       setOverlayView('login');
     }
-  }, 2800);
+  }, STUDENT_AUTOLOGIN_DELAY_MS);
 };
 
 const closeStudentArea = () => {

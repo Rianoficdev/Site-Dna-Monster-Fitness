@@ -257,6 +257,46 @@ function createWorkoutsService({
       });
   }
 
+  async function withWorkoutExercises(workouts) {
+    const list = Array.isArray(workouts) ? workouts : [];
+    if (!list.length) return [];
+    if (!exercisesRepository || typeof exercisesRepository.listByWorkoutIds !== "function") {
+      return list;
+    }
+
+    const workoutIds = list
+      .map((workout) => normalizeId(workout && workout.id))
+      .filter(Boolean);
+    if (!workoutIds.length) return list;
+
+    const exercises = await exercisesRepository.listByWorkoutIds(workoutIds);
+    const exercisesByWorkoutId = new Map();
+
+    (Array.isArray(exercises) ? exercises : []).forEach((exercise) => {
+      const workoutId = normalizeId(exercise && exercise.workoutId);
+      if (!workoutId) return;
+      if (!exercisesByWorkoutId.has(workoutId)) exercisesByWorkoutId.set(workoutId, []);
+      exercisesByWorkoutId.get(workoutId).push(exercise);
+    });
+
+    return list.map((workout) => {
+      const workoutId = normalizeId(workout && workout.id);
+      const workoutExercises = (exercisesByWorkoutId.get(workoutId) || [])
+        .slice()
+        .sort((first, second) => {
+          const firstOrder = Number(first && first.order) || 0;
+          const secondOrder = Number(second && second.order) || 0;
+          if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+          return (Number(first && first.id) || 0) - (Number(second && second.id) || 0);
+        });
+
+      return {
+        ...workout,
+        exercises: workoutExercises,
+      };
+    });
+  }
+
   async function createWorkoutExercisesFromLibrary({ workoutId, exercises }) {
     const normalizedWorkoutId = normalizeId(workoutId);
     const list = Array.isArray(exercises) ? exercises : [];
@@ -1230,8 +1270,8 @@ function createWorkoutsService({
     }
 
     const workouts = await workoutsRepository.findByStudentId(userId);
-
-    return sortWorkoutsByCreatedAt(workouts);
+    const sorted = await sortWorkoutsByCreatedAt(workouts);
+    return withWorkoutExercises(sorted);
   }
 
   async function getStudentWorkoutsRevision({ authUser } = {}) {

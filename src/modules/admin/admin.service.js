@@ -180,8 +180,8 @@ function createAdminService({
     return lastSeen >= onlineSince;
   }
 
-  async function getOverview() {
-    const cachedOverview = getCachedOverview();
+  async function getOverview({ fresh = false } = {}) {
+    const cachedOverview = fresh ? null : getCachedOverview();
     if (cachedOverview) return cachedOverview;
 
     const users = await userService.listUsers();
