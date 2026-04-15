@@ -168,6 +168,33 @@ function createProgressService({
     return Array.isArray(list) ? list : [];
   }
 
+  async function listWorkoutExercisesByWorkoutIds(workoutIds) {
+    const normalizedIds = Array.isArray(workoutIds)
+      ? [...new Set(workoutIds.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0))]
+      : [];
+
+    if (!normalizedIds.length) return new Map();
+
+    if (!exercisesRepository || typeof exercisesRepository.listByWorkoutIds !== "function") {
+      const entries = await Promise.all(
+        normalizedIds.map(async (workoutId) => [workoutId, await getWorkoutExercises(workoutId)])
+      );
+      return new Map(entries);
+    }
+
+    const allExercises = await exercisesRepository.listByWorkoutIds(normalizedIds);
+    const grouped = new Map(normalizedIds.map((workoutId) => [workoutId, []]));
+
+    (Array.isArray(allExercises) ? allExercises : []).forEach((exercise) => {
+      const workoutId = Number(exercise && exercise.workoutId) || 0;
+      if (!workoutId) return;
+      if (!grouped.has(workoutId)) grouped.set(workoutId, []);
+      grouped.get(workoutId).push(exercise);
+    });
+
+    return grouped;
+  }
+
   function getLibraryExerciseById(exerciseId) {
     if (!libraryRepository || typeof libraryRepository.findById !== "function") return null;
     return libraryRepository.findById(exerciseId, { includeInactive: true });
@@ -629,12 +656,20 @@ function createProgressService({
     const weekStartKey = weekDateKeys[0];
     const weekEndKey = weekDateKeys[weekDateKeys.length - 1];
 
-    const workouts = await workoutsService.listMyWorkouts({
-      id: actorId,
-      role: actorRole,
-    });
+    const workouts = workoutsService && typeof workoutsService.listWorkoutSummaries === "function"
+      ? await workoutsService.listWorkoutSummaries({
+          id: actorId,
+          role: actorRole,
+        })
+      : await workoutsService.listMyWorkouts({
+          id: actorId,
+          role: actorRole,
+        });
     const normalizedWorkouts = Array.isArray(workouts) ? workouts : [];
     const workoutsByStudentId = new Map();
+    const exercisesByWorkoutId = await listWorkoutExercisesByWorkoutIds(
+      normalizedWorkouts.map((workout) => workout && workout.id)
+    );
 
     normalizedWorkouts.forEach((workout) => {
       const studentId = Number(workout && workout.studentId) || 0;
@@ -698,7 +733,7 @@ function createProgressService({
       const workoutHistory = [];
 
       for (const workout of studentWorkouts) {
-        const exercises = await getWorkoutExercises(workout && workout.id);
+        const exercises = exercisesByWorkoutId.get(Number(workout && workout.id) || 0) || [];
         const estimatedSessionSeconds = exercises.reduce((sum, exercise) => {
           const duration = Math.max(0, toNumber(exercise && exercise.durationSeconds, 0));
           const rest = Math.max(0, toNumber(exercise && exercise.restSeconds, 0));

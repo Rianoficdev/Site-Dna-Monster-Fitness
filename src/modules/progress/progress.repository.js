@@ -317,7 +317,27 @@ ORDER BY user_id ASC, date_key ASC, updated_at ASC
 
     if (!normalizedIds.length || !normalizedWeekStartKey) return [];
 
-    // Workaround for Prisma+adapter-pg issue seen with `in` filter on WeeklyTrainingCheck.
+    try {
+      const rows = await prisma.weeklyTrainingCheck.findMany({
+        where: {
+          userId: { in: normalizedIds },
+          weekStartKey: normalizedWeekStartKey,
+        },
+        select: {
+          userId: true,
+          dateKey: true,
+        },
+        orderBy: [
+          { userId: "asc" },
+          { dateKey: "asc" },
+        ],
+      });
+
+      return Array.isArray(rows) ? rows : [];
+    } catch (_error) {
+      // Fallback kept because this adapter previously failed on `in` filters for WeeklyTrainingCheck.
+    }
+
     const batches = await Promise.all(
       normalizedIds.map((userId) =>
         prisma.weeklyTrainingCheck.findMany({
@@ -336,13 +356,11 @@ ORDER BY user_id ASC, date_key ASC, updated_at ASC
       )
     );
 
-    return batches
-      .flat()
-      .sort(
-        (left, right) =>
-          (Number(left && left.userId) || 0) - (Number(right && right.userId) || 0) ||
-          String((left && left.dateKey) || "").localeCompare(String((right && right.dateKey) || ""))
-      );
+    return batches.flat().sort(
+      (left, right) =>
+        (Number(left && left.userId) || 0) - (Number(right && right.userId) || 0) ||
+        String((left && left.dateKey) || "").localeCompare(String((right && right.dateKey) || ""))
+    );
   }
 
   async function upsertWeeklyCheck({ userId, dateKey, weekStartKey }) {

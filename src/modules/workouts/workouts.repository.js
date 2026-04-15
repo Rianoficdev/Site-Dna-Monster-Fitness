@@ -561,6 +561,53 @@ SET objective = EXCLUDED.objective,
     return withWorkoutCompatibilityList(workouts);
   }
 
+  async function listWorkoutSummaries({ createdBy = null } = {}) {
+    const where = {};
+    if (createdBy !== null && createdBy !== undefined) {
+      const normalizedCreatedBy = Number(createdBy) || 0;
+      if (!normalizedCreatedBy) return [];
+      where.createdBy = normalizedCreatedBy;
+    }
+
+    const workouts = await prisma.workout.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        studentId: true,
+        createdBy: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+    });
+
+    const metadataById = await listWorkoutMetadataByIds(
+      (Array.isArray(workouts) ? workouts : []).map((workout) => workout && workout.id)
+    );
+
+    return (Array.isArray(workouts) ? workouts : []).map((workout) => {
+      const workoutId = Number(workout && workout.id) || 0;
+      const metadata = metadataById.get(workoutId) || null;
+
+      return {
+        id: workoutId,
+        title: normalizeString(workout && workout.name),
+        studentId: normalizeInteger(workout && workout.studentId, 0),
+        instructorId: normalizeInteger(workout && workout.createdBy, 0),
+        description: normalizeString(metadata && metadata.description),
+        weekDays: normalizeWeekDaysFromMetadata(metadata && metadata.weekDays),
+        isActive: workout && workout.isActive !== false,
+        createdAt: toIsoDate(workout && workout.createdAt) || nowIso(),
+        updatedAt: toIsoDate(workout && workout.updatedAt) || nowIso(),
+      };
+    });
+  }
+
   async function listStudentIdsByInstructorId(instructorId, { includeInactive = true } = {}) {
     const normalizedInstructorId = Number(instructorId) || 0;
     if (!normalizedInstructorId) return [];
@@ -888,6 +935,7 @@ FROM workout
     findByStudentId,
     getStudentWorkoutsRevision,
     findByInstructorId,
+    listWorkoutSummaries,
     listStudentIdsByInstructorId,
     listAll,
     listOverviewWorkouts,

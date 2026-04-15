@@ -1210,6 +1210,25 @@ function createWorkoutsService({
     return sortWorkoutsByCreatedAt(workouts);
   }
 
+  async function listWorkoutSummaries(authUser) {
+    const role = normalizeRole(authUser && authUser.role);
+    const userId = normalizeId(authUser && authUser.id);
+
+    if (!workoutsRepository || typeof workoutsRepository.listWorkoutSummaries !== "function") {
+      return listMyWorkouts(authUser);
+    }
+
+    if (role === "INSTRUTOR") {
+      return workoutsRepository.listWorkoutSummaries({ createdBy: userId });
+    }
+
+    if (role === "ADMIN_GERAL") {
+      return workoutsRepository.listWorkoutSummaries();
+    }
+
+    return [];
+  }
+
   async function listOverviewWorkouts() {
     if (!workoutsRepository || typeof workoutsRepository.listOverviewWorkouts !== "function") {
       return [];
@@ -1339,6 +1358,7 @@ function createWorkoutsService({
     deactivateWorkout,
     deleteWorkout,
     listMyWorkouts,
+    listWorkoutSummaries,
     listOverviewWorkouts,
     getWorkoutStats,
     listInstructorWorkouts,
