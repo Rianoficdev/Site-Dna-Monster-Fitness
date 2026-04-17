@@ -10,6 +10,13 @@ const { notFoundMiddleware } = require("./middlewares/notFoundMiddleware");
 const { errorMiddleware } = require("./middlewares/errorMiddleware");
 const { ROLES } = require("./shared/roles");
 
+let compression = null;
+try {
+  compression = require("compression");
+} catch (_error) {
+  compression = null;
+}
+
 function createCorsOptions() {
   const allowedOrigins = env.corsOrigins || [];
   const allowAnyOrigin = allowedOrigins.includes("*");
@@ -44,6 +51,13 @@ function createApp() {
   app.set("trust proxy", env.trustProxy);
 
   app.use(cors(createCorsOptions()));
+  if (env.httpCompressionEnabled && typeof compression === "function") {
+    app.use(
+      compression({
+        threshold: env.httpCompressionThreshold,
+      })
+    );
+  }
   app.use(express.json());
   app.use("/uploads", express.static(path.resolve(process.cwd(), env.uploadsDir || "uploads")));
 

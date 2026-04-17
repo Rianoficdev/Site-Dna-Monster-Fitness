@@ -9,6 +9,7 @@ const { signAccessToken } = require("../config/jwt");
 const { env } = require("../config/env");
 const { VALID_ROLES } = require("./roles");
 const { prisma } = require("../config/prisma");
+const { clearCachedAuthUser } = require("../middlewares/auth.middleware");
 const { createInMemoryStore, persistInMemoryStore } = require("./inMemoryStore");
 const { createUserRepository } = require("../modules/users/user.repository");
 const { createWorkoutsRepository } = require("../modules/workouts/workouts.repository");
@@ -113,6 +114,7 @@ function createContainer() {
     workoutsService: services.workoutsService,
     libraryRepository: repositories.libraryRepository,
     supportService: services.supportService,
+    clearCachedAuthUser,
     store,
     persistStore: persistInMemoryStore,
     bcrypt,

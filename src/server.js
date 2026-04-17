@@ -1,6 +1,6 @@
 const { env } = require("./config/env");
 const { createApp } = require("./app");
-const { prisma } = require("./config/prisma");
+const { pool, prisma } = require("./config/prisma");
 const logger = require("./shared/logger");
 
 const app = createApp();
@@ -31,8 +31,9 @@ async function shutdown(signal) {
     server.close(async () => {
       try {
         await prisma.$disconnect();
+        await pool.end();
       } catch (error) {
-        logger.error("Prisma disconnect failed", {
+        logger.error("Database disconnect failed", {
           message: error && error.message ? error.message : "Unknown error",
         });
       } finally {

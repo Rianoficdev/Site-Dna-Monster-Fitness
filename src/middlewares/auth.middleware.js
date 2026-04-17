@@ -62,6 +62,16 @@ function setCachedAuthUser(user) {
   });
 }
 
+function clearCachedAuthUser(userId) {
+  const cacheKey = Number(userId) || 0;
+  if (!cacheKey) return;
+  authUserCache.delete(cacheKey);
+}
+
+function clearAllCachedAuthUsers() {
+  authUserCache.clear();
+}
+
 async function authMiddleware(req, _res, next) {
   const authorization = req.headers.authorization;
 
@@ -167,5 +177,7 @@ async function authMiddleware(req, _res, next) {
 
 module.exports = {
   authMiddleware,
+  clearAllCachedAuthUsers,
+  clearCachedAuthUser,
 };
 

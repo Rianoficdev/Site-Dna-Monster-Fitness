@@ -6,6 +6,7 @@ function createAdminService({
   workoutsService,
   libraryRepository,
   supportService,
+  clearCachedAuthUser,
   store,
   persistStore,
   bcrypt,
@@ -340,6 +341,9 @@ function createAdminService({
       userId: targetId,
       role: normalizedRole,
     });
+    if (typeof clearCachedAuthUser === "function") {
+      clearCachedAuthUser(targetId);
+    }
     clearOverviewCache();
     return updated;
   }
@@ -378,6 +382,9 @@ function createAdminService({
       userId: targetId,
       isEnabled: normalizedStatus,
     });
+    if (typeof clearCachedAuthUser === "function") {
+      clearCachedAuthUser(targetId);
+    }
     clearOverviewCache();
     return updated;
   }
@@ -426,6 +433,9 @@ function createAdminService({
 
     try {
       const deleted = await userRepository.deleteUserById(targetId);
+      if (typeof clearCachedAuthUser === "function") {
+        clearCachedAuthUser(targetId);
+      }
       clearOverviewCache();
       return deleted;
     } catch (error) {

@@ -61,6 +61,14 @@ const env = {
   supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
   supabasePasswordResetRedirectUrl: process.env.SUPABASE_PASSWORD_RESET_REDIRECT_URL || "",
   databaseUrl: process.env.DATABASE_URL || "",
+  databasePoolMax: Math.max(1, parseNumber(process.env.DATABASE_POOL_MAX, 10)),
+  databasePoolIdleTimeoutMs: Math.max(1000, parseNumber(process.env.DATABASE_POOL_IDLE_TIMEOUT_MS, 30000)),
+  databasePoolConnectionTimeoutMs: Math.max(
+    1000,
+    parseNumber(process.env.DATABASE_POOL_CONNECTION_TIMEOUT_MS, 10000)
+  ),
+  httpCompressionEnabled: parseBoolean(process.env.HTTP_COMPRESSION_ENABLED, true),
+  httpCompressionThreshold: parseNumber(process.env.HTTP_COMPRESSION_THRESHOLD, 1024),
   trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
   uploadsDir: process.env.UPLOADS_DIR || "uploads",
   uploadMaxFileSizeMb: Math.max(1, parseNumber(process.env.UPLOAD_MAX_FILE_SIZE_MB, 50)),
