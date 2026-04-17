@@ -70,9 +70,7 @@ function createApp() {
   });
 
   app.get("/", (_req, res) => {
-    return res.status(200).json({
-      message: "Backend DNA Monster Fitness online",
-    });
+    return res.status(200).send("API ONLINE 🚀");
   });
 
   app.use(

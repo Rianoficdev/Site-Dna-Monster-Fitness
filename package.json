@@ -6,7 +6,6 @@
   "scripts": {
     "build": "npm run build:pages",
     "build:pages": "node scripts/build-cloudflare-pages.js",
-    "postinstall": "prisma generate",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "backup:projeto": "node scripts/backup-project.js",
@@ -39,6 +38,7 @@
     "@prisma/client": "^7.4.1",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
@@ -47,10 +47,10 @@
     "nodemailer": "^8.0.1",
     "pg": "^8.18.0",
     "prisma": "^7.4.1",
-    "resend": "^6.9.4",
-    "compression": "^1.8.1"
+    "resend": "^6.9.4"
   },
   "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.10",
     "nodemon": "^3.1.9",
     "supabase": "^2.76.12",
     "tsx": "^4.21.0",

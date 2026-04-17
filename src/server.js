@@ -1,3 +1,5 @@
+require("./config/env");
+
 const { env } = require("./config/env");
 const { createApp } = require("./app");
 const { pool, prisma } = require("./config/prisma");
@@ -5,10 +7,12 @@ const logger = require("./shared/logger");
 
 const app = createApp();
 const PORT = env.port;
+const HOST = "0.0.0.0";
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, HOST, () => {
   logger.info("DNA Monster API started", {
     port: PORT,
+    host: HOST,
     env: env.nodeEnv,
     pid: process.pid,
   });

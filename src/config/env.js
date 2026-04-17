@@ -1,9 +1,11 @@
 const path = require("path");
 const dotenv = require("dotenv");
 
-dotenv.config({
-  path: path.resolve(process.cwd(), ".env"),
-});
+if ((process.env.NODE_ENV || "development") !== "production") {
+  dotenv.config({
+    path: path.resolve(process.cwd(), ".env"),
+  });
+}
 
 function parseBoolean(value, defaultValue = false) {
   if (value === undefined || value === null || value === "") return defaultValue;
