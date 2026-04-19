@@ -9,6 +9,8 @@ const { roleMiddleware } = require("./middlewares/role.middleware");
 const { notFoundMiddleware } = require("./middlewares/notFoundMiddleware");
 const { errorMiddleware } = require("./middlewares/errorMiddleware");
 const { ROLES } = require("./shared/roles");
+const { createRequestContextMiddleware } = require("./shared/requestContext");
+const { createRequestTimingMiddleware } = require("./shared/timing");
 
 let compression = null;
 try {
@@ -46,10 +48,23 @@ function createCorsOptions() {
 function createApp() {
   const app = express();
   const container = createContainer();
+  const requestContextEnabled =
+    env.requestTimingEnabled || env.operationTimingEnabled || env.prismaQueryTimingEnabled;
 
   app.disable("x-powered-by");
   app.set("trust proxy", env.trustProxy);
 
+  app.use(
+    createRequestContextMiddleware({
+      enabled: requestContextEnabled,
+    })
+  );
+  app.use(
+    createRequestTimingMiddleware({
+      enabled: env.requestTimingEnabled,
+      slowThresholdMs: env.requestTimingSlowMs,
+    })
+  );
   app.use(cors(createCorsOptions()));
   if (env.httpCompressionEnabled && typeof compression === "function") {
     app.use(

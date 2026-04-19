@@ -44,6 +44,18 @@ const weakJwtSecretValues = new Set([
 const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   port: parseNumber(process.env.PORT, 3000),
+  requestTimingEnabled: parseBoolean(
+    process.env.REQUEST_TIMING_ENABLED,
+    (process.env.NODE_ENV || "development") !== "production"
+  ),
+  requestTimingSlowMs: Math.max(1, parseNumber(process.env.REQUEST_TIMING_SLOW_MS, 700)),
+  operationTimingEnabled: parseBoolean(
+    process.env.OPERATION_TIMING_ENABLED,
+    (process.env.NODE_ENV || "development") !== "production"
+  ),
+  operationTimingSlowMs: Math.max(1, parseNumber(process.env.OPERATION_TIMING_SLOW_MS, 300)),
+  prismaQueryTimingEnabled: parseBoolean(process.env.PRISMA_QUERY_TIMING_ENABLED, false),
+  prismaQueryTimingSlowMs: Math.max(1, parseNumber(process.env.PRISMA_QUERY_TIMING_SLOW_MS, 200)),
   jwtSecret: process.env.JWT_SECRET || "sua_chave_super_secreta",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   jwtSessionExpiresIn: process.env.JWT_EXPIRES_IN_SESSION || "12h",

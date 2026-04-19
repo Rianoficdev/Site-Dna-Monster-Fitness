@@ -33,18 +33,28 @@ const { createLibraryController } = require("../modules/library/library.controll
 const { createAdminController } = require("../modules/admin/admin.controller");
 const { createSupportController } = require("../modules/support/support.controller");
 const { seedSampleWorkouts, purgeSampleWorkouts } = require("./sampleWorkoutsSeed");
+const { wrapTimedMethods } = require("./timing");
 
 function createContainer() {
   const store = createInMemoryStore();
+  const withTiming = (namespace, target) =>
+    wrapTimedMethods(target, {
+      namespace,
+      enabled: env.operationTimingEnabled,
+      slowThresholdMs: env.operationTimingSlowMs,
+    });
 
   const repositories = {
-    userRepository: createUserRepository({ prisma }),
-    workoutsRepository: createWorkoutsRepository({ prisma }),
-    exercisesRepository: createExercisesRepository({ prisma }),
-    progressRepository: createProgressRepository({ prisma }),
-    libraryRepository: createLibraryRepository(store),
-    libraryDatabaseRepository: createLibraryDatabaseRepository({ prisma }),
-    supportRepository: createSupportRepository({ prisma }),
+    userRepository: withTiming("repository.user", createUserRepository({ prisma })),
+    workoutsRepository: withTiming("repository.workouts", createWorkoutsRepository({ prisma })),
+    exercisesRepository: withTiming("repository.exercises", createExercisesRepository({ prisma })),
+    progressRepository: withTiming("repository.progress", createProgressRepository({ prisma })),
+    libraryRepository: withTiming("repository.library", createLibraryRepository(store)),
+    libraryDatabaseRepository: withTiming(
+      "repository.libraryDatabase",
+      createLibraryDatabaseRepository({ prisma })
+    ),
+    supportRepository: withTiming("repository.support", createSupportRepository({ prisma })),
   };
 
   if (
@@ -61,7 +71,7 @@ function createContainer() {
   }
 
   const services = {
-    userService: createUserService({
+    userService: withTiming("service.user", createUserService({
       userRepository: repositories.userRepository,
       bcrypt,
       signAccessToken,
@@ -70,45 +80,45 @@ function createContainer() {
       jwtSessionExpiresIn: env.jwtSessionExpiresIn,
       jwtRememberExpiresIn: env.jwtRememberExpiresIn,
       nodeEnv: env.nodeEnv,
-    }),
-    workoutsService: createWorkoutsService({
+    })),
+    workoutsService: withTiming("service.workouts", createWorkoutsService({
       workoutsRepository: repositories.workoutsRepository,
       exercisesRepository: repositories.exercisesRepository,
       libraryRepository: repositories.libraryRepository,
       userRepository: repositories.userRepository,
       validRoles: VALID_ROLES,
-    }),
+    })),
   };
 
-  services.exercisesService = createExercisesService({
+  services.exercisesService = withTiming("service.exercises", createExercisesService({
     exercisesRepository: repositories.exercisesRepository,
     workoutsService: services.workoutsService,
     libraryRepository: repositories.libraryRepository,
-  });
+  }));
 
-  services.progressService = createProgressService({
+  services.progressService = withTiming("service.progress", createProgressService({
     progressRepository: repositories.progressRepository,
     workoutsService: services.workoutsService,
     exercisesRepository: repositories.exercisesRepository,
     libraryRepository: repositories.libraryRepository,
     userRepository: repositories.userRepository,
-  });
+  }));
 
-  services.libraryService = createLibraryService({
+  services.libraryService = withTiming("service.library", createLibraryService({
     libraryRepository: repositories.libraryRepository,
     libraryDatabaseRepository: repositories.libraryDatabaseRepository,
     workoutsRepository: repositories.workoutsRepository,
     exercisesRepository: repositories.exercisesRepository,
-  });
+  }));
 
-  services.supportService = createSupportService({
+  services.supportService = withTiming("service.support", createSupportService({
     supportRepository: repositories.supportRepository,
     userRepository: repositories.userRepository,
     createHash,
     passwordResetTokenMinutes: env.passwordResetTokenMinutes,
-  });
+  }));
 
-  services.adminService = createAdminService({
+  services.adminService = withTiming("service.admin", createAdminService({
     userService: services.userService,
     userRepository: repositories.userRepository,
     workoutsService: services.workoutsService,
@@ -120,7 +130,7 @@ function createContainer() {
     bcrypt,
     validRoles: VALID_ROLES,
     onlineWindowMinutes: env.onlinePresenceWindowMinutes,
-  });
+  }));
 
   const controllers = {
     userController: createUserController({

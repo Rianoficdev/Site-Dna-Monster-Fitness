@@ -300,13 +300,14 @@ WHERE workout_id = ANY($1::int[])
       : [];
     if (!ids.length) return new Map();
 
-    const templates = await prisma.workoutTemplate.findMany({
-      where: {
-        id: { in: ids },
-      },
-    });
-
-    const metadataById = await listWorkoutTemplateMetadataByIds(ids);
+    const [templates, metadataById] = await Promise.all([
+      prisma.workoutTemplate.findMany({
+        where: {
+          id: { in: ids },
+        },
+      }),
+      listWorkoutTemplateMetadataByIds(ids),
+    ]);
     const map = new Map();
     (Array.isArray(templates) ? templates : []).forEach((template) => {
       const templateId = Number(template && template.id) || 0;
@@ -323,10 +324,21 @@ WHERE workout_id = ANY($1::int[])
     const items = Array.isArray(workouts) ? workouts : [];
     if (!items.length) return [];
 
-    const metadataById = await listWorkoutMetadataByIds(items.map((item) => item && item.id));
-    const templateById = await listWorkoutTemplateCompatibilityByIds(
-      items.map((item) => item && (item.originTemplateId || item.origin_template_id))
-    );
+    const workoutIds = items.map((item) => item && item.id);
+    const templateIds = [
+      ...new Set(
+        items
+          .map((item) => Number(item && (item.originTemplateId || item.origin_template_id)) || 0)
+          .filter((id) => id > 0)
+      ),
+    ];
+
+    const [metadataById, templateById] = await Promise.all([
+      listWorkoutMetadataByIds(workoutIds),
+      templateIds.length > 0
+        ? listWorkoutTemplateCompatibilityByIds(templateIds)
+        : Promise.resolve(new Map()),
+    ]);
 
     return items.map((workout) => {
       const workoutId = Number(workout && workout.id) || 0;
@@ -419,22 +431,26 @@ SET objective = EXCLUDED.objective,
       basePayload.coverImageUrl = normalizeString(data.coverImageUrl);
     }
 
-    const shouldUpdateBase = Object.keys(basePayload).length > 0;
-    const updatedBase = shouldUpdateBase
-      ? await prisma.workout.update({
-          where: { id: normalizedWorkoutId },
-          data: basePayload,
-        })
-      : current;
-
     const metadataFieldsProvided =
       data &&
       (Object.prototype.hasOwnProperty.call(data, "objective") ||
         Object.prototype.hasOwnProperty.call(data, "description") ||
         Object.prototype.hasOwnProperty.call(data, "weekDays"));
 
-    if (metadataFieldsProvided) {
-      const metadataById = await listWorkoutMetadataByIds([normalizedWorkoutId]);
+    const shouldUpdateBase = Object.keys(basePayload).length > 0;
+    const [updatedBase, metadataById] = await Promise.all([
+      shouldUpdateBase
+        ? prisma.workout.update({
+            where: { id: normalizedWorkoutId },
+            data: basePayload,
+          })
+        : Promise.resolve(current),
+      metadataFieldsProvided
+        ? listWorkoutMetadataByIds([normalizedWorkoutId])
+        : Promise.resolve(null),
+    ]);
+
+    if (metadataFieldsProvided && metadataById) {
       const currentMetadata = metadataById.get(normalizedWorkoutId) || {
         objective: "",
         description: "",

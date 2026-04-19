@@ -8,7 +8,7 @@
   <meta name="description" content="Academia premium com musculação, funcional, cardio e acompanhamento personalizado. Resultados reais com estrutura moderna." />
   <meta name="keywords" content="academia, musculação, treino funcional, cardio, personal trainer, fitness" />
   <meta name="theme-color" content="#1CBF5C" />
-  <meta name="dna-api-base-url" content="https://site-dna-monster-fitness-production.up.railway.app/api" />
+  <meta name="dna-api-base-url" content="https://site-oficial.fly.dev/api" />
   <link rel="canonical" href="https://academiadnamonster.pages.dev/" />
   <meta property="og:title" content="DNA Monster Fitness" />
   <meta property="og:description" content="A melhor experiência fitness com estrutura premium e resultados reais." />
@@ -2306,7 +2306,7 @@ Core"
                 </article>
 
                 <article class="admin-overview-table-card" data-trainer-managed-workouts-card>
-                  <header class="admin-overview-table-head admin-overview-table-head--collapsible">
+                  <header class="admin-overview-table-head admin-overview-table-head--collapsible trainer-card-head--centered">
                     <div class="admin-overview-table-head-row">
                       <h5>Treinos gerenciados</h5>
                       <button
@@ -2324,22 +2324,37 @@ Core"
                         <button class="admin-overview-tab" type="button" role="tab" aria-selected="false" data-trainer-managed-workouts-view="definition">Treinos cadastrados</button>
                       </div>
                     </div>
-                    <div class="admin-overview-table-wrap">
-                      <table class="admin-overview-table trainer-workout-table">
-                        <thead>
-                          <tr>
-                            <th>ID</th>
-                            <th>Nome do treino</th>
-                            <th>Aluno</th>
-                            <th>Objetivo</th>
-                            <th>Status</th>
-                            <th>Exercícios</th>
-                            <th>Criado em</th>
-                            <th>Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody data-trainer-workouts-table-body></tbody>
-                      </table>
+                    <div class="trainer-managed-workouts-shell">
+                      <div class="trainer-managed-workouts-head">
+                        <div class="trainer-managed-workouts-context" data-trainer-managed-workouts-context>
+                          <small>Treinos gerenciados</small>
+                          <strong>Selecione um aluno para ver os treinos</strong>
+                          <p>Os treinos atribuídos aparecem agrupados por aluno para facilitar a consulta.</p>
+                        </div>
+                        <div class="trainer-managed-workouts-search-wrap">
+                          <label class="trainer-managed-workouts-search-field">
+                            <span aria-hidden="true">
+                              <svg viewBox="0 0 24 24">
+                                <circle cx="11" cy="11" r="6"></circle>
+                                <path d="m16 16 5 5"></path>
+                              </svg>
+                            </span>
+                            <input
+                              type="search"
+                              placeholder="Pesquisar alunos por nome..."
+                              autocomplete="off"
+                              data-trainer-managed-workouts-search
+                            />
+                          </label>
+                          <p class="trainer-managed-workouts-search-meta" data-trainer-managed-workouts-search-meta hidden></p>
+                        </div>
+                      </div>
+                      <div class="trainer-managed-workouts-content" data-trainer-managed-workouts-content>
+                        <div class="trainer-managed-workouts-empty">
+                          <strong>Carregando treinos...</strong>
+                          <p>Aguarde enquanto os dados do painel são atualizados.</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </article>

@@ -1,5 +1,6 @@
 const { asyncHandler } = require("../../utils/asyncHandler");
 const { sendSupportNotification } = require("../../mailer");
+const logger = require("../../shared/logger");
 
 function createSupportController({ supportService }) {
   const createPublicTicket = asyncHandler(async (req, res) => {
@@ -29,7 +30,9 @@ function createSupportController({ supportService }) {
         createdAt: ticket && ticket.createdAt,
       });
     } catch (mailError) {
-      console.error("Falha ao enviar e-mail de suporte:", mailError);
+      logger.error("Support notification email failed", {
+        errorMessage: mailError && mailError.message ? mailError.message : String(mailError),
+      });
     }
 
     return res.status(201).json({

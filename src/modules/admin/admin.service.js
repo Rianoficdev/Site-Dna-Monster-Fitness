@@ -13,7 +13,7 @@ function createAdminService({
   validRoles = [],
   onlineWindowMinutes = 5,
 }) {
-  const ADMIN_OVERVIEW_CACHE_TTL_MS = 15000;
+  const ADMIN_OVERVIEW_CACHE_TTL_MS = 60000;
   const normalizedOnlineWindowMinutes = Math.max(1, Number(onlineWindowMinutes) || 5);
   const editableRoles = new Set(validRoles.map((role) => String(role || "").toUpperCase()));
   const defaultTeamPhotoPositionY = 50;
@@ -185,47 +185,71 @@ function createAdminService({
     const cachedOverview = fresh ? null : getCachedOverview();
     if (cachedOverview) return cachedOverview;
 
-    const users = await userService.listUsers();
-    const [workoutStats, workouts] = await Promise.all([
+    const onlineSince = new Date(Date.now() - normalizedOnlineWindowMinutes * 60 * 1000);
+
+    const [users, workoutStats, workouts, libraryExercises, supportTickets] = await Promise.all([
+      userService.listUsers(),
       workoutsService && typeof workoutsService.getWorkoutStats === "function"
         ? workoutsService.getWorkoutStats()
         : Promise.resolve({ totalCount: 0, activeCount: 0, inactiveCount: 0 }),
       workoutsService && typeof workoutsService.listOverviewWorkouts === "function"
         ? workoutsService.listOverviewWorkouts()
-        : workoutsService.listMyWorkouts({ id: 0, role: "ADMIN_GERAL" }),
-    ]);
-    const libraryExercises =
+        : Promise.resolve([]),
       libraryRepository && typeof libraryRepository.listLibraryExercises === "function"
-        ? libraryRepository.listLibraryExercises({ includeInactive: true })
-        : [];
-    let supportTickets = [];
-    if (supportService && typeof supportService.listAdminTickets === "function") {
-      try {
-        supportTickets = await supportService.listAdminTickets({ limit: 500 });
-      } catch (_) {
-        supportTickets = [];
+        ? Promise.resolve(libraryRepository.listLibraryExercises({ includeInactive: true }))
+        : Promise.resolve([]),
+      supportService && typeof supportService.listAdminTickets === "function"
+        ? supportService.listAdminTickets({ limit: 500 }).catch(() => [])
+        : Promise.resolve([]),
+    ]);
+
+    const stats = {
+      totalUsers: 0,
+      enabledUsers: 0,
+      alunos: 0,
+      alunosAtivos: 0,
+      alunosDesabilitados: 0,
+      instrutores: 0,
+      instrutoresAtivos: 0,
+      administradores: 0,
+      administradoresAtivos: 0,
+      administradoresGerais: 0,
+      administradoresGeraisAtivos: 0,
+      onlineAgora: 0,
+      alunosOnlineAgora: 0,
+    };
+
+    const usersById = new Map();
+
+    for (const user of users) {
+      stats.totalUsers += 1;
+      const role = String(user.role || "").toUpperCase();
+      const enabled = user.isEnabled !== false;
+      const online = isUserOnline(user, onlineSince);
+
+      if (enabled) stats.enabledUsers += 1;
+      if (online) stats.onlineAgora += 1;
+
+      usersById.set(Number(user.id), user);
+
+      if (role === "ALUNO") {
+        stats.alunos += 1;
+        if (enabled) stats.alunosAtivos += 1;
+        else stats.alunosDesabilitados += 1;
+        if (online) stats.alunosOnlineAgora += 1;
+      } else if (role === "INSTRUTOR") {
+        stats.instrutores += 1;
+        if (enabled) stats.instrutoresAtivos += 1;
+      } else if (role === "ADMIN") {
+        stats.administradores += 1;
+        if (enabled) stats.administradoresAtivos += 1;
+      } else if (role === "ADMIN_GERAL") {
+        stats.administradoresGerais += 1;
+        if (enabled) stats.administradoresGeraisAtivos += 1;
       }
     }
-    const usersById = new Map(users.map((user) => [Number(user.id), user]));
-    const roleCounts = buildRoleStats(users);
-    const onlineSince = new Date(Date.now() - normalizedOnlineWindowMinutes * 60 * 1000);
 
-    const activeStudents = users.filter((user) => user.role === "ALUNO" && user.isEnabled).length;
-    const activeInstructors = users.filter(
-      (user) => user.role === "INSTRUTOR" && user.isEnabled
-    ).length;
-    const activeAdmins = users.filter((user) => user.role === "ADMIN" && user.isEnabled).length;
-    const activeAdminGerais = users.filter(
-      (user) => user.role === "ADMIN_GERAL" && user.isEnabled
-    ).length;
-    const enabledUsers = users.filter((user) => user && user.isEnabled).length;
-    const disabledStudents = users.filter((user) => user.role === "ALUNO" && !user.isEnabled).length;
-    const onlineNow = users.filter((user) => isUserOnline(user, onlineSince)).length;
-    const onlineStudentsNow = users.filter(
-      (user) => user.role === "ALUNO" && isUserOnline(user, onlineSince)
-    ).length;
-
-    const normalizedWorkouts = workouts.map((workout) => {
+    const normalizedWorkouts = (Array.isArray(workouts) ? workouts : []).map((workout) => {
       const student = usersById.get(Number(workout.studentId));
       const instructor = usersById.get(Number(workout.instructorId));
 
@@ -243,68 +267,67 @@ function createAdminService({
       };
     });
 
+    const safeExercises = Array.isArray(libraryExercises) ? libraryExercises : [];
+    const totalExercises = safeExercises.length;
+    const activeExercises = safeExercises.filter(
+      (exercise) => exercise && exercise.isActive !== false
+    ).length;
+
+    const safeTickets = Array.isArray(supportTickets) ? supportTickets : [];
+    const openSupportTickets = safeTickets.filter(
+      (ticket) => normalizeRole(ticket && ticket.status) === "OPEN"
+    ).length;
+    const openPasswordResetSupportTickets = safeTickets.filter(
+      (ticket) =>
+        normalizeRole(ticket && ticket.status) === "OPEN" &&
+        normalizeRole(ticket && ticket.type) === "PASSWORD_RESET"
+    ).length;
+
+    const totalWorkouts = Number(workoutStats && workoutStats.totalCount) || normalizedWorkouts.length;
     const activeWorkouts = Number(workoutStats && workoutStats.activeCount) || 0;
     const inactiveWorkouts = Number(workoutStats && workoutStats.inactiveCount) || 0;
-    const totalWorkouts = Number(workoutStats && workoutStats.totalCount) || normalizedWorkouts.length;
-    const totalExercises = Array.isArray(libraryExercises) ? libraryExercises.length : 0;
-    const activeExercises = Array.isArray(libraryExercises)
-      ? libraryExercises.filter((exercise) => exercise && exercise.isActive !== false).length
-      : 0;
-    const inactiveExercises = Array.isArray(libraryExercises)
-      ? libraryExercises.filter((exercise) => exercise && exercise.isActive === false).length
-      : 0;
-    const openSupportTickets = Array.isArray(supportTickets)
-      ? supportTickets.filter((ticket) => normalizeRole(ticket && ticket.status) === "OPEN").length
-      : 0;
-    const openPasswordResetSupportTickets = Array.isArray(supportTickets)
-      ? supportTickets.filter(
-          (ticket) =>
-            normalizeRole(ticket && ticket.status) === "OPEN" &&
-            normalizeRole(ticket && ticket.type) === "PASSWORD_RESET"
-        ).length
-      : 0;
 
     const overview = {
       stats: {
-        totalUsers: users.length,
-        totalUsersEnabled: enabledUsers,
+        totalUsers: stats.totalUsers,
+        totalUsersEnabled: stats.enabledUsers,
         totalWorkouts,
         totalWorkoutsAtivos: activeWorkouts,
         totalWorkoutsInativos: inactiveWorkouts,
         totalExercises,
         totalExercisesAtivos: activeExercises,
-        totalExercisesInativos: inactiveExercises,
-        alunos: roleCounts.ALUNO,
-        instrutores: roleCounts.INSTRUTOR,
-        instrutoresAtivos: activeInstructors,
-        administradores: roleCounts.ADMIN,
-        administradoresAtivos: activeAdmins,
-        administradoresGerais: roleCounts.ADMIN_GERAL,
-        administradoresGeraisAtivos: activeAdminGerais,
-        alunosAtivos: activeStudents,
-        alunosDesabilitados: disabledStudents,
-        onlineAgora: onlineNow,
-        alunosOnlineAgora: onlineStudentsNow,
+        totalExercisesInativos: totalExercises - activeExercises,
+        alunos: stats.alunos,
+        instrutores: stats.instrutores,
+        instrutoresAtivos: stats.instrutoresAtivos,
+        administradores: stats.administradores,
+        administradoresAtivos: stats.administradoresAtivos,
+        administradoresGerais: stats.administradoresGerais,
+        administradoresGeraisAtivos: stats.administradoresGeraisAtivos,
+        alunosAtivos: stats.alunosAtivos,
+        alunosDesabilitados: stats.alunosDesabilitados,
+        onlineAgora: stats.onlineAgora,
+        alunosOnlineAgora: stats.alunosOnlineAgora,
         janelaOnlineMinutos: normalizedOnlineWindowMinutes,
         supportTicketsPendentes: openSupportTickets,
         supportResetPendentes: openPasswordResetSupportTickets,
       },
       charts: {
         roleDistribution: [
-          { label: "Alunos", value: roleCounts.ALUNO },
-          { label: "Instrutores", value: roleCounts.INSTRUTOR },
-          { label: "Administradores", value: roleCounts.ADMIN },
-          { label: "Admin Geral", value: roleCounts.ADMIN_GERAL },
+          { label: "Alunos", value: stats.alunos },
+          { label: "Instrutores", value: stats.instrutores },
+          { label: "Administradores", value: stats.administradores },
+          { label: "Admin Geral", value: stats.administradoresGerais },
         ],
         studentsStatus: [
-          { label: "Ativos", value: activeStudents },
-          { label: "Desabilitados", value: disabledStudents },
-          { label: "Online agora", value: onlineStudentsNow },
+          { label: "Ativos", value: stats.alunosAtivos },
+          { label: "Desabilitados", value: stats.alunosDesabilitados },
+          { label: "Online agora", value: stats.alunosOnlineAgora },
         ],
       },
       users,
       workouts: normalizedWorkouts,
-      supportTickets: Array.isArray(supportTickets) ? supportTickets : [],
+      supportTickets: safeTickets,
     };
 
     setCachedOverview(overview);
