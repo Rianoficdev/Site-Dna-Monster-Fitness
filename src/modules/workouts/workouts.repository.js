@@ -480,8 +480,7 @@ SET objective = EXCLUDED.objective,
       const deleted = await prisma.workout.delete({
         where: { id: normalizedWorkoutId },
       });
-      const [hydrated] = await withWorkoutCompatibilityList([deleted]);
-      return hydrated || null;
+      return withWorkoutCompatibility(deleted);
     } catch (error) {
       const code = String((error && error.code) || "").toUpperCase();
       if (code === "P2025") return null;
@@ -875,6 +874,28 @@ FROM workout
     return items.map((item) => withTemplateExerciseCompatibility(item));
   }
 
+  async function listTemplateExercisesByTemplateIds(templateIds) {
+    const ids = Array.isArray(templateIds)
+      ? [...new Set(templateIds.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0))]
+      : [];
+    if (!ids.length) return [];
+
+    const items = await prisma.workoutTemplateExercise.findMany({
+      where: {
+        templateId: {
+          in: ids,
+        },
+      },
+      orderBy: [
+        { templateId: "asc" },
+        { order: "asc" },
+        { id: "asc" },
+      ],
+    });
+
+    return items.map((item) => withTemplateExerciseCompatibility(item));
+  }
+
   async function findTemplateExerciseById(id) {
     const normalizedId = Number(id) || 0;
     if (!normalizedId) return null;
@@ -965,6 +986,7 @@ FROM workout
     deleteWorkoutTemplate,
     createWorkoutTemplateExercise,
     listTemplateExercises,
+    listTemplateExercisesByTemplateIds,
     findTemplateExerciseById,
     updateWorkoutTemplateExercise,
     deleteWorkoutTemplateExercise,

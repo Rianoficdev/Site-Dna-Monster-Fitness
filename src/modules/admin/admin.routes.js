@@ -12,6 +12,13 @@ function createAdminRoutes({ adminController, authMiddleware, roleMiddleware, ro
     adminController.getOverview
   );
 
+  router.get(
+    "/admin/workouts-overview",
+    authMiddleware,
+    roleMiddleware(roles.ADMIN_GERAL, roles.INSTRUTOR),
+    adminController.getWorkoutsOverview
+  );
+
   router.patch(
     "/admin/users/:userId/role",
     authMiddleware,

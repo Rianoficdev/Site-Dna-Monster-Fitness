@@ -15127,41 +15127,27 @@ const loadTrainerManagementData = async (forceReload = false) => {
 
     let students = [];
     let instructors = [];
-    try {
-      const usersPayload = await fetchTrainerUsersByRole();
-      students = Array.isArray(usersPayload && usersPayload.students)
-        ? usersPayload.students
-        : [];
-      instructors = Array.isArray(usersPayload && usersPayload.instructors)
-        ? usersPayload.instructors
-        : [];
-    } catch (error) {
-      loadWarnings.push(
-        error && error.message
-          ? `Alunos/Instrutores: ${error.message}`
-          : 'Alunos/Instrutores: não foi possível carregar.'
-      );
-    }
-
     let templates = [];
-    try {
-      const templatesResponse = await requestStudentApi('/workouts/templates?includeInactive=true');
-      templates = Array.isArray(templatesResponse && templatesResponse.templates)
-        ? templatesResponse.templates
-        : [];
-    } catch (error) {
-      templates = [];
-      loadWarnings.push(
-        error && error.message
-          ? `Modelos: ${error.message}`
-          : 'Modelos: não foi possível carregar.'
-      );
-    }
-
     let sortedWorkouts = [];
+    let libraryExercises = [];
     try {
-      const workoutsResponse = await requestInstructorWorkoutsList({ includeInactive: true });
-      const workouts = extractWorkoutsFromResponse(workoutsResponse);
+      const overview = await requestStudentApi('/admin/workouts-overview');
+      students = Array.isArray(overview && overview.students)
+        ? overview.students
+        : [];
+      instructors = Array.isArray(overview && overview.instructors)
+        ? overview.instructors
+        : [];
+      templates = Array.isArray(overview && overview.templates)
+        ? overview.templates
+        : [];
+      libraryExercises = Array.isArray(overview && overview.libraryExercises)
+        ? overview.libraryExercises
+        : [];
+
+      const workouts = Array.isArray(overview && overview.workouts)
+        ? overview.workouts
+        : [];
       sortedWorkouts = workouts
         .slice()
         .sort((first, second) => (Number(first && first.id) || 0) - (Number(second && second.id) || 0));
@@ -15176,66 +15162,35 @@ const loadTrainerManagementData = async (forceReload = false) => {
 
       hideTrainerInitialWorkoutsOnce(sortedWorkouts);
     } catch (error) {
+      students = [];
+      instructors = [];
+      templates = [];
       sortedWorkouts = [];
-      loadWarnings.push(
-        error && error.message
-          ? `Treinos: ${error.message}`
-          : 'Treinos: não foi possível carregar.'
-      );
-    }
-
-    let libraryExercises = [];
-    try {
-      const libraryResponse = await requestStudentApi('/library/exercises');
-      libraryExercises = Array.isArray(libraryResponse && libraryResponse.exercises)
-        ? libraryResponse.exercises
-        : [];
-    } catch (error) {
       libraryExercises = [];
       loadWarnings.push(
-        error && error.message
-          ? `Biblioteca: ${error.message}`
-          : 'Biblioteca: não foi possível carregar.'
+        error && error.message ? error.message : 'Não foi possível carregar os dados.'
       );
     }
 
-    const templateExercisesEntries = await Promise.all(
-      templates.map(async (template) => {
-        const templateId = Number(template && template.id) || 0;
-        if (!templateId) return [String(templateId), []];
+    const templateExercisesEntries = templates.map((template) => {
+      const templateId = Number(template && template.id) || 0;
+      const templateExercises = Array.isArray(template && template.exercises)
+        ? template.exercises
+          .slice()
+          .sort((a, b) => (Number(a && a.order) || 0) - (Number(b && b.order) || 0))
+        : [];
+      return [String(templateId), templateExercises];
+    });
 
-        try {
-          const response = await requestStudentApi(
-            `/workouts/templates/${encodeURIComponent(String(templateId))}/exercises`
-          );
-          const templateExercises = Array.isArray(response && response.templateExercises)
-            ? response.templateExercises
-              .slice()
-              .sort((a, b) => (Number(a && a.order) || 0) - (Number(b && b.order) || 0))
-            : [];
-          return [String(templateId), templateExercises];
-        } catch (_) {
-          return [String(templateId), []];
-        }
-      })
-    );
-
-    const exercisesEntries = await Promise.all(
-      sortedWorkouts.map(async (workout) => {
-        const workoutId = Number(workout && workout.id) || 0;
-        if (!workoutId) return [String(workoutId), []];
-
-        try {
-          const exercisesResponse = await requestStudentApi(`/workouts/${encodeURIComponent(String(workoutId))}/exercises`);
-          const exercises = Array.isArray(exercisesResponse && exercisesResponse.exercises)
-            ? exercisesResponse.exercises.slice().sort((a, b) => (Number(a && a.order) || 0) - (Number(b && b.order) || 0))
-            : [];
-          return [String(workoutId), exercises];
-        } catch (_) {
-          return [String(workoutId), []];
-        }
-      })
-    );
+    const exercisesEntries = sortedWorkouts.map((workout) => {
+      const workoutId = Number(workout && workout.id) || 0;
+      const exercises = Array.isArray(workout && workout.exercises)
+        ? workout.exercises
+          .slice()
+          .sort((a, b) => (Number(a && a.order) || 0) - (Number(b && b.order) || 0))
+        : [];
+      return [String(workoutId), exercises];
+    });
 
     trainerManagementState.students = students;
     trainerManagementState.instructors = instructors;

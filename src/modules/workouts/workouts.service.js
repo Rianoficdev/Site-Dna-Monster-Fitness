@@ -1340,7 +1340,7 @@ function createWorkoutsService({
       throw new AppError("Treino nao encontrado.", 404, "WORKOUT_NOT_FOUND");
     }
 
-    return withWorkoutProgress(removed);
+    return removed;
   }
 
   async function listAssignableStudents({ authUser }) {

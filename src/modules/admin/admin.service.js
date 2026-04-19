@@ -4,6 +4,8 @@ function createAdminService({
   userService,
   userRepository,
   workoutsService,
+  workoutsRepository,
+  exercisesRepository,
   libraryRepository,
   supportService,
   clearCachedAuthUser,
@@ -41,6 +43,32 @@ function createAdminService({
     if (value === true || value === false) return value;
     if (typeof value === "string") return value.trim().toLowerCase() === "true";
     return Boolean(value);
+  }
+
+  function sortExerciseItems(items) {
+    return (Array.isArray(items) ? items : []).slice().sort((first, second) => {
+      const firstOrder = Number(first && first.order) || 0;
+      const secondOrder = Number(second && second.order) || 0;
+      if (firstOrder !== secondOrder) return firstOrder - secondOrder;
+      return (Number(first && first.id) || 0) - (Number(second && second.id) || 0);
+    });
+  }
+
+  function groupItemsByNumericKey(items, keyName) {
+    const grouped = new Map();
+
+    (Array.isArray(items) ? items : []).forEach((item) => {
+      const key = Number(item && item[keyName]) || 0;
+      if (!key) return;
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key).push(item);
+    });
+
+    grouped.forEach((list, key) => {
+      grouped.set(key, sortExerciseItems(list));
+    });
+
+    return grouped;
   }
 
   function ensureSiteContentState() {
@@ -334,6 +362,117 @@ function createAdminService({
     return overview;
   }
 
+  async function getWorkoutsOverview({ authUser } = {}) {
+    const actorRole = normalizeRole(authUser && authUser.role);
+    const actorId = Number(authUser && authUser.id) || 0;
+
+    if (actorRole !== "ADMIN_GERAL" && actorRole !== "INSTRUTOR") {
+      throw new AppError(
+        "Acesso negado para carregar o painel de treinos.",
+        403,
+        "FORBIDDEN"
+      );
+    }
+
+    const [users, templates, workouts, libraryExercises] = await Promise.all([
+      userService.listUsers(),
+      workoutsService && typeof workoutsService.listWorkoutTemplates === "function"
+        ? workoutsService.listWorkoutTemplates({
+            authUser,
+            includeInactive: true,
+          })
+        : Promise.resolve([]),
+      workoutsService && typeof workoutsService.listInstructorWorkouts === "function"
+        ? workoutsService.listInstructorWorkouts({
+            authUser,
+            includeInactive: true,
+          })
+        : Promise.resolve([]),
+      libraryRepository && typeof libraryRepository.listLibraryExercises === "function"
+        ? Promise.resolve(libraryRepository.listLibraryExercises({ includeInactive: false }))
+        : Promise.resolve([]),
+    ]);
+
+    const safeUsers = Array.isArray(users) ? users : [];
+    const safeTemplates = Array.isArray(templates) ? templates : [];
+    const safeWorkouts = Array.isArray(workouts) ? workouts : [];
+    const safeLibraryExercises = Array.isArray(libraryExercises) ? libraryExercises : [];
+
+    const [templateExercises, workoutExercises] = await Promise.all([
+      workoutsRepository && typeof workoutsRepository.listTemplateExercisesByTemplateIds === "function"
+        ? workoutsRepository.listTemplateExercisesByTemplateIds(
+            safeTemplates.map((template) => template && template.id)
+          )
+        : Promise.resolve([]),
+      exercisesRepository && typeof exercisesRepository.listByWorkoutIds === "function"
+        ? exercisesRepository.listByWorkoutIds(
+            safeWorkouts.map((workout) => workout && workout.id)
+          )
+        : Promise.resolve([]),
+    ]);
+
+    const templateExercisesByTemplateId = groupItemsByNumericKey(templateExercises, "templateId");
+    const workoutExercisesByWorkoutId = groupItemsByNumericKey(workoutExercises, "workoutId");
+
+    const students = safeUsers.filter((user) => {
+      const role = normalizeRole(user && user.role);
+      if (role !== "ALUNO") return false;
+      return actorRole === "ADMIN_GERAL" ? true : user && user.isEnabled !== false;
+    });
+
+    let instructors = [];
+    if (actorRole === "ADMIN_GERAL") {
+      instructors = safeUsers.filter((user) => {
+        const role = normalizeRole(user && user.role);
+        return (role === "INSTRUTOR" || role === "ADMIN_GERAL") && user && user.isEnabled !== false;
+      });
+    } else {
+      instructors = safeUsers.filter((user) => Number(user && user.id) === actorId);
+      if (!instructors.length && actorId > 0) {
+        instructors = [
+          {
+            id: actorId,
+            name: String((authUser && authUser.name) || "").trim() || `Usuário ${actorId}`,
+            email: String((authUser && authUser.email) || "").trim().toLowerCase(),
+            phone: "",
+            avatarUrl: "",
+            role: actorRole,
+            isEnabled: true,
+            lastLoginAt: null,
+            lastSeenAt: null,
+            createdAt: null,
+            updatedAt: null,
+          },
+        ];
+      }
+    }
+
+    return {
+      students,
+      instructors,
+      templates: safeTemplates.map((template) => {
+        const templateId = Number(template && template.id) || 0;
+        const exercises = templateExercisesByTemplateId.get(templateId) || [];
+        return {
+          ...template,
+          exercises,
+          exercisesCount: Math.max(
+            Number(template && template.exercisesCount) || 0,
+            exercises.length
+          ),
+        };
+      }),
+      workouts: safeWorkouts.map((workout) => {
+        const workoutId = Number(workout && workout.id) || 0;
+        return {
+          ...workout,
+          exercises: workoutExercisesByWorkoutId.get(workoutId) || [],
+        };
+      }),
+      libraryExercises: safeLibraryExercises,
+    };
+  }
+
   async function updateUserRole({ actorId, userId, role }) {
     const actorIdNumber = Number(actorId);
     const targetId = Number(userId);
@@ -510,6 +649,7 @@ function createAdminService({
 
   return {
     getOverview,
+    getWorkoutsOverview,
     updateUserRole,
     updateStudentStatus,
     deleteDisabledUser,

@@ -13,6 +13,14 @@ function createAdminController({ adminService }) {
     });
   });
 
+  const getWorkoutsOverview = asyncHandler(async (req, res) => {
+    const overview = await adminService.getWorkoutsOverview({
+      authUser: req.user,
+    });
+
+    return res.status(200).json(overview);
+  });
+
   const updateUserRole = asyncHandler(async (req, res) => {
     const user = await adminService.updateUserRole({
       actorId: req.user.id,
@@ -73,6 +81,7 @@ function createAdminController({ adminService }) {
 
   return {
     getOverview,
+    getWorkoutsOverview,
     updateUserRole,
     updateStudentStatus,
     deleteDisabledUser,

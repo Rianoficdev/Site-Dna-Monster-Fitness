@@ -265,7 +265,7 @@ function createUserService({
       throw new AppError("Telefone já cadastrado.", 409, "PHONE_ALREADY_EXISTS");
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const createdUser = await userRepository.createAccount({
       name,
@@ -447,7 +447,7 @@ function createUserService({
       );
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 12);
+    const passwordHash = await bcrypt.hash(newPassword, 10);
     await userRepository.applyPasswordReset({
       resetTokenId: storedToken.id,
       userId: storedToken.userId,
