@@ -2893,6 +2893,14 @@ const getApiErrorMessage = (payload, fallbackMessage) => {
   return fallbackMessage;
 };
 
+const GENERIC_REQUEST_ERROR_MESSAGE = 'Tente novamente.';
+
+const buildApiResponseError = (response, payload, fallbackMessage = GENERIC_REQUEST_ERROR_MESSAGE) => {
+  const error = new Error(getApiErrorMessage(payload, fallbackMessage));
+  error.status = Number(response && response.status) || 0;
+  return error;
+};
+
 const extractWorkoutsFromResponse = (payload) => {
   if (Array.isArray(payload && payload.workouts)) return payload.workouts;
   if (Array.isArray(payload && payload.data && payload.data.workouts)) return payload.data.workouts;
@@ -2934,10 +2942,7 @@ const requestStudentApi = async (path, { method = 'GET', body, token } = {}) => 
 
   const {
     response,
-    responseBaseUrl,
-    attemptedBases,
-    mixedContentOnly,
-    lastNetworkError
+    responseBaseUrl
   } = await performStudentApiFetchWithFallback({
     path,
     method,
@@ -2947,21 +2952,7 @@ const requestStudentApi = async (path, { method = 'GET', body, token } = {}) => 
   });
 
   if (!response) {
-    if (mixedContentOnly) {
-      throw new Error('Conexao bloqueada por HTTPS. Use frontend e backend no mesmo protocolo.');
-    }
-
-    const attemptedHosts = attemptedBases
-      .map((url) => String(url).replace(/\/api$/, ''))
-      .filter(Boolean);
-    const timeoutDetected =
-      Boolean(lastNetworkError) && String(lastNetworkError.name || '').toLowerCase() === 'aborterror';
-    const reasonHint = timeoutDetected
-      ? 'A API demorou para responder.'
-      : 'A API pode estar desligada ou reiniciando.';
-    throw new Error(
-      `Sistema com erro. ${reasonHint} Tente novamente em instantes.`
-    );
+    throw new Error(GENERIC_REQUEST_ERROR_MESSAGE);
   }
 
   let payload = null;
@@ -2976,18 +2967,16 @@ const requestStudentApi = async (path, { method = 'GET', body, token } = {}) => 
     if (responseBaseUrl && response.status !== 404 && response.status !== 405) {
       activeStudentApiBaseUrl = responseBaseUrl;
     }
-    const apiHostHint = getApiHostFromBase(responseBaseUrl);
-    const fallbackMessage =
-      response.status === 404
-        ? `API não encontrada. Verifique se o backend está rodando em ${apiHostHint}.`
-        : `Erro ${response.status} ao processar sua solicitação (API: ${apiHostHint}).`;
-    throw new Error(getApiErrorMessage(payload, fallbackMessage));
+    throw buildApiResponseError(response, payload);
   }
 
   return payload;
 };
 
 const isApiRouteNotFoundError = (error) => {
+  const status = Number(error && error.status) || 0;
+  if (status === 404 || status === 405) return true;
+
   const message = String(error && error.message ? error.message : '').trim().toLowerCase();
   return (
     message.includes('rota não encontrada') ||
@@ -3019,9 +3008,7 @@ const requestStudentApiMultipart = async (path, { method = 'POST', formData, tok
 
   const {
     response,
-    responseBaseUrl,
-    attemptedBases,
-    mixedContentOnly
+    responseBaseUrl
   } = await performStudentApiFetchWithFallback({
     path,
     method,
@@ -3031,15 +3018,7 @@ const requestStudentApiMultipart = async (path, { method = 'POST', formData, tok
   });
 
   if (!response) {
-    if (mixedContentOnly) {
-      throw new Error('Conexao bloqueada por HTTPS. Use frontend e backend no mesmo protocolo.');
-    }
-    const attemptedHosts = attemptedBases
-      .map((url) => String(url).replace(/\/api$/, ''))
-      .filter(Boolean);
-    throw new Error(
-      'Sistema com erro. Tente novamente em instantes.'
-    );
+    throw new Error(GENERIC_REQUEST_ERROR_MESSAGE);
   }
 
   let payload = null;
@@ -3054,12 +3033,7 @@ const requestStudentApiMultipart = async (path, { method = 'POST', formData, tok
     if (responseBaseUrl && response.status !== 404 && response.status !== 405) {
       activeStudentApiBaseUrl = responseBaseUrl;
     }
-    const apiHostHint = getApiHostFromBase(responseBaseUrl);
-    const fallbackMessage =
-      response.status === 404
-        ? `API não encontrada. Verifique se o backend está rodando em ${apiHostHint}.`
-        : `Erro ${response.status} ao processar seu upload (API: ${apiHostHint}).`;
-    throw new Error(getApiErrorMessage(payload, fallbackMessage));
+    throw buildApiResponseError(response, payload);
   }
 
   return payload;
