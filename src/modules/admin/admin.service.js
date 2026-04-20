@@ -1,4 +1,4 @@
-﻿const { AppError } = require("../../utils/AppError");
+const { AppError } = require("../../utils/AppError");
 
 function createAdminService({
   userService,
@@ -661,4 +661,5 @@ function createAdminService({
 module.exports = {
   createAdminService,
 };
+
 
