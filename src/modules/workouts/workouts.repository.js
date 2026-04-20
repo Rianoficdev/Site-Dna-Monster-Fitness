@@ -657,6 +657,40 @@ SET objective = EXCLUDED.objective,
     return withWorkoutCompatibilityList(workouts);
   }
 
+  async function listAllRaw() {
+    const workouts = await prisma.workout.findMany({
+      orderBy: [
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+    });
+
+    return (Array.isArray(workouts) ? workouts : []).map((workout) => ({
+      id: Number(workout.id) || 0,
+      title: normalizeString(workout.name),
+      name: normalizeString(workout.name),
+      objective: "",
+      description: "",
+      studentId: normalizeInteger(workout.studentId, 0),
+      student_id: normalizeInteger(workout.studentId, 0),
+      instructorId: normalizeInteger(workout.createdBy, 0),
+      createdBy: normalizeInteger(workout.createdBy, 0),
+      created_by: normalizeInteger(workout.createdBy, 0),
+      originTemplateId: workout.originTemplateId ? Number(workout.originTemplateId) : null,
+      origin_template_id: workout.originTemplateId ? Number(workout.originTemplateId) : null,
+      coverImageUrl: normalizeString(workout.coverImageUrl),
+      cover_image_url: normalizeString(workout.coverImageUrl),
+      coverUrl: normalizeString(workout.coverImageUrl),
+      cover_url: normalizeString(workout.coverImageUrl),
+      isActive: workout.isActive !== false,
+      status: workout.isActive !== false ? "ATIVO" : "INATIVO",
+      startDate: toIsoDate(workout.startDate) || null,
+      endDate: toIsoDate(workout.endDate) || null,
+      createdAt: toIsoDate(workout.createdAt) || nowIso(),
+      updatedAt: toIsoDate(workout.updatedAt) || nowIso(),
+    }));
+  }
+
   async function findById(id) {
     const normalizedId = Number(id) || 0;
     if (!normalizedId) return null;
@@ -975,6 +1009,7 @@ FROM workout
     listWorkoutSummaries,
     listStudentIdsByInstructorId,
     listAll,
+    listAllRaw,
     listOverviewWorkouts,
     getWorkoutStats,
     findById,

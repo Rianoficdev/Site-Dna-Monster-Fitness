@@ -374,6 +374,26 @@ function createAdminService({
       );
     }
 
+    const workoutsPromise = actorRole === "ADMIN_GERAL"
+      ? (
+          workoutsRepository && typeof workoutsRepository.listAllRaw === "function"
+            ? workoutsRepository.listAllRaw()
+            : workoutsService && typeof workoutsService.listInstructorWorkouts === "function"
+              ? workoutsService.listInstructorWorkouts({
+                  authUser,
+                  includeInactive: true,
+                })
+              : Promise.resolve([])
+        )
+      : (
+          workoutsService && typeof workoutsService.listInstructorWorkouts === "function"
+            ? workoutsService.listInstructorWorkouts({
+                authUser,
+                includeInactive: true,
+              })
+            : Promise.resolve([])
+        );
+
     const [users, templates, workouts, libraryExercises] = await Promise.all([
       userService.listUsers(),
       workoutsService && typeof workoutsService.listWorkoutTemplates === "function"
@@ -382,12 +402,7 @@ function createAdminService({
             includeInactive: true,
           })
         : Promise.resolve([]),
-      workoutsService && typeof workoutsService.listInstructorWorkouts === "function"
-        ? workoutsService.listInstructorWorkouts({
-            authUser,
-            includeInactive: true,
-          })
-        : Promise.resolve([]),
+      workoutsPromise,
       libraryRepository && typeof libraryRepository.listLibraryExercises === "function"
         ? Promise.resolve(libraryRepository.listLibraryExercises({ includeInactive: false }))
         : Promise.resolve([]),
