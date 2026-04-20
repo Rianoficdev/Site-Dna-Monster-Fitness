@@ -23,7 +23,7 @@ const ALLOWED_TYPES = new Set(["forca", "cardio", "mobilidade", "funcional", "re
 const ADMIN_ROLES = new Set(["ADMIN", "ADMIN_GERAL"]);
 const INSTRUCTOR_ROLE = "INSTRUTOR";
 const STUDENT_ROLE = "ALUNO";
-const LIBRARY_LIST_CACHE_TTL_MS = 30000;
+const LIBRARY_LIST_CACHE_TTL_MS = 300000;
 
 function createLibraryService({
   libraryRepository,
@@ -579,7 +579,7 @@ function createLibraryService({
 
     if (ADMIN_ROLES.has(actor.role)) {
       if (databaseEnabled) {
-        await bootstrapDatabaseFromMemory({ includeInactive: true });
+        void bootstrapDatabaseFromMemory({ includeInactive: true }).catch(() => {});
         const exercises = await libraryDatabaseRepository.listLibraryExercises({
           includeInactive: shouldIncludeInactive,
         });
