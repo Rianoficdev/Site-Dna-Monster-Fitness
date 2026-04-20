@@ -19122,7 +19122,7 @@ const handleTrainerWorkoutsTableActions = async (event) => {
         setTrainerManagementFeedback(successMessage, true);
         setTrainerExerciseFeedback(successMessage, true);
         refreshTrainerDataInBackground({
-          includeManagement: true,
+          includeManagement: false,
           includeProgress: true,
           includeStudentWorkouts: true,
           includeAdminOverview: isGeneralAdminUser()
@@ -21130,7 +21130,7 @@ const initStudentArea = () => {
             setAdminOverviewFeedback(successMessage, true);
             setTrainerManagementFeedback(successMessage, true);
             refreshTrainerDataInBackground({
-              includeManagement: true,
+              includeManagement: false,
               includeProgress: true,
               includeStudentWorkouts: true,
               includeAdminOverview: true
