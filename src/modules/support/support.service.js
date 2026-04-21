@@ -26,6 +26,8 @@ function createSupportService({
   const normalizedResetTokenMinutes = Math.max(5, Number(passwordResetTokenMinutes) || 30);
   const passwordMinLength = 6;
   const AUTO_APPROVE_SECONDS = 30;
+  const PUBLIC_PASSWORD_RESET_AUTO_APPROVE_SECONDS = 25;
+  const PUBLIC_PASSWORD_RESET_COUNTDOWN_SECONDS = 30;
 
   function normalizeEmail(value) {
     return String(value || "").trim().toLowerCase();
@@ -82,8 +84,20 @@ function createSupportService({
     return parsed ? parsed.toISOString() : null;
   }
 
-  function getPasswordResetAutoApproveAt(now = new Date()) {
-    return new Date(now.getTime() + AUTO_APPROVE_SECONDS * 1000);
+  function isPublicPasswordResetContext({ requesterId = null, ticket = null } = {}) {
+    const resolvedRequesterId =
+      ticket && ticket.requesterId !== undefined ? ticket.requesterId : requesterId;
+    return !(Number(resolvedRequesterId) > 0);
+  }
+
+  function getPasswordResetAutoApproveDelaySeconds(context = {}) {
+    return isPublicPasswordResetContext(context)
+      ? PUBLIC_PASSWORD_RESET_AUTO_APPROVE_SECONDS
+      : AUTO_APPROVE_SECONDS;
+  }
+
+  function getPasswordResetAutoApproveAt(now = new Date(), context = {}) {
+    return new Date(now.getTime() + getPasswordResetAutoApproveDelaySeconds(context) * 1000);
   }
 
   function getRemainingSeconds(targetDate, now = new Date()) {
@@ -221,7 +235,14 @@ function createSupportService({
     };
   }
 
-  function buildPasswordResetRequestMessage() {
+  function buildPasswordResetRequestMessage(context = {}) {
+    if (isPublicPasswordResetContext(context)) {
+      return (
+        `Solicitacao registrada. A contagem de ${PUBLIC_PASSWORD_RESET_COUNTDOWN_SECONDS} segundos ` +
+        "foi iniciada e a liberacao automatica acontece quando faltarem 5 segundos."
+      );
+    }
+
     return `Solicitacao registrada. Aguarde ${AUTO_APPROVE_SECONDS} segundos para a liberacao automatica do reset de senha.`;
   }
 
@@ -235,7 +256,7 @@ function createSupportService({
       return "Seu reset de senha ja esta liberado. Defina a nova senha para concluir.";
     }
 
-    return `Ja existe uma solicitacao de reset em andamento. Aguarde a liberacao automatica em ate ${AUTO_APPROVE_SECONDS} segundos.`;
+    return "Ja existe uma solicitacao de reset em andamento. Aguarde o tempo restante da verificacao para continuar.";
   }
 
   function normalizeMetadataObject(value) {
@@ -439,7 +460,7 @@ function createSupportService({
     requesterRole = "",
     subject,
     description,
-    successMessage = buildPasswordResetRequestMessage(),
+    successMessage = buildPasswordResetRequestMessage({ requesterId }),
   }) {
     const normalizedEmail = normalizeEmail(requesterEmail);
     const resetTickets = await listRequesterPasswordResetTickets({
@@ -461,7 +482,7 @@ function createSupportService({
     }
 
     const now = new Date();
-    const autoApproveAt = getPasswordResetAutoApproveAt(now);
+    const autoApproveAt = getPasswordResetAutoApproveAt(now, { requesterId });
     const createdTicket = await supportRepository.createTicket({
       ...buildCreateTicketPayload({
         requesterId,
@@ -586,7 +607,7 @@ function createSupportService({
           requesterRole: "ALUNO",
           subject,
           description,
-          successMessage: buildPasswordResetRequestMessage(),
+          successMessage: buildPasswordResetRequestMessage({ requesterId: null }),
         });
       }
 
@@ -988,7 +1009,9 @@ function createSupportService({
       data: {
         status: normalizedStatus,
         adminResponse: sanitizeMultiline(adminResponse, 1200) || null,
-        autoApproveAt: shouldRestartAutoApprovalTimer ? getPasswordResetAutoApproveAt(now) : undefined,
+        autoApproveAt: shouldRestartAutoApprovalTimer
+          ? getPasswordResetAutoApproveAt(now, { ticket })
+          : undefined,
         autoApproved: normalizedStatus === "OPEN" ? false : undefined,
         resolvedById: normalizedStatus === "OPEN" ? null : normalizedActorId,
         resolvedAt: normalizedStatus === "OPEN" ? null : now,

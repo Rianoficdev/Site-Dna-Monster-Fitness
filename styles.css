@@ -3339,7 +3339,9 @@ html.student-area-open {
   width: 100%;
   height: 100%;
   transform: rotate(-90deg);
+  transform-origin: 50% 50%;
   overflow: visible;
+  animation: student-forgot-loading-spin 1.35s linear infinite;
 }
 
 .student-forgot-loading-ring-track,
@@ -3407,6 +3409,15 @@ html.student-area-open {
   50% {
     transform: scale(1.02);
     opacity: 1;
+  }
+}
+
+@keyframes student-forgot-loading-spin {
+  from {
+    transform: rotate(-90deg);
+  }
+  to {
+    transform: rotate(270deg);
   }
 }
 

@@ -36,9 +36,12 @@ const STUDENT_API_REQUEST_TIMEOUT_MS = 12000;
 const STUDENT_API_UPLOAD_TIMEOUT_MS = 120000;
 const STUDENT_API_MAX_RETRIES = 3;
 const STUDENT_API_RETRY_DELAY_MS = 350;
-const STUDENT_FORGOT_STATUS_POLL_MS = 2000;
+const STUDENT_FORGOT_STATUS_POLL_MS = 1000;
 const PROFILE_PASSWORD_RESET_STATUS_POLL_MS = 2000;
-const STUDENT_FORGOT_AUTO_APPROVE_SECONDS = 30;
+const STUDENT_FORGOT_COUNTDOWN_SECONDS = 30;
+const STUDENT_FORGOT_RELEASE_BUFFER_SECONDS = 5;
+const STUDENT_FORGOT_AUTO_APPROVE_SECONDS =
+  STUDENT_FORGOT_COUNTDOWN_SECONDS - STUDENT_FORGOT_RELEASE_BUFFER_SECONDS;
 const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 2000;
 const TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT = 3;
 const ADMIN_TEAM_MIN_MEMBERS = 1;
@@ -1191,6 +1194,7 @@ let forgotSupportCountdownTimer = null;
 let forgotSupportPendingEmail = '';
 let forgotSupportPendingTicketId = 0;
 let forgotSupportAutoApproveAt = '';
+let forgotSupportCountdownEndsAt = '';
 let profilePasswordResetPollTimer = null;
 let profilePasswordResetPollInFlight = false;
 let selectedWorkoutId = null;
@@ -1894,9 +1898,9 @@ const stopForgotSupportStatusWatcher = () => {
 };
 
 const getForgotSupportRemainingSeconds = () => {
-  const autoApproveAt = String(forgotSupportAutoApproveAt || '').trim();
-  if (!autoApproveAt) return 0;
-  const targetTime = new Date(autoApproveAt).getTime();
+  const countdownEndsAt = String(forgotSupportCountdownEndsAt || '').trim();
+  if (!countdownEndsAt) return 0;
+  const targetTime = new Date(countdownEndsAt).getTime();
   if (!Number.isFinite(targetTime)) return 0;
   return Math.max(0, Math.ceil((targetTime - Date.now()) / 1000));
 };
@@ -1909,7 +1913,7 @@ const renderForgotSupportLoadingState = ({
   const safeRemainingSeconds = Math.max(0, Number(remainingSeconds) || 0);
   const normalizedStatusMessage = String(statusMessage || '').trim();
   const normalizedMetaMessage = String(metaMessage || '').trim();
-  const totalSeconds = STUDENT_FORGOT_AUTO_APPROVE_SECONDS;
+  const totalSeconds = STUDENT_FORGOT_COUNTDOWN_SECONDS;
   const progress = Math.min(
     1,
     Math.max(0, (totalSeconds - Math.min(totalSeconds, safeRemainingSeconds)) / totalSeconds)
@@ -1928,15 +1932,15 @@ const renderForgotSupportLoadingState = ({
 
   if (studentForgotLoadingStatus) {
     studentForgotLoadingStatus.textContent =
-      normalizedStatusMessage || 'Preparando a liberação automática do seu reset de senha.';
+      normalizedStatusMessage || 'Verificando solicitação...';
   }
 
   if (studentForgotLoadingMeta) {
     studentForgotLoadingMeta.textContent =
       normalizedMetaMessage ||
-      (safeRemainingSeconds > 0
-        ? `Tempo restante para a liberação automática: ${safeRemainingSeconds} segundo${safeRemainingSeconds === 1 ? '' : 's'}.`
-        : 'Finalizando a liberação automática do seu reset de senha.');
+      (safeRemainingSeconds > STUDENT_FORGOT_RELEASE_BUFFER_SECONDS
+        ? `A redefinição será liberada automaticamente quando a contagem chegar a ${STUDENT_FORGOT_RELEASE_BUFFER_SECONDS}s.`
+        : 'Finalizando a liberação automática da sua nova senha.');
   }
 };
 
@@ -1957,13 +1961,27 @@ const startForgotSupportCountdown = ({
     forgotSupportAutoApproveAt = '';
   }
 
+  const parsedAutoApproveAt = forgotSupportAutoApproveAt ? new Date(forgotSupportAutoApproveAt).getTime() : NaN;
+  if (Number.isFinite(parsedAutoApproveAt)) {
+    forgotSupportCountdownEndsAt = new Date(
+      parsedAutoApproveAt + STUDENT_FORGOT_RELEASE_BUFFER_SECONDS * 1000
+    ).toISOString();
+  } else if (Number(remainingSeconds) >= 0) {
+    forgotSupportCountdownEndsAt = new Date(
+      Date.now() +
+      (Math.max(0, Number(remainingSeconds) || 0) + STUDENT_FORGOT_RELEASE_BUFFER_SECONDS) * 1000
+    ).toISOString();
+  } else {
+    forgotSupportCountdownEndsAt = '';
+  }
+
   renderForgotSupportLoadingState({
-    remainingSeconds: normalizedAutoApproveAt ? getForgotSupportRemainingSeconds() : remainingSeconds,
+    remainingSeconds: getForgotSupportRemainingSeconds(),
     statusMessage,
     metaMessage
   });
 
-  if (!forgotSupportAutoApproveAt) return;
+  if (!forgotSupportCountdownEndsAt) return;
 
   forgotSupportCountdownTimer = setInterval(() => {
     renderForgotSupportLoadingState({
@@ -2251,13 +2269,15 @@ const resetStudentForms = () => {
   if (profilePasswordResetFeedback) { profilePasswordResetFeedback.textContent = ''; profilePasswordResetFeedback.classList.remove('is-success'); }
   stopForgotSupportCountdown();
   forgotSupportAutoApproveAt = '';
+  forgotSupportCountdownEndsAt = '';
   if (studentForgotLoadingStatus) {
-    studentForgotLoadingStatus.textContent = 'Preparando a liberação automática do seu reset de senha.';
+    studentForgotLoadingStatus.textContent = 'Verificando solicitação...';
   }
   if (studentForgotLoadingMeta) {
-    studentForgotLoadingMeta.textContent = 'Tempo restante para a liberação automática.';
+    studentForgotLoadingMeta.textContent =
+      'A redefinição será liberada automaticamente quando a contagem chegar a 5s.';
   }
-  renderForgotSupportLoadingState({ remainingSeconds: STUDENT_FORGOT_AUTO_APPROVE_SECONDS });
+  renderForgotSupportLoadingState({ remainingSeconds: STUDENT_FORGOT_COUNTDOWN_SECONDS });
   if (profileSupportList) profileSupportList.innerHTML = '';
   profileSupportState.loading = false;
   profileSupportState.loaded = false;
@@ -7745,7 +7765,7 @@ const renderProfileSupportTickets = () => {
       const createdAt = formatAdminDate(ticket && ticket.createdAt);
       const subject = String((ticket && ticket.subject) || '-').trim() || '-';
       const typeLabel = getSupportTicketTypeLabel(ticket && ticket.type);
-      const statusLabel = getSupportTicketStatusLabel(ticket && ticket.status);
+      const statusLabel = getSupportTicketStatusLabel(ticket && ticket.status, ticket);
       const adminResponse = String((ticket && ticket.adminResponse) || '').trim();
       const type = normalizeSupportTicketType(ticket && ticket.type);
       const status = normalizeSupportTicketStatus(ticket && ticket.status);
@@ -7760,9 +7780,9 @@ const renderProfileSupportTickets = () => {
           : 0;
       const extraMeta =
         type === 'PASSWORD_RESET' && status === 'OPEN' && remainingSeconds > 0
-          ? ` • Auto em ${formatSupportCountdown(remainingSeconds)}`
+            ? ` • Auto em ${formatSupportCountdown(remainingSeconds)}`
           : type === 'PASSWORD_RESET' && ticket && ticket.autoApproved
-            ? ' • Autoaprovado'
+            ? ' • Auto-aprovado'
             : '';
       return `
         <article class="student-profile-support-item">
@@ -8040,11 +8060,14 @@ const getSupportTicketTypeLabel = (type) =>
     OTHER: 'Outros'
   }[normalizeSupportTicketType(type)] || 'Ajuda e suporte');
 
-const getSupportTicketStatusLabel = (status) => {
+const getSupportTicketStatusLabel = (status, ticket = null) => {
   const normalized = normalizeSupportTicketStatus(status);
+  const type = normalizeSupportTicketType(ticket && ticket.type);
+  if (normalized === 'APPROVED' && ticket && ticket.autoApproved) return 'Auto-aprovado';
   if (normalized === 'APPROVED') return 'Liberado';
   if (normalized === 'RESOLVED') return 'Resolvido';
   if (normalized === 'REJECTED') return 'Rejeitado';
+  if (type === 'PASSWORD_RESET') return 'Pendente';
   return 'Aberto';
 };
 
@@ -10218,7 +10241,7 @@ const renderAdminOverviewPanel = () => {
               <td data-label="Assunto">${escapeAdminCell(subject)}</td>
               <td data-label="Status">
                 <span class="admin-overview-status-badge ${getSupportTicketStatusClass(status)}">
-                  ${escapeAdminCell(getSupportTicketStatusLabel(status))}
+                  ${escapeAdminCell(getSupportTicketStatusLabel(status, ticket))}
                 </span>
               </td>
               <td data-label="Criado em">${escapeAdminCell(formatAdminDate(ticket && ticket.createdAt))}</td>
@@ -10716,7 +10739,7 @@ const exportAdminOverviewPdf = async () => {
               `#${Number(ticket && ticket.id) || '-'}`,
               getSupportTicketTypeLabel(ticket && ticket.type),
               getSupportTicketRequesterName(ticket),
-              getSupportTicketStatusLabel(ticket && ticket.status),
+              getSupportTicketStatusLabel(ticket && ticket.status, ticket),
               isSupportTicketArchived(ticket) ? 'Sim' : 'Nao',
               formatAdminDate(ticket && ticket.createdAt)
             ])
@@ -10785,7 +10808,7 @@ const exportAdminOverviewPdf = async () => {
         doc.text(
           `#${Number(ticket && ticket.id) || '-'} | ${getSupportTicketTypeLabel(ticket && ticket.type)} | ${
             getSupportTicketRequesterName(ticket)
-          } | ${getSupportTicketStatusLabel(ticket && ticket.status)} | ${
+          } | ${getSupportTicketStatusLabel(ticket && ticket.status, ticket)} | ${
             isSupportTicketArchived(ticket) ? 'Arquivado' : 'Ativo'
           }`,
           marginX,
@@ -20240,6 +20263,7 @@ const handleForgotResetSubmit = async (event) => {
     forgotSupportPendingEmail = '';
     forgotSupportPendingTicketId = 0;
     forgotSupportAutoApproveAt = '';
+    forgotSupportCountdownEndsAt = '';
     stopForgotSupportCountdown();
     stopForgotSupportStatusWatcher();
     setAuthView('login');
@@ -20357,6 +20381,7 @@ const applyForgotSupportStatus = (
 
   if (status === 'APPROVED' && canResetNow) {
     stopForgotSupportCountdown();
+    forgotSupportCountdownEndsAt = '';
     setForgotStep('reset');
     if (studentForgotRequestError) {
       studentForgotRequestError.classList.add('is-success');
@@ -20399,6 +20424,8 @@ const applyForgotSupportStatus = (
     clearForgotResetRequestState();
     forgotSupportPendingEmail = '';
     forgotSupportPendingTicketId = 0;
+    forgotSupportAutoApproveAt = '';
+    forgotSupportCountdownEndsAt = '';
     stopForgotSupportStatusWatcher();
     return false;
   }
@@ -20410,6 +20437,7 @@ const applyForgotSupportStatus = (
     forgotSupportPendingEmail = '';
     forgotSupportPendingTicketId = 0;
     forgotSupportAutoApproveAt = '';
+    forgotSupportCountdownEndsAt = '';
     stopForgotSupportStatusWatcher();
     if (studentForgotRequestError) {
       studentForgotRequestError.classList.add('is-success');
@@ -20426,6 +20454,7 @@ const applyForgotSupportStatus = (
     forgotSupportPendingEmail = '';
     forgotSupportPendingTicketId = 0;
     forgotSupportAutoApproveAt = '';
+    forgotSupportCountdownEndsAt = '';
     stopForgotSupportStatusWatcher();
     if (studentForgotRequestError) {
       studentForgotRequestError.classList.remove('is-success');
@@ -20440,11 +20469,11 @@ const applyForgotSupportStatus = (
     startForgotSupportCountdown({
       autoApproveAt,
       remainingSeconds,
-      statusMessage: 'Sua solicitação está em processamento.',
+      statusMessage: 'Verificando solicitação...',
       metaMessage:
         remainingSeconds > 0
-          ? `Liberação automática em ${remainingSeconds} segundo${remainingSeconds === 1 ? '' : 's'}. O Administrador Geral pode liberar antes, se necessário.`
-          : 'Finalizando a liberação automática do seu reset de senha.'
+          ? `A redefinição será liberada automaticamente quando a contagem chegar a ${STUDENT_FORGOT_RELEASE_BUFFER_SECONDS}s.`
+          : 'Finalizando a liberação automática da sua nova senha.'
     });
     return false;
   }
@@ -20529,8 +20558,8 @@ const resumeForgotSupportStatusWatcher = ({ autoOpenForgotView = false } = {}) =
     setForgotStep('loading');
     startForgotSupportCountdown({
       autoApproveAt: savedState.autoApproveAt,
-      statusMessage: 'Sua solicitação ainda está em processamento.',
-      metaMessage: 'Atualizando a contagem para a liberação automática do reset de senha.'
+      statusMessage: 'Verificando solicitação...',
+      metaMessage: `A redefinição será liberada automaticamente quando a contagem chegar a ${STUDENT_FORGOT_RELEASE_BUFFER_SECONDS}s.`
     });
   } else if (savedState.lastStatus === 'APPROVED') {
     setForgotStep('reset');
@@ -20919,8 +20948,8 @@ const initStudentArea = () => {
           setForgotStep('loading');
           startForgotSupportCountdown({
             autoApproveAt: savedState.autoApproveAt,
-            statusMessage: 'Sua solicitação ainda está em processamento.',
-            metaMessage: 'Atualizando o status para liberar sua redefinição de senha.'
+            statusMessage: 'Verificando solicitação...',
+            metaMessage: `A redefinição será liberada automaticamente quando a contagem chegar a ${STUDENT_FORGOT_RELEASE_BUFFER_SECONDS}s.`
           });
         }
         void pollForgotSupportStatusOnce({ force: true, announceApproval: false });

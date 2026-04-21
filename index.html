@@ -448,7 +448,7 @@
           <!-- Painel de recuperação de senha -->
           <div class="student-auth-panel" data-student-panel="forgot" hidden>
             <form class="student-forgot-request-form" data-student-forgot-request-form novalidate>
-              <p class="student-form-helper">Solicite o reset de senha e aguarde a liberação automática em 30 segundos. O Administrador Geral ainda pode antecipar a liberação, se necessário.</p>
+              <p class="student-form-helper">Solicite o reset de senha, acompanhe a contagem de 30 segundos e aguarde a liberação automática quando faltarem 5 segundos. O Administrador Geral ainda pode antecipar a liberação, se necessário.</p>
 
               <label class="student-field">
                 <span class="student-field-icon" aria-hidden="true">
@@ -490,7 +490,7 @@
             </form>
 
             <section class="student-forgot-loading-panel" data-student-forgot-loading-panel hidden>
-              <p class="student-form-helper">Sua solicitação foi registrada. Aguarde a liberação automática ou uma aprovação antecipada do Administrador Geral.</p>
+              <p class="student-form-helper">Sua solicitação foi registrada. Aguarde a verificação automática ou uma aprovação antecipada do Administrador Geral.</p>
 
               <div class="student-forgot-loading-visual">
                 <div class="student-forgot-loading-ring-shell">
@@ -503,10 +503,10 @@
               </div>
 
               <p class="student-forgot-loading-status" data-student-forgot-loading-status>
-                Preparando a liberação automática do seu reset de senha.
+                Verificando solicitação...
               </p>
               <p class="student-forgot-loading-meta" data-student-forgot-loading-meta>
-                Tempo restante para a liberação automática.
+                A redefinição será liberada automaticamente quando a contagem chegar a 5s.
               </p>
 
               <button class="student-form-link" type="button" data-student-go-login>Voltar para login</button>
