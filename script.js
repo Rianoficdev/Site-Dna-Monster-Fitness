@@ -37,6 +37,7 @@ const STUDENT_API_UPLOAD_TIMEOUT_MS = 120000;
 const STUDENT_API_MAX_RETRIES = 3;
 const STUDENT_API_RETRY_DELAY_MS = 350;
 const STUDENT_FORGOT_STATUS_POLL_MS = 12000;
+const PROFILE_PASSWORD_RESET_STATUS_POLL_MS = 2000;
 const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 2000;
 const TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT = 3;
 const ADMIN_TEAM_MIN_MEMBERS = 1;
@@ -1159,6 +1160,14 @@ const profileSupportFeedback = document.querySelector('[data-profile-support-fee
 const profileSupportSubmit = document.querySelector('[data-profile-support-submit]');
 const profileSupportList = document.querySelector('[data-profile-support-list]');
 const profileSupportRefresh = document.querySelector('[data-profile-support-refresh]');
+const profilePasswordResetPanel = document.querySelector('[data-profile-password-reset-panel]');
+const profilePasswordResetStatus = document.querySelector('[data-profile-password-reset-status]');
+const profilePasswordResetTimer = document.querySelector('[data-profile-password-reset-timer]');
+const profilePasswordResetForm = document.querySelector('[data-profile-password-reset-form]');
+const profilePasswordResetNewPass = document.querySelector('[data-profile-password-reset-new-pass]');
+const profilePasswordResetConfirmPass = document.querySelector('[data-profile-password-reset-confirm-pass]');
+const profilePasswordResetFeedback = document.querySelector('[data-profile-password-reset-feedback]');
+const profilePasswordResetSubmit = document.querySelector('[data-profile-password-reset-submit]');
 
 const exerciseModal = document.querySelector('[data-student-exercise-modal]');
 const exerciseTitle = document.querySelector('[data-student-exercise-title]');
@@ -1174,6 +1183,8 @@ let forgotSupportStatusPollTimer = null;
 let forgotSupportStatusPollInFlight = false;
 let forgotSupportPendingEmail = '';
 let forgotSupportPendingTicketId = 0;
+let profilePasswordResetPollTimer = null;
+let profilePasswordResetPollInFlight = false;
 let selectedWorkoutId = null;
 let activeLibraryFilter = 'todos';
 let librarySearchTerm = '';
@@ -1540,6 +1551,18 @@ const profileSupportState = {
   loaded: false,
   error: '',
   tickets: []
+};
+const profilePasswordResetState = {
+  found: false,
+  ticketId: 0,
+  status: 'NONE',
+  canResetNow: false,
+  remainingSeconds: 0,
+  autoApproveAt: '',
+  autoApproved: false,
+  expiresAt: '',
+  updatedAt: '',
+  loading: false
 };
 const STUDENT_AUTOLOGIN_DELAY_MS = 250;
 
@@ -2090,6 +2113,7 @@ const resetStudentForms = () => {
   if (studentForgotRequestForm) studentForgotRequestForm.reset();
   if (studentForgotResetForm) studentForgotResetForm.reset();
   if (profileSupportForm) profileSupportForm.reset();
+  if (profilePasswordResetForm) profilePasswordResetForm.reset();
   clearInvalidState(
     studentUserInput,
     studentPassInput,
@@ -2103,27 +2127,48 @@ const resetStudentForms = () => {
     studentForgotDescription,
     studentForgotToken,
     studentForgotNewPass,
-    studentForgotConfirmPass
+    studentForgotConfirmPass,
+    profileSupportSubject,
+    profileSupportDescription,
+    profilePasswordResetNewPass,
+    profilePasswordResetConfirmPass
   );
   if (studentFormError) { studentFormError.textContent = ''; studentFormError.classList.remove('is-success'); }
   if (studentRegisterError) { studentRegisterError.textContent = ''; studentRegisterError.classList.remove('is-success'); }
   if (studentForgotRequestError) { studentForgotRequestError.textContent = ''; studentForgotRequestError.classList.remove('is-success'); }
   if (studentForgotResetError) { studentForgotResetError.textContent = ''; studentForgotResetError.classList.remove('is-success'); }
   if (profileSupportFeedback) { profileSupportFeedback.textContent = ''; profileSupportFeedback.classList.remove('is-success'); }
+  if (profilePasswordResetFeedback) { profilePasswordResetFeedback.textContent = ''; profilePasswordResetFeedback.classList.remove('is-success'); }
   if (profileSupportList) profileSupportList.innerHTML = '';
   profileSupportState.loading = false;
   profileSupportState.loaded = false;
   profileSupportState.error = '';
   profileSupportState.tickets = [];
+  stopProfilePasswordResetWatcher();
+  Object.assign(profilePasswordResetState, {
+    found: false,
+    ticketId: 0,
+    status: 'NONE',
+    canResetNow: false,
+    remainingSeconds: 0,
+    autoApproveAt: '',
+    autoApproved: false,
+    expiresAt: '',
+    updatedAt: '',
+    loading: false
+  });
   clearButtonLoading(studentSubmitButton, 'Entrar');
   clearButtonLoading(studentRegisterSubmit, 'Cadastrar');
   clearButtonLoading(studentForgotRequestSubmit, 'Enviar solicitação');
   clearButtonLoading(studentForgotResetSubmit, 'Redefinir senha');
+  clearButtonLoading(profileSupportSubmit, 'Enviar solicitação');
+  clearButtonLoading(profilePasswordResetSubmit, 'Atualizar senha');
   if (studentShowPassInput) studentShowPassInput.checked = false;
   if (studentPassInput) studentPassInput.type = 'password';
   setForgotStep('request');
   setAuthView('login');
   applyRememberedLoginDefaults();
+  syncProfileSupportMode();
 };
 
 const syncLoginPasswordVisibility = () => {
@@ -2898,6 +2943,7 @@ const GENERIC_REQUEST_ERROR_MESSAGE = 'Tente novamente.';
 const buildApiResponseError = (response, payload, fallbackMessage = GENERIC_REQUEST_ERROR_MESSAGE) => {
   const error = new Error(getApiErrorMessage(payload, fallbackMessage));
   error.status = Number(response && response.status) || 0;
+  error.payload = payload && typeof payload === 'object' ? payload : null;
   return error;
 };
 
@@ -7303,6 +7349,256 @@ const getProfileActionConfig = (actionId) => {
   };
 };
 
+const formatSupportCountdown = (totalSeconds) => {
+  const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+const getApiErrorPayload = (error) =>
+  error && error.payload && typeof error.payload === 'object' ? error.payload : null;
+
+const isProfileSupportResetSelected = () =>
+  normalizeSupportTicketType(profileSupportType && profileSupportType.value) === 'PASSWORD_RESET';
+
+const isProfileSupportModalVisible = () =>
+  Boolean(profileActionModal && !profileActionModal.hidden && activeProfileAction === 'support');
+
+const stopProfilePasswordResetWatcher = () => {
+  if (profilePasswordResetPollTimer) {
+    clearInterval(profilePasswordResetPollTimer);
+    profilePasswordResetPollTimer = null;
+  }
+  profilePasswordResetPollInFlight = false;
+};
+
+const resetProfilePasswordResetState = () => {
+  stopProfilePasswordResetWatcher();
+  profilePasswordResetState.found = false;
+  profilePasswordResetState.ticketId = 0;
+  profilePasswordResetState.status = 'NONE';
+  profilePasswordResetState.canResetNow = false;
+  profilePasswordResetState.remainingSeconds = 0;
+  profilePasswordResetState.autoApproveAt = '';
+  profilePasswordResetState.autoApproved = false;
+  profilePasswordResetState.expiresAt = '';
+  profilePasswordResetState.updatedAt = '';
+  profilePasswordResetState.loading = false;
+  if (profilePasswordResetForm) profilePasswordResetForm.reset();
+  clearInvalidState(profilePasswordResetNewPass, profilePasswordResetConfirmPass);
+  setInlineFeedback(profilePasswordResetFeedback, '', false, { notice: false, forceClear: true });
+};
+
+const renderProfilePasswordResetUi = () => {
+  const isResetSelected = isProfileSupportResetSelected();
+  const submitLabel = profileSupportSubmit ? profileSupportSubmit.querySelector('span') : null;
+
+  if (submitLabel && !profileSupportSubmit.classList.contains('is-loading')) {
+    submitLabel.textContent = isResetSelected ? 'Solicitar reset' : 'Enviar solicitação';
+  }
+
+  if (profileSupportDescription) {
+    profileSupportDescription.placeholder = isResetSelected
+      ? 'Opcional: adicione algum detalhe se precisar complementar a solicitação.'
+      : 'Descreva o que você precisa com detalhes';
+  }
+
+  if (profilePasswordResetPanel) {
+    profilePasswordResetPanel.hidden = !isResetSelected;
+  }
+
+  if (!isResetSelected || !profilePasswordResetStatus || !profilePasswordResetTimer) {
+    if (profilePasswordResetForm) profilePasswordResetForm.hidden = true;
+    return;
+  }
+
+  const status = String(profilePasswordResetState.status || 'NONE').trim().toUpperCase();
+  const hasActiveApproval = status === 'APPROVED' && profilePasswordResetState.canResetNow;
+  let statusMessage =
+    'Ao enviar a solicitacao, o sistema aguarda 30 segundos antes de aprovar automaticamente.';
+  let timerMessage = '';
+
+  if (profilePasswordResetState.loading) {
+    statusMessage = 'Consultando o status da sua solicitacao de reset...';
+  } else if (!profilePasswordResetState.found) {
+    statusMessage =
+      'Ao enviar a solicitacao, o sistema aguarda 30 segundos antes de aprovar automaticamente.';
+  } else if (status === 'OPEN') {
+    statusMessage =
+      'Solicitacao em analise. O administrador pode aprovar manualmente antes do tempo automatico.';
+    timerMessage = `Aprovacao automatica em ${formatSupportCountdown(profilePasswordResetState.remainingSeconds)}.`;
+  } else if (hasActiveApproval) {
+    statusMessage = profilePasswordResetState.autoApproved
+      ? 'Reset liberado automaticamente. Defina sua nova senha abaixo.'
+      : 'Reset liberado pelo administrador. Defina sua nova senha abaixo.';
+  } else if (status === 'APPROVED') {
+    statusMessage = 'A liberacao expirou. Envie uma nova solicitacao de reset.';
+  } else if (status === 'REJECTED') {
+    statusMessage = 'Sua solicitacao foi rejeitada. Envie um novo pedido se precisar tentar novamente.';
+  } else if (status === 'RESOLVED') {
+    statusMessage = 'Sua ultima solicitacao de reset ja foi concluida. Abra outra somente se precisar.';
+  }
+
+  profilePasswordResetStatus.textContent = statusMessage;
+  profilePasswordResetTimer.textContent = timerMessage;
+  if (profilePasswordResetForm) {
+    profilePasswordResetForm.hidden = !hasActiveApproval;
+  }
+};
+
+const requestAuthenticatedProfilePasswordResetTicket = async (payload = {}) => {
+  try {
+    return await requestStudentApi('/password-reset/request', {
+      method: 'POST',
+      body: payload
+    });
+  } catch (error) {
+    if (!isApiRouteNotFoundError(error)) throw error;
+    return requestStudentApi('/support/tickets', {
+      method: 'POST',
+      body: {
+        ...payload,
+        type: 'PASSWORD_RESET'
+      }
+    });
+  }
+};
+
+const requestAuthenticatedProfilePasswordResetStatus = async () => {
+  try {
+    return await requestStudentApi('/password-reset/status');
+  } catch (error) {
+    if (isApiRouteNotFoundError(error)) return null;
+    throw error;
+  }
+};
+
+const applyProfilePasswordResetStatus = (statusPayload, { announceApproval = false } = {}) => {
+  const payload = statusPayload && typeof statusPayload === 'object' ? statusPayload : null;
+  const previousStatus = String(profilePasswordResetState.status || 'NONE').trim().toUpperCase();
+  const previousCanResetNow = Boolean(profilePasswordResetState.canResetNow);
+
+  if (!payload) {
+    resetProfilePasswordResetState();
+    renderProfilePasswordResetUi();
+    return false;
+  }
+
+  profilePasswordResetState.found = Boolean(payload.found);
+  profilePasswordResetState.ticketId = Number(payload.ticketId || 0) || 0;
+  profilePasswordResetState.status = String(payload.status || 'NONE').trim().toUpperCase() || 'NONE';
+  profilePasswordResetState.canResetNow = Boolean(payload.canResetNow);
+  profilePasswordResetState.remainingSeconds = Math.max(0, Number(payload.remainingSeconds) || 0);
+  profilePasswordResetState.autoApproveAt = String(payload.autoApproveAt || '').trim();
+  profilePasswordResetState.autoApproved = Boolean(payload.autoApproved);
+  profilePasswordResetState.expiresAt = String(payload.expiresAt || '').trim();
+  profilePasswordResetState.updatedAt = String(payload.updatedAt || '').trim();
+  profilePasswordResetState.loading = false;
+
+  renderProfilePasswordResetUi();
+
+  const status = profilePasswordResetState.status;
+  const hasApproval = status === 'APPROVED' && profilePasswordResetState.canResetNow;
+  if (status === 'OPEN') {
+    return false;
+  }
+
+  stopProfilePasswordResetWatcher();
+
+  if (hasApproval && (!previousCanResetNow || previousStatus !== 'APPROVED')) {
+    void fetchProfileSupportTickets(true);
+    if (announceApproval && isProfileSupportModalVisible()) {
+      showSiteTopNotice('Reset de senha liberado. Defina sua nova senha agora.', true, {
+        durationMs: 3200
+      });
+    }
+    if (profilePasswordResetNewPass) {
+      try {
+        profilePasswordResetNewPass.focus({ preventScroll: true });
+      } catch (_) {
+        profilePasswordResetNewPass.focus();
+      }
+    }
+    return true;
+  }
+
+  if (status === 'REJECTED' || status === 'RESOLVED' || (status === 'APPROVED' && !profilePasswordResetState.canResetNow)) {
+    void fetchProfileSupportTickets(true);
+  }
+
+  return false;
+};
+
+const pollProfilePasswordResetStatusOnce = async ({
+  force = false,
+  announceApproval = false
+} = {}) => {
+  if (profilePasswordResetPollInFlight) return false;
+  if (!hasActiveStudentSession()) return false;
+  if (!force && (!isProfileSupportModalVisible() || !isProfileSupportResetSelected())) return false;
+
+  profilePasswordResetPollInFlight = true;
+  profilePasswordResetState.loading = true;
+  renderProfilePasswordResetUi();
+
+  try {
+    const statusPayload = await requestAuthenticatedProfilePasswordResetStatus();
+    if (!statusPayload) {
+      profilePasswordResetState.loading = false;
+      renderProfilePasswordResetUi();
+      return false;
+    }
+    const approved = applyProfilePasswordResetStatus(statusPayload, { announceApproval });
+    if (
+      String(profilePasswordResetState.status || '').trim().toUpperCase() === 'OPEN' &&
+      !profilePasswordResetPollTimer
+    ) {
+      startProfilePasswordResetWatcher({ immediate: false });
+    }
+    return approved;
+  } catch (_) {
+    profilePasswordResetState.loading = false;
+    renderProfilePasswordResetUi();
+    return false;
+  } finally {
+    profilePasswordResetPollInFlight = false;
+  }
+};
+
+const startProfilePasswordResetWatcher = ({ immediate = true } = {}) => {
+  stopProfilePasswordResetWatcher();
+
+  if (!hasActiveStudentSession()) return;
+  if (String(profilePasswordResetState.status || '').trim().toUpperCase() !== 'OPEN') return;
+
+  if (immediate) {
+    void pollProfilePasswordResetStatusOnce({ force: true, announceApproval: false });
+  }
+
+  profilePasswordResetPollTimer = setInterval(() => {
+    void pollProfilePasswordResetStatusOnce({ force: false, announceApproval: true });
+  }, PROFILE_PASSWORD_RESET_STATUS_POLL_MS);
+};
+
+const syncProfileSupportMode = ({ forceStatusSync = false } = {}) => {
+  if (!isProfileSupportResetSelected()) {
+    stopProfilePasswordResetWatcher();
+    renderProfilePasswordResetUi();
+    return;
+  }
+
+  renderProfilePasswordResetUi();
+
+  if (
+    hasActiveStudentSession() &&
+    isProfileSupportModalVisible() &&
+    (forceStatusSync || profilePasswordResetState.status === 'OPEN' || profilePasswordResetState.status === 'NONE')
+  ) {
+    void pollProfilePasswordResetStatusOnce({ force: true, announceApproval: false });
+  }
+};
+
 const setProfileSupportFeedback = (message, isSuccess = false) => {
   setInlineFeedback(profileSupportFeedback, message, isSuccess);
 };
@@ -7332,6 +7628,23 @@ const renderProfileSupportTickets = () => {
       const typeLabel = getSupportTicketTypeLabel(ticket && ticket.type);
       const statusLabel = getSupportTicketStatusLabel(ticket && ticket.status);
       const adminResponse = String((ticket && ticket.adminResponse) || '').trim();
+      const type = normalizeSupportTicketType(ticket && ticket.type);
+      const status = normalizeSupportTicketStatus(ticket && ticket.status);
+      const remainingSeconds =
+        type === 'PASSWORD_RESET' && status === 'OPEN'
+          ? Math.max(
+              0,
+              Math.ceil(
+                (new Date(String((ticket && ticket.autoApproveAt) || '')).getTime() - Date.now()) / 1000
+              ) || 0
+            )
+          : 0;
+      const extraMeta =
+        type === 'PASSWORD_RESET' && status === 'OPEN' && remainingSeconds > 0
+          ? ` • Auto em ${formatSupportCountdown(remainingSeconds)}`
+          : type === 'PASSWORD_RESET' && ticket && ticket.autoApproved
+            ? ' • Autoaprovado'
+            : '';
       return `
         <article class="student-profile-support-item">
           <header>
@@ -7339,7 +7652,7 @@ const renderProfileSupportTickets = () => {
             <span class="admin-overview-status-badge ${statusClass}">${escapeAdminCell(statusLabel)}</span>
           </header>
           <p class="student-profile-support-subject">${escapeAdminCell(subject)}</p>
-          <small>${escapeAdminCell(typeLabel)} • ${escapeAdminCell(createdAt)}</small>
+          <small>${escapeAdminCell(typeLabel)} • ${escapeAdminCell(createdAt)}${escapeAdminCell(extraMeta)}</small>
           ${adminResponse ? `<p class="student-profile-support-response">${escapeAdminCell(adminResponse)}</p>` : ''}
         </article>
       `;
@@ -7386,6 +7699,9 @@ const syncProfileActionModal = () => {
   if (profileActionModal) profileActionModal.classList.toggle('is-support-mode', isSupportAction);
   if (profileSupportWrap) profileSupportWrap.hidden = !isSupportAction;
   if (profileActionText) profileActionText.hidden = isSupportAction;
+  if (isSupportAction) {
+    renderProfilePasswordResetUi();
+  }
 };
 
 const openProfileActionModal = (actionId) => {
@@ -7400,11 +7716,13 @@ const openProfileActionModal = (actionId) => {
       profileSupportSubject.value = buildSupportDefaultSubject(profileSupportType.value);
     }
     void fetchProfileSupportTickets(false);
+    syncProfileSupportMode({ forceStatusSync: true });
   }
 };
 
 const closeProfileActionModal = () => {
   if (!profileActionModal) return;
+  stopProfilePasswordResetWatcher();
   profileActionModal.hidden = true;
   if (studentAppShell) studentAppShell.classList.remove('is-profile-modal-open');
   setProfileSupportFeedback('', false);
@@ -10002,14 +10320,24 @@ const deleteAdminDisabledUser = async (userId, adminPassword) => {
 };
 
 const approveAdminSupportReset = async (ticketId, adminResponse = '') => {
-  const response = await requestStudentApi(
-    `/admin/support-tickets/${encodeURIComponent(String(ticketId))}/approve-password-reset`,
-    {
-      method: 'POST',
-      body: { adminResponse: String(adminResponse || '').trim() }
-    }
-  );
-  return response;
+  try {
+    return await requestStudentApi(
+      `/admin/password-reset-tickets/${encodeURIComponent(String(ticketId))}/approve`,
+      {
+        method: 'PATCH',
+        body: { adminResponse: String(adminResponse || '').trim() }
+      }
+    );
+  } catch (error) {
+    if (!isApiRouteNotFoundError(error)) throw error;
+    return requestStudentApi(
+      `/admin/support-tickets/${encodeURIComponent(String(ticketId))}/approve-password-reset`,
+      {
+        method: 'POST',
+        body: { adminResponse: String(adminResponse || '').trim() }
+      }
+    );
+  }
 };
 
 const updateAdminSupportTicketStatus = async (ticketId, status, adminResponse = '') => {
@@ -19992,7 +20320,12 @@ const handleProfileSupportSubmit = async (event) => {
   if (!profileSupportType || !profileSupportSubject || !profileSupportDescription) return;
 
   setProfileSupportFeedback('', false);
-  clearInvalidState(profileSupportSubject, profileSupportDescription);
+  clearInvalidState(
+    profileSupportSubject,
+    profileSupportDescription,
+    profilePasswordResetNewPass,
+    profilePasswordResetConfirmPass
+  );
 
   const ticketType = normalizeSupportTicketType(profileSupportType.value);
   const subject = String(profileSupportSubject.value || '').trim();
@@ -20004,18 +20337,55 @@ const handleProfileSupportSubmit = async (event) => {
     profileSupportSubject.classList.add('is-invalid');
     hasError = true;
   }
-  if (description.length < 8) {
+  if (ticketType !== 'PASSWORD_RESET' && description.length < 8) {
     profileSupportDescription.classList.add('is-invalid');
     hasError = true;
   }
 
   if (hasError) {
-    setProfileSupportFeedback('Informe assunto e descrição com mais detalhes.', false);
+    setProfileSupportFeedback(
+      ticketType === 'PASSWORD_RESET'
+        ? 'Confirme o assunto da solicitacao para continuar.'
+        : 'Informe assunto e descricao com mais detalhes.',
+      false
+    );
     return;
   }
 
   setButtonLoading(profileSupportSubmit, 'Enviando...');
   try {
+    if (ticketType === 'PASSWORD_RESET') {
+      let requestResponse = null;
+
+      try {
+        requestResponse = await requestAuthenticatedProfilePasswordResetTicket({
+          subject: finalSubject,
+          description
+        });
+      } catch (error) {
+        const pendingPayload = getApiErrorPayload(error);
+        if (Number(error && error.status) === 429 && pendingPayload) {
+          requestResponse = pendingPayload;
+        } else {
+          throw error;
+        }
+      }
+
+      const requestMessage = requestResponse && requestResponse.message
+        ? requestResponse.message
+        : 'Solicitacao de reset registrada com sucesso.';
+
+      setProfileSupportFeedback(requestMessage, true);
+      applyProfilePasswordResetStatus(requestResponse, { announceApproval: false });
+      if (String(profilePasswordResetState.status || '').trim().toUpperCase() === 'OPEN') {
+        startProfilePasswordResetWatcher({ immediate: false });
+      }
+
+      profileSupportState.loaded = false;
+      await fetchProfileSupportTickets(true);
+      return;
+    }
+
     const response = await requestStudentApi('/support/tickets', {
       method: 'POST',
       body: {
@@ -20032,14 +20402,6 @@ const handleProfileSupportSubmit = async (event) => {
       true
     );
 
-    if (ticketType === 'PASSWORD_RESET') {
-      showSiteTopNotice(
-        'Solicitação de reset enviada. Aguarde o Administrador Geral liberar a redefinição.',
-        true,
-        { durationMs: 3200 }
-      );
-    }
-
     profileSupportState.loaded = false;
     await fetchProfileSupportTickets(true);
   } catch (error) {
@@ -20048,7 +20410,77 @@ const handleProfileSupportSubmit = async (event) => {
       false
     );
   } finally {
-    clearButtonLoading(profileSupportSubmit, 'Enviar solicitação');
+    clearButtonLoading(
+      profileSupportSubmit,
+      ticketType === 'PASSWORD_RESET' ? 'Solicitar reset' : 'Enviar solicitação'
+    );
+  }
+};
+
+const handleProfilePasswordResetSubmit = async (event) => {
+  event.preventDefault();
+  if (!profilePasswordResetFeedback) return;
+
+  clearInvalidState(profilePasswordResetNewPass, profilePasswordResetConfirmPass);
+  setInlineFeedback(profilePasswordResetFeedback, '', false, { notice: false, forceClear: true });
+
+  const email = String(studentData.profileEmail || '').trim().toLowerCase();
+  const newPassword = String((profilePasswordResetNewPass && profilePasswordResetNewPass.value) || '').trim();
+  const confirmPassword = String((profilePasswordResetConfirmPass && profilePasswordResetConfirmPass.value) || '').trim();
+
+  let hasError = false;
+  if (!isValidEmail(email)) {
+    hasError = true;
+  }
+  if (!hasStrongPassword(newPassword)) {
+    if (profilePasswordResetNewPass) profilePasswordResetNewPass.classList.add('is-invalid');
+    hasError = true;
+  }
+  if (!confirmPassword || confirmPassword !== newPassword) {
+    if (profilePasswordResetConfirmPass) profilePasswordResetConfirmPass.classList.add('is-invalid');
+    hasError = true;
+  }
+
+  if (hasError) {
+    setInlineFeedback(
+      profilePasswordResetFeedback,
+      'Use uma senha com pelo menos 6 caracteres e confirme exatamente o mesmo valor.',
+      false,
+      { notice: false }
+    );
+    return;
+  }
+
+  setButtonLoading(profilePasswordResetSubmit, 'Atualizando...');
+  try {
+    const resetResponse = await requestStudentApi('/auth/forgot-password/reset', {
+      method: 'POST',
+      body: {
+        email,
+        newPassword,
+        confirmPassword
+      }
+    });
+
+    if (profilePasswordResetForm) profilePasswordResetForm.reset();
+    resetProfilePasswordResetState();
+    renderProfilePasswordResetUi();
+    setProfileSupportFeedback(
+      (resetResponse && resetResponse.message) || 'Senha atualizada com sucesso.',
+      true
+    );
+    showSiteTopNotice('Senha atualizada com sucesso.', true, { durationMs: 2600 });
+    profileSupportState.loaded = false;
+    await fetchProfileSupportTickets(true);
+  } catch (error) {
+    setInlineFeedback(
+      profilePasswordResetFeedback,
+      error && error.message ? error.message : 'Não foi possível atualizar a senha agora.',
+      false,
+      { notice: false }
+    );
+  } finally {
+    clearButtonLoading(profilePasswordResetSubmit, 'Atualizar senha');
   }
 };
 
@@ -21861,16 +22293,26 @@ const initStudentArea = () => {
       void handleProfileSupportSubmit(event);
     });
   }
+  if (profilePasswordResetForm) {
+    profilePasswordResetForm.addEventListener('submit', (event) => {
+      void handleProfilePasswordResetSubmit(event);
+    });
+  }
   if (profileSupportRefresh) {
     profileSupportRefresh.addEventListener('click', () => {
       setProfileSupportFeedback('', false);
       void fetchProfileSupportTickets(true);
+      if (isProfileSupportResetSelected()) {
+        void pollProfilePasswordResetStatusOnce({ force: true, announceApproval: false });
+      }
     });
   }
   if (profileSupportType) {
     profileSupportType.addEventListener('change', () => {
-      if (!profileSupportSubject || profileSupportSubject.value.trim()) return;
-      profileSupportSubject.value = buildSupportDefaultSubject(profileSupportType.value);
+      if (profileSupportSubject && !profileSupportSubject.value.trim()) {
+        profileSupportSubject.value = buildSupportDefaultSubject(profileSupportType.value);
+      }
+      syncProfileSupportMode({ forceStatusSync: true });
     });
   }
 

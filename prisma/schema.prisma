@@ -72,6 +72,8 @@ model SupportTicket {
   status      SupportTicketStatus @default(OPEN)
   adminResponse String?          @map("admin_response")
   metadata    Json?
+  autoApproveAt DateTime?        @map("auto_approve_at")
+  autoApproved  Boolean          @default(false) @map("auto_approved")
   resolvedById Int?              @map("resolved_by_id")
   resolvedAt   DateTime?         @map("resolved_at")
   requester   User?              @relation("SupportTicketRequester", fields: [requesterId], references: [id], onDelete: SetNull)
@@ -83,6 +85,7 @@ model SupportTicket {
   @@index([requesterId])
   @@index([status, type])
   @@index([createdAt])
+  @@index([autoApproveAt])
   @@map("support_ticket")
 }
 

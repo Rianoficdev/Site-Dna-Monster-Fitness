@@ -56,8 +56,58 @@ function shouldUseRelaxedSsl(databaseUrl) {
   return normalized.includes("supabase.com") || normalized.includes("supabase.co") || normalized.includes("sslmode=");
 }
 
+function normalizeDatabaseUrl(databaseUrl) {
+  const trimmed = String(databaseUrl || "").trim();
+  if (!trimmed) return "";
+
+  const wrappedWithDoubleQuotes = trimmed.startsWith('"') && trimmed.endsWith('"');
+  const wrappedWithSingleQuotes = trimmed.startsWith("'") && trimmed.endsWith("'");
+
+  if (wrappedWithDoubleQuotes || wrappedWithSingleQuotes) {
+    return trimmed.slice(1, -1).trim();
+  }
+
+  return trimmed;
+}
+
+function removeQueryParam(databaseUrl, paramName) {
+  const safeParamName = String(paramName || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (!safeParamName) return String(databaseUrl || "");
+
+  return String(databaseUrl || "")
+    .replace(new RegExp(`([?&])${safeParamName}=[^&]*(&)?`, "i"), (_match, prefix, hasTrailing) => {
+      if (prefix === "?") return hasTrailing ? "?" : "";
+      return hasTrailing ? "&" : "";
+    })
+    .replace(/[?&]$/, "");
+}
+
+function buildClientConfig(databaseUrl) {
+  const normalizedDatabaseUrl = normalizeDatabaseUrl(databaseUrl);
+  if (!shouldUseRelaxedSsl(normalizedDatabaseUrl)) {
+    return {
+      connectionString: normalizedDatabaseUrl,
+    };
+  }
+
+  // When the URL already contains sslmode=require, pg may prioritize that over the
+  // explicit ssl object below and reject self-signed chains. Strip the URL flags and
+  // keep the relaxed TLS behavior in one place.
+  const sanitizedConnectionString = [ "sslmode", "uselibpqcompat" ].reduce(
+    (currentValue, paramName) => removeQueryParam(currentValue, paramName),
+    normalizedDatabaseUrl
+  );
+
+  return {
+    connectionString: sanitizedConnectionString,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  };
+}
+
 async function main() {
-  const databaseUrl = String(process.env.DATABASE_URL || "").trim();
+  const databaseUrl = normalizeDatabaseUrl(process.env.DATABASE_URL);
   if (!databaseUrl) {
     throw new Error("DATABASE_URL nao definida. Configure .env antes de aplicar migracoes SQL.");
   }
@@ -78,18 +128,7 @@ async function main() {
     return;
   }
 
-  const client = new Client(
-    shouldUseRelaxedSsl(databaseUrl)
-      ? {
-          connectionString: databaseUrl,
-          ssl: {
-            rejectUnauthorized: false,
-          },
-        }
-      : {
-          connectionString: databaseUrl,
-        }
-  );
+  const client = new Client(buildClientConfig(databaseUrl));
 
   await client.connect();
 

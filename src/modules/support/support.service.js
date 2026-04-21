@@ -25,6 +25,7 @@ function createSupportService({
   const allowedAdminStatusUpdates = new Set(["RESOLVED", "REJECTED", "OPEN"]);
   const normalizedResetTokenMinutes = Math.max(5, Number(passwordResetTokenMinutes) || 30);
   const passwordMinLength = 6;
+  const AUTO_APPROVE_SECONDS = 30;
 
   function normalizeEmail(value) {
     return String(value || "").trim().toLowerCase();
@@ -67,6 +68,28 @@ function createSupportService({
 
   function sanitizeMultiline(value, maxLength = 3000) {
     return String(value || "").trim().slice(0, maxLength);
+  }
+
+  function parseDate(value) {
+    if (!value) return null;
+    const parsed = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed;
+  }
+
+  function formatDateIso(value) {
+    const parsed = parseDate(value);
+    return parsed ? parsed.toISOString() : null;
+  }
+
+  function getPasswordResetAutoApproveAt(now = new Date()) {
+    return new Date(now.getTime() + AUTO_APPROVE_SECONDS * 1000);
+  }
+
+  function getRemainingSeconds(targetDate, now = new Date()) {
+    const parsed = parseDate(targetDate);
+    if (!parsed) return 0;
+    return Math.max(0, Math.ceil((parsed.getTime() - now.getTime()) / 1000));
   }
 
   function validatePasswordStrength(password, fieldLabel = "Senha") {
@@ -148,6 +171,8 @@ function createSupportService({
         archiveMeta.metadata && Object.keys(archiveMeta.metadata).length
           ? archiveMeta.metadata
           : null,
+      autoApproveAt: formatDateIso(ticket.autoApproveAt),
+      autoApproved: ticket.autoApproved === true,
       isArchived: archiveMeta.isArchived,
       archivedAt: archiveMeta.archivedAt,
       archivedById: archiveMeta.archivedById,
@@ -203,9 +228,202 @@ function createSupportService({
     );
   }
 
+  function buildAuthenticatedPasswordResetRequestMessage() {
+    return `Solicitacao registrada. Se nao houver acao manual, a aprovacao acontece automaticamente em ${AUTO_APPROVE_SECONDS} segundos.`;
+  }
+
   function normalizeMetadataObject(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
     return { ...value };
+  }
+
+  function getPasswordResetMetadata(ticket) {
+    const metadata = normalizeMetadataObject(ticket && ticket.metadata);
+    return metadata.passwordReset && typeof metadata.passwordReset === "object"
+      ? metadata.passwordReset
+      : null;
+  }
+
+  function buildPasswordResetApprovalData({
+    ticket,
+    now = new Date(),
+    actorId = null,
+    autoApproved = false,
+    adminResponse = "",
+  }) {
+    const currentTicket = ticket && typeof ticket === "object" ? ticket : {};
+    const previousMetadata = normalizeMetadataObject(currentTicket.metadata);
+    const previousPasswordResetMeta = getPasswordResetMetadata(currentTicket) || {};
+    const expiresAt = new Date(now.getTime() + normalizedResetTokenMinutes * 60 * 1000);
+
+    return {
+      expiresAt,
+      data: {
+        status: "APPROVED",
+        adminResponse:
+          sanitizeMultiline(
+            adminResponse ||
+              (autoApproved
+                ? "Reset de senha liberado automaticamente apos o tempo de espera."
+                : "Reset de senha liberado pelo administrador."),
+            1200
+          ) || null,
+        metadata: {
+          ...previousMetadata,
+          passwordReset: {
+            ...previousPasswordResetMeta,
+            approvedAt: now.toISOString(),
+            expiresAt: expiresAt.toISOString(),
+            approvedByAdminId: actorId || null,
+            requiresToken: false,
+            autoApproved: Boolean(autoApproved),
+          },
+        },
+        resolvedById: autoApproved ? null : actorId || null,
+        resolvedAt: now,
+        autoApproved: Boolean(autoApproved),
+      },
+    };
+  }
+
+  async function approvePasswordResetTicketRecord({
+    ticket,
+    actorId = null,
+    autoApproved = false,
+    adminResponse = "",
+  }) {
+    const currentTicket = ticket && typeof ticket === "object" ? ticket : null;
+    if (!currentTicket || !Number(currentTicket.id)) return null;
+
+    const now = new Date();
+    const approval = buildPasswordResetApprovalData({
+      ticket: currentTicket,
+      now,
+      actorId,
+      autoApproved,
+      adminResponse,
+    });
+
+    return supportRepository.updateTicketById({
+      ticketId: currentTicket.id,
+      data: approval.data,
+    });
+  }
+
+  async function maybeAutoApprovePasswordResetTicket(ticket) {
+    const currentTicket = ticket && typeof ticket === "object" ? ticket : null;
+    if (!currentTicket) return null;
+    if (normalizeType(currentTicket.type) !== "PASSWORD_RESET") return currentTicket;
+    if ((normalizeStatus(currentTicket.status) || "OPEN") !== "OPEN") return currentTicket;
+
+    const autoApproveAt = parseDate(currentTicket.autoApproveAt);
+    if (!autoApproveAt || autoApproveAt.getTime() > Date.now()) {
+      return currentTicket;
+    }
+
+    return approvePasswordResetTicketRecord({
+      ticket: currentTicket,
+      autoApproved: true,
+    });
+  }
+
+  async function syncPasswordResetTicketCollection(tickets) {
+    const list = Array.isArray(tickets) ? tickets : [];
+    const syncedTickets = [];
+
+    for (const ticket of list) {
+      if (normalizeType(ticket && ticket.type) !== "PASSWORD_RESET") {
+        syncedTickets.push(ticket);
+        continue;
+      }
+
+      syncedTickets.push(await maybeAutoApprovePasswordResetTicket(ticket));
+    }
+
+    return syncedTickets;
+  }
+
+  function canPasswordResetTicketResetNow(ticket) {
+    const currentTicket = ticket && typeof ticket === "object" ? ticket : null;
+    if (!currentTicket) return false;
+
+    const status = normalizeStatus(currentTicket.status) || "OPEN";
+    if (status !== "APPROVED") return false;
+
+    const passwordResetMeta = getPasswordResetMetadata(currentTicket);
+    const expiresAt = parseDate(passwordResetMeta && passwordResetMeta.expiresAt);
+    if (!expiresAt) return true;
+    return expiresAt.getTime() > Date.now();
+  }
+
+  function buildAuthenticatedPasswordResetStatus(ticket) {
+    const currentTicket = ticket && typeof ticket === "object" ? ticket : null;
+    if (!currentTicket) {
+      return {
+        found: false,
+        ticketId: 0,
+        status: "NONE",
+        canResetNow: false,
+        remainingSeconds: 0,
+        autoApproveAt: null,
+        autoApproved: false,
+        expiresAt: null,
+        updatedAt: null,
+      };
+    }
+
+    const now = new Date();
+    const passwordResetMeta = getPasswordResetMetadata(currentTicket);
+    const normalizedStatus = normalizeStatus(currentTicket.status) || "OPEN";
+    const autoApproveAt = formatDateIso(currentTicket.autoApproveAt);
+    const remainingSeconds =
+      normalizedStatus === "OPEN" ? getRemainingSeconds(currentTicket.autoApproveAt, now) : 0;
+
+    return {
+      found: true,
+      ticketId: Number(currentTicket.id) || 0,
+      status: normalizedStatus,
+      canResetNow: canPasswordResetTicketResetNow(currentTicket),
+      remainingSeconds,
+      autoApproveAt,
+      autoApproved:
+        currentTicket.autoApproved === true ||
+        Boolean(passwordResetMeta && passwordResetMeta.autoApproved === true),
+      expiresAt:
+        passwordResetMeta && passwordResetMeta.expiresAt
+          ? String(passwordResetMeta.expiresAt)
+          : null,
+      updatedAt: currentTicket.updatedAt || currentTicket.createdAt || null,
+    };
+  }
+
+  function sortTicketsByNewest(tickets) {
+    return (Array.isArray(tickets) ? tickets : []).slice().sort((first, second) => {
+      const firstCreatedAt = new Date((first && first.createdAt) || 0).getTime();
+      const secondCreatedAt = new Date((second && second.createdAt) || 0).getTime();
+      return secondCreatedAt - firstCreatedAt;
+    });
+  }
+
+  function isActivePasswordResetTicket(ticket) {
+    const normalizedStatus = normalizeStatus(ticket && ticket.status) || "OPEN";
+    if (normalizedStatus === "OPEN") return true;
+    if (normalizedStatus !== "APPROVED") return false;
+    return canPasswordResetTicketResetNow(ticket);
+  }
+
+  async function listRequesterPasswordResetTickets({ requesterId, requesterEmail, limit = 50 }) {
+    const syncedTickets = await syncPasswordResetTicketCollection(
+      await supportRepository.listTicketsByRequester({
+        requesterId,
+        requesterEmail,
+        limit,
+      })
+    );
+
+    return sortTicketsByNewest(
+      syncedTickets.filter((ticket) => normalizeType(ticket && ticket.type) === "PASSWORD_RESET")
+    );
   }
 
   function getTicketArchiveMeta(ticket) {
@@ -334,14 +552,10 @@ function createSupportService({
     }
 
     const normalizedTicketId = Number(ticketId) || 0;
-    const tickets = await supportRepository.listTicketsByRequester({
+    const resetTickets = await listRequesterPasswordResetTickets({
       requesterEmail: normalizedEmail,
       limit: 50,
     });
-
-    const resetTickets = tickets.filter(
-      (ticket) => normalizeType(ticket && ticket.type) === "PASSWORD_RESET"
-    );
 
     let targetTicket = null;
     if (normalizedTicketId > 0) {
@@ -349,7 +563,7 @@ function createSupportService({
         resetTickets.find((ticket) => Number(ticket && ticket.id) === normalizedTicketId) || null;
     }
     if (!targetTicket) {
-      targetTicket = resetTickets[0] || null;
+      targetTicket = resetTickets.find((ticket) => isActivePasswordResetTicket(ticket)) || resetTickets[0] || null;
     }
 
     if (!targetTicket) {
@@ -359,37 +573,21 @@ function createSupportService({
         status: "NONE",
         canResetNow: false,
         expiresAt: null,
+        autoApproved: false,
         updatedAt: null,
       };
     }
 
-    const normalizedStatus = normalizeStatus(targetTicket.status) || "OPEN";
-    const metadata = normalizeMetadataObject(targetTicket.metadata);
-    const passwordResetMeta =
-      metadata.passwordReset && typeof metadata.passwordReset === "object"
-        ? metadata.passwordReset
-        : null;
-
-    let canResetNow = normalizedStatus === "APPROVED";
-    let expiresAt =
-      passwordResetMeta && passwordResetMeta.expiresAt
-        ? String(passwordResetMeta.expiresAt)
-        : null;
-
-    if (canResetNow && expiresAt) {
-      const expiresDate = new Date(expiresAt);
-      if (Number.isNaN(expiresDate.getTime()) || expiresDate.getTime() <= Date.now()) {
-        canResetNow = false;
-      }
-    }
+    const statusPayload = buildAuthenticatedPasswordResetStatus(targetTicket);
 
     return {
       found: true,
-      ticketId: Number(targetTicket.id) || 0,
-      status: normalizedStatus,
-      canResetNow,
-      expiresAt: expiresAt || null,
-      updatedAt: targetTicket.updatedAt || targetTicket.createdAt || null,
+      ticketId: statusPayload.ticketId,
+      status: statusPayload.status,
+      canResetNow: statusPayload.canResetNow,
+      expiresAt: statusPayload.expiresAt,
+      autoApproved: statusPayload.autoApproved,
+      updatedAt: statusPayload.updatedAt,
     };
   }
 
@@ -417,21 +615,27 @@ function createSupportService({
       throw new AppError("Usuario nao encontrado para este e-mail.", 404, "USER_NOT_FOUND");
     }
 
-    const tickets = await supportRepository.listTicketsByRequester({
+    const resetTickets = await listRequesterPasswordResetTickets({
       requesterEmail: normalizedEmail,
       limit: 50,
     });
-
-    const approvedTicket = tickets
-      .filter((ticket) => normalizeType(ticket && ticket.type) === "PASSWORD_RESET")
-      .filter((ticket) => (normalizeStatus(ticket && ticket.status) || "OPEN") === "APPROVED")
-      .sort((a, b) => {
-        const aTime = new Date((a && (a.updatedAt || a.createdAt)) || 0).getTime();
-        const bTime = new Date((b && (b.updatedAt || b.createdAt)) || 0).getTime();
-        return bTime - aTime;
-      })[0];
+    const approvedTickets = resetTickets.filter(
+      (ticket) => (normalizeStatus(ticket && ticket.status) || "OPEN") === "APPROVED"
+    );
+    const approvedTicket = approvedTickets.find((ticket) => canPasswordResetTicketResetNow(ticket)) || null;
 
     if (!approvedTicket) {
+      const hasExpiredApproval = approvedTickets.some(
+        (ticket) => !canPasswordResetTicketResetNow(ticket)
+      );
+      if (hasExpiredApproval) {
+        throw new AppError(
+          "A liberacao para redefinir senha expirou. Solicite nova liberacao ao Administrador Geral.",
+          400,
+          "SUPPORT_RESET_APPROVAL_EXPIRED"
+        );
+      }
+
       throw new AppError(
         "Sua solicitacao ainda nao foi liberada pelo Administrador Geral.",
         400,
@@ -440,20 +644,7 @@ function createSupportService({
     }
 
     const metadata = normalizeMetadataObject(approvedTicket.metadata);
-    const passwordResetMeta =
-      metadata.passwordReset && typeof metadata.passwordReset === "object"
-        ? metadata.passwordReset
-        : null;
-    if (passwordResetMeta && passwordResetMeta.expiresAt) {
-      const expiresDate = new Date(passwordResetMeta.expiresAt);
-      if (!Number.isNaN(expiresDate.getTime()) && expiresDate.getTime() <= Date.now()) {
-        throw new AppError(
-          "A liberacao para redefinir senha expirou. Solicite nova liberacao ao Administrador Geral.",
-          400,
-          "SUPPORT_RESET_APPROVAL_EXPIRED"
-        );
-      }
-    }
+    const passwordResetMeta = getPasswordResetMetadata(approvedTicket);
 
     const passwordHash = await bcrypt.hash(normalizedNewPassword, 12);
     await userRepository.updatePasswordById({
@@ -496,12 +687,104 @@ function createSupportService({
     };
   }
 
+  async function requestAuthenticatedPasswordResetTicket({
+    authUser,
+    subject,
+    description,
+  }) {
+    const authUserId = Number(authUser && authUser.id) || 0;
+    if (!authUserId) {
+      throw new AppError("Usuario nao autenticado.", 401, "UNAUTHORIZED");
+    }
+
+    const user = await userRepository.findById(authUserId);
+    if (!user) {
+      throw new AppError("Usuario nao encontrado.", 404, "USER_NOT_FOUND");
+    }
+
+    const resetTickets = await listRequesterPasswordResetTickets({
+      requesterId: user.id,
+      requesterEmail: user.email,
+      limit: 50,
+    });
+    const existingTicket = resetTickets.find((ticket) => isActivePasswordResetTicket(ticket)) || null;
+
+    if (existingTicket) {
+      const existingStatus = buildAuthenticatedPasswordResetStatus(existingTicket);
+      return {
+        success: false,
+        alreadyPending: true,
+        message:
+          existingStatus.status === "APPROVED" && existingStatus.canResetNow
+            ? "O reset de senha ja esta liberado para sua conta."
+            : "Ja existe uma solicitacao de reset em andamento para sua conta.",
+        ...existingStatus,
+        ticket: sanitizeTicket(existingTicket),
+      };
+    }
+
+    const now = new Date();
+    const autoApproveAt = getPasswordResetAutoApproveAt(now);
+    const createdTicket = await supportRepository.createTicket({
+      ...buildCreateTicketPayload({
+        requesterId: user.id,
+        requesterEmail: user.email,
+        requesterName: user.name,
+        requesterRole: user.role,
+        type: "PASSWORD_RESET",
+        subject,
+        description,
+      }),
+      autoApproveAt,
+      autoApproved: false,
+    });
+
+    return {
+      success: true,
+      alreadyPending: false,
+      message: buildAuthenticatedPasswordResetRequestMessage(),
+      ...buildAuthenticatedPasswordResetStatus(createdTicket),
+      ticket: sanitizeTicket(createdTicket),
+    };
+  }
+
+  async function checkAuthenticatedPasswordResetStatus({ authUser }) {
+    const authUserId = Number(authUser && authUser.id) || 0;
+    if (!authUserId) {
+      throw new AppError("Usuario nao autenticado.", 401, "UNAUTHORIZED");
+    }
+
+    const user = await userRepository.findById(authUserId);
+    if (!user) {
+      throw new AppError("Usuario nao encontrado.", 404, "USER_NOT_FOUND");
+    }
+
+    const resetTickets = await listRequesterPasswordResetTickets({
+      requesterId: user.id,
+      requesterEmail: user.email,
+      limit: 50,
+    });
+
+    const targetTicket =
+      resetTickets.find((ticket) => isActivePasswordResetTicket(ticket)) || resetTickets[0] || null;
+
+    return buildAuthenticatedPasswordResetStatus(targetTicket);
+  }
+
   async function createAuthenticatedSupportTicket({
     authUser,
     type,
     subject,
     description,
   }) {
+    if (normalizeType(type) === "PASSWORD_RESET") {
+      return requestAuthenticatedPasswordResetTicket({
+        authUser,
+        subject,
+        description,
+      });
+    }
+
     const authUserId = Number(authUser && authUser.id) || 0;
     if (!authUserId) {
       throw new AppError("Usuario nao autenticado.", 401, "UNAUTHORIZED");
@@ -538,11 +821,13 @@ function createSupportService({
       throw new AppError("Usuario nao encontrado.", 404, "USER_NOT_FOUND");
     }
 
-    const tickets = await supportRepository.listTicketsByRequester({
-      requesterId: user.id,
-      requesterEmail: user.email,
-      limit,
-    });
+    const tickets = await syncPasswordResetTicketCollection(
+      await supportRepository.listTicketsByRequester({
+        requesterId: user.id,
+        requesterEmail: user.email,
+        limit,
+      })
+    );
 
     return tickets.map((ticket) => sanitizeTicket(ticket));
   }
@@ -555,11 +840,13 @@ function createSupportService({
         ? normalizedLimit
         : Math.max(normalizedLimit * 3, 300);
 
-    const tickets = await supportRepository.listAllTickets({
-      status: normalizeStatus(status),
-      type: parseOptionalType(type),
-      limit: repositoryLimit,
-    });
+    const tickets = await syncPasswordResetTicketCollection(
+      await supportRepository.listAllTickets({
+        status: normalizeStatus(status),
+        type: parseOptionalType(type),
+        limit: repositoryLimit,
+      })
+    );
 
     const filteredTickets = tickets.filter((ticket) => {
       const archiveMeta = getTicketArchiveMeta(ticket);
@@ -571,6 +858,15 @@ function createSupportService({
     return filteredTickets
       .slice(0, normalizedLimit)
       .map((ticket) => sanitizeTicket(ticket));
+  }
+
+  async function listAdminPasswordResetTickets({ status, limit = 300, archived } = {}) {
+    return listAdminTickets({
+      status,
+      type: "PASSWORD_RESET",
+      limit,
+      archived,
+    });
   }
 
   async function approvePasswordResetTicket({ ticketId, actorId, adminResponse }) {
@@ -605,36 +901,21 @@ function createSupportService({
       );
     }
 
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + normalizedResetTokenMinutes * 60 * 1000);
-
-    const previousMetadata = normalizeMetadataObject(ticket.metadata);
-    const nextMetadata = {
-      ...previousMetadata,
-      passwordReset: {
-        approvedAt: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
-        approvedByAdminId: normalizedActorId,
-        requiresToken: false,
-      },
-    };
-
-    const updatedTicket = await supportRepository.updateTicketById({
-      ticketId: normalizedTicketId,
-      data: {
-        status: "APPROVED",
-        adminResponse:
-          sanitizeMultiline(adminResponse || "Reset de senha liberado pelo administrador.", 1200) || null,
-        metadata: nextMetadata,
-        resolvedById: normalizedActorId,
-        resolvedAt: now,
-      },
+    const updatedTicket = await approvePasswordResetTicketRecord({
+      ticket,
+      actorId: normalizedActorId,
+      autoApproved: false,
+      adminResponse,
     });
+    const passwordResetMeta = getPasswordResetMetadata(updatedTicket);
 
     return {
       ticket: sanitizeTicket(updatedTicket),
       resetToken: null,
-      resetTokenExpiresAt: expiresAt.toISOString(),
+      resetTokenExpiresAt:
+        passwordResetMeta && passwordResetMeta.expiresAt
+          ? String(passwordResetMeta.expiresAt)
+          : null,
       resetMode: "NO_CODE",
     };
   }
@@ -663,11 +944,15 @@ function createSupportService({
     }
 
     const now = new Date();
+    const shouldRestartAutoApprovalTimer =
+      normalizedStatus === "OPEN" && normalizeType(ticket.type) === "PASSWORD_RESET";
     const updated = await supportRepository.updateTicketById({
       ticketId: normalizedTicketId,
       data: {
         status: normalizedStatus,
         adminResponse: sanitizeMultiline(adminResponse, 1200) || null,
+        autoApproveAt: shouldRestartAutoApprovalTimer ? getPasswordResetAutoApproveAt(now) : undefined,
+        autoApproved: normalizedStatus === "OPEN" ? false : undefined,
         resolvedById: normalizedStatus === "OPEN" ? null : normalizedActorId,
         resolvedAt: normalizedStatus === "OPEN" ? null : now,
       },
@@ -738,9 +1023,12 @@ function createSupportService({
     openPasswordResetSupportRequest,
     getPublicPasswordResetRequestStatus,
     resetPasswordFromApprovedRequest,
+    requestAuthenticatedPasswordResetTicket,
+    checkAuthenticatedPasswordResetStatus,
     createAuthenticatedSupportTicket,
     listMyTickets,
     listAdminTickets,
+    listAdminPasswordResetTickets,
     approvePasswordResetTicket,
     updateTicketStatus,
     archiveTicket,

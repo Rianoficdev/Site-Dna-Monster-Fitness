@@ -2832,6 +2832,42 @@ html.student-area-open {
   min-height: 18px;
 }
 
+.student-profile-password-reset-panel {
+  border: 1px solid rgba(74, 188, 128, 0.24);
+  border-radius: 14px;
+  background: rgba(8, 31, 22, 0.74);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.student-profile-password-reset-status,
+.student-profile-password-reset-timer {
+  margin: 0;
+  color: rgba(219, 241, 230, 0.92);
+  line-height: 1.45;
+}
+
+.student-profile-password-reset-status {
+  font-size: 0.9rem;
+}
+
+.student-profile-password-reset-timer {
+  color: #7ef0ab;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.student-profile-password-reset-form {
+  display: grid;
+  gap: 10px;
+}
+
+.student-profile-password-reset-feedback {
+  min-height: 18px;
+  margin: 0;
+}
+
 .student-profile-support-list-wrap {
   border-top: 1px solid rgba(104, 192, 146, 0.26);
   padding-top: 10px;
@@ -4168,6 +4204,11 @@ body.theme-dark .student-profile-action-field textarea::placeholder {
 
 body.theme-dark .student-profile-support-list-wrap {
   border-top-color: rgba(98, 180, 137, 0.34);
+}
+
+body.theme-dark .student-profile-password-reset-panel {
+  background: rgba(12, 29, 22, 0.86);
+  border-color: rgba(105, 194, 150, 0.2);
 }
 
 body.theme-dark .student-profile-support-item {

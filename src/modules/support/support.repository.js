@@ -99,11 +99,23 @@ CREATE TABLE IF NOT EXISTS "support_ticket" (
   "status" "SupportTicketStatus" NOT NULL DEFAULT 'OPEN',
   "admin_response" TEXT NULL,
   "metadata" JSONB NULL,
+  "auto_approve_at" TIMESTAMP(3) NULL,
+  "auto_approved" BOOLEAN NOT NULL DEFAULT FALSE,
   "resolved_by_id" INTEGER NULL REFERENCES "User"("id") ON DELETE SET NULL,
   "resolved_at" TIMESTAMP(3) NULL,
   "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+      `);
+
+      await prisma.$executeRawUnsafe(`
+ALTER TABLE "support_ticket"
+  ADD COLUMN IF NOT EXISTS "auto_approve_at" TIMESTAMP(3) NULL;
+      `);
+
+      await prisma.$executeRawUnsafe(`
+ALTER TABLE "support_ticket"
+  ADD COLUMN IF NOT EXISTS "auto_approved" BOOLEAN NOT NULL DEFAULT FALSE;
       `);
 
       await prisma.$executeRawUnsafe(`
@@ -124,6 +136,11 @@ CREATE INDEX IF NOT EXISTS "support_ticket_status_type_idx"
       await prisma.$executeRawUnsafe(`
 CREATE INDEX IF NOT EXISTS "support_ticket_created_at_idx"
   ON "support_ticket" ("created_at");
+      `);
+
+      await prisma.$executeRawUnsafe(`
+CREATE INDEX IF NOT EXISTS "support_ticket_auto_approve_at_idx"
+  ON "support_ticket" ("auto_approve_at");
       `);
     })()
       .catch((error) => {
@@ -159,6 +176,8 @@ CREATE INDEX IF NOT EXISTS "support_ticket_created_at_idx"
     status: true,
     adminResponse: true,
     metadata: true,
+    autoApproveAt: true,
+    autoApproved: true,
     resolvedById: true,
     resolvedAt: true,
     createdAt: true,

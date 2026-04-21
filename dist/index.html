@@ -2662,6 +2662,47 @@ Core"
                     </button>
                   </form>
 
+                  <section class="student-profile-password-reset-panel" data-profile-password-reset-panel hidden>
+                    <p class="student-profile-password-reset-status" data-profile-password-reset-status>
+                      Ao enviar a solicitacao, o sistema aguarda 30 segundos antes de aprovar automaticamente.
+                    </p>
+                    <p class="student-profile-password-reset-timer" data-profile-password-reset-timer></p>
+
+                    <form class="student-profile-password-reset-form" data-profile-password-reset-form novalidate hidden>
+                      <label class="student-profile-action-field">
+                        <span>Nova senha</span>
+                        <input
+                          type="password"
+                          autocomplete="new-password"
+                          placeholder="Digite sua nova senha"
+                          data-profile-password-reset-new-pass
+                          required
+                        />
+                      </label>
+
+                      <label class="student-profile-action-field">
+                        <span>Confirmar nova senha</span>
+                        <input
+                          type="password"
+                          autocomplete="new-password"
+                          placeholder="Confirme a nova senha"
+                          data-profile-password-reset-confirm-pass
+                          required
+                        />
+                      </label>
+
+                      <p
+                        class="student-form-error student-profile-password-reset-feedback"
+                        data-profile-password-reset-feedback
+                        aria-live="polite"
+                      ></p>
+
+                      <button class="student-login-btn student-profile-action-save" type="submit" data-profile-password-reset-submit>
+                        <span>Atualizar senha</span>
+                      </button>
+                    </form>
+                  </section>
+
                   <div class="student-profile-support-list-wrap">
                     <div class="student-profile-support-list-head">
                       <h6>Minhas solicitações</h6>
@@ -2796,7 +2837,7 @@ Core"
   <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
 
   <!-- Script principal de interações -->
-  <script defer src="script.js?v=20260401-005"></script>
+  <script defer src="script.js?v=20260421-001"></script>
 
 <!-- compatibility-selector-bridge:start -->
 <section data-compat-selector-bridge hidden aria-hidden="true" style="display:none !important;">
