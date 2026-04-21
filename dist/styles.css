@@ -3183,6 +3183,7 @@ html.student-area-open {
 .student-login-form,
 .student-register-form,
 .student-forgot-request-form,
+.student-forgot-loading-panel,
 .student-forgot-reset-form {
   display: grid;
   gap: 4px;
@@ -3292,7 +3293,125 @@ html.student-area-open {
   text-align: left;
 }
 
+.student-forgot-loading-panel {
+  gap: 12px;
+  justify-items: center;
+  padding: 8px 0 2px;
+}
+
+.student-forgot-loading-panel .student-form-helper {
+  margin: 0;
+  max-width: 28ch;
+  text-align: center;
+}
+
+.student-forgot-loading-visual {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  padding: 6px 0 2px;
+}
+
+.student-forgot-loading-ring-shell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(172px, 52vw);
+  aspect-ratio: 1;
+}
+
+.student-forgot-loading-ring-shell::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(134, 243, 182, 0.34), transparent 55%),
+    radial-gradient(circle at 70% 70%, rgba(28, 191, 92, 0.26), transparent 60%);
+  filter: blur(10px);
+  opacity: 0.9;
+  animation: student-forgot-loading-pulse 2.4s ease-in-out infinite;
+}
+
+.student-forgot-loading-ring {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.student-forgot-loading-ring-track,
+.student-forgot-loading-ring-progress {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.student-forgot-loading-ring-track {
+  stroke: rgba(145, 176, 158, 0.18);
+}
+
+.student-forgot-loading-ring-progress {
+  stroke: #2fe07b;
+  filter: drop-shadow(0 0 12px rgba(47, 224, 123, 0.3));
+  transition: stroke-dashoffset 0.25s linear;
+}
+
+.student-forgot-loading-countdown {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-width: 88px;
+  min-height: 88px;
+  border-radius: 50%;
+  background:
+    linear-gradient(180deg, rgba(10, 20, 16, 0.96), rgba(16, 28, 22, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 20px 40px rgba(0, 0, 0, 0.26);
+  color: #f2fff7;
+  font-size: clamp(1.55rem, 3vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.student-forgot-loading-status,
+.student-forgot-loading-meta {
+  margin: 0;
+  text-align: center;
+}
+
+.student-forgot-loading-status {
+  max-width: 30ch;
+  color: #eefaf2;
+  font-size: 0.97rem;
+  line-height: 1.45;
+}
+
+.student-forgot-loading-meta {
+  max-width: 34ch;
+  color: rgba(190, 216, 201, 0.74);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+@keyframes student-forgot-loading-pulse {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+}
+
 .student-forgot-request-form[hidden],
+.student-forgot-loading-panel[hidden],
 .student-forgot-reset-form[hidden] {
   display: none !important;
 }

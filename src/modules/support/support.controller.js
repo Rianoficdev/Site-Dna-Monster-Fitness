@@ -22,7 +22,7 @@ function createSupportController({ supportService }) {
 
   const createPublicTicket = asyncHandler(async (req, res) => {
     const result = await supportService.openPasswordResetSupportRequest(req.body || {});
-    return res.status(200).json(result);
+    return res.status(result && result.alreadyPending ? 429 : 200).json(result);
   });
 
   const getPublicPasswordResetStatus = asyncHandler(async (req, res) => {

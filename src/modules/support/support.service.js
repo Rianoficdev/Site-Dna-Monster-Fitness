@@ -222,14 +222,20 @@ function createSupportService({
   }
 
   function buildPasswordResetRequestMessage() {
-    return (
-      "Solicitacao enviada para o administrador geral. " +
-      "Apos a liberacao, voce podera redefinir sua senha sem codigo."
-    );
+    return `Solicitacao registrada. Aguarde ${AUTO_APPROVE_SECONDS} segundos para a liberacao automatica do reset de senha.`;
   }
 
   function buildAuthenticatedPasswordResetRequestMessage() {
     return `Solicitacao registrada. Se nao houver acao manual, a aprovacao acontece automaticamente em ${AUTO_APPROVE_SECONDS} segundos.`;
+  }
+
+  function buildDuplicatePasswordResetRequestMessage(statusPayload) {
+    const payload = statusPayload && typeof statusPayload === "object" ? statusPayload : {};
+    if (payload.status === "APPROVED" && payload.canResetNow) {
+      return "Seu reset de senha ja esta liberado. Defina a nova senha para concluir.";
+    }
+
+    return `Ja existe uma solicitacao de reset em andamento. Aguarde a liberacao automatica em ate ${AUTO_APPROVE_SECONDS} segundos.`;
   }
 
   function normalizeMetadataObject(value) {
@@ -426,6 +432,59 @@ function createSupportService({
     );
   }
 
+  async function createPasswordResetTicketRequest({
+    requesterId = null,
+    requesterEmail,
+    requesterName = "",
+    requesterRole = "",
+    subject,
+    description,
+    successMessage = buildPasswordResetRequestMessage(),
+  }) {
+    const normalizedEmail = normalizeEmail(requesterEmail);
+    const resetTickets = await listRequesterPasswordResetTickets({
+      requesterId,
+      requesterEmail: normalizedEmail,
+      limit: 50,
+    });
+    const existingTicket = resetTickets.find((ticket) => isActivePasswordResetTicket(ticket)) || null;
+
+    if (existingTicket) {
+      const existingStatus = buildAuthenticatedPasswordResetStatus(existingTicket);
+      return {
+        success: false,
+        alreadyPending: true,
+        message: buildDuplicatePasswordResetRequestMessage(existingStatus),
+        ...existingStatus,
+        ticket: sanitizeTicket(existingTicket),
+      };
+    }
+
+    const now = new Date();
+    const autoApproveAt = getPasswordResetAutoApproveAt(now);
+    const createdTicket = await supportRepository.createTicket({
+      ...buildCreateTicketPayload({
+        requesterId,
+        requesterEmail: normalizedEmail,
+        requesterName,
+        requesterRole,
+        type: "PASSWORD_RESET",
+        subject,
+        description,
+      }),
+      autoApproveAt,
+      autoApproved: false,
+    });
+
+    return {
+      success: true,
+      alreadyPending: false,
+      message: successMessage,
+      ...buildAuthenticatedPasswordResetStatus(createdTicket),
+      ticket: sanitizeTicket(createdTicket),
+    };
+  }
+
   function getTicketArchiveMeta(ticket) {
     const metadata = normalizeMetadataObject(ticket && ticket.metadata);
     const archive =
@@ -519,6 +578,18 @@ function createSupportService({
       const requestedType = normalizeType(type || "PASSWORD_RESET");
       const finalType = requestedType === "GENERAL_SUPPORT" ? "GENERAL_SUPPORT" : "PASSWORD_RESET";
 
+      if (finalType === "PASSWORD_RESET") {
+        return createPasswordResetTicketRequest({
+          requesterId: null,
+          requesterEmail: normalizedEmail,
+          requesterName,
+          requesterRole: "ALUNO",
+          subject,
+          description,
+          successMessage: buildPasswordResetRequestMessage(),
+        });
+      }
+
       const createdTicket = await supportRepository.createTicket(
         buildCreateTicketPayload({
           requesterId: null,
@@ -532,10 +603,7 @@ function createSupportService({
       );
 
       return {
-        message:
-          finalType === "PASSWORD_RESET"
-            ? buildPasswordResetRequestMessage()
-            : "Solicitacao de suporte enviada com sucesso.",
+        message: "Solicitacao de suporte enviada com sucesso.",
         resetMethod: "support_ticket",
         ticketId: Number(createdTicket.id) || 0,
         ticket: sanitizeTicket(createdTicket),
@@ -572,6 +640,8 @@ function createSupportService({
         ticketId: 0,
         status: "NONE",
         canResetNow: false,
+        remainingSeconds: 0,
+        autoApproveAt: null,
         expiresAt: null,
         autoApproved: false,
         updatedAt: null,
@@ -585,6 +655,8 @@ function createSupportService({
       ticketId: statusPayload.ticketId,
       status: statusPayload.status,
       canResetNow: statusPayload.canResetNow,
+      remainingSeconds: statusPayload.remainingSeconds,
+      autoApproveAt: statusPayload.autoApproveAt,
       expiresAt: statusPayload.expiresAt,
       autoApproved: statusPayload.autoApproved,
       updatedAt: statusPayload.updatedAt,
@@ -702,50 +774,15 @@ function createSupportService({
       throw new AppError("Usuario nao encontrado.", 404, "USER_NOT_FOUND");
     }
 
-    const resetTickets = await listRequesterPasswordResetTickets({
+    return createPasswordResetTicketRequest({
       requesterId: user.id,
       requesterEmail: user.email,
-      limit: 50,
+      requesterName: user.name,
+      requesterRole: user.role,
+      subject,
+      description,
+      successMessage: buildAuthenticatedPasswordResetRequestMessage(),
     });
-    const existingTicket = resetTickets.find((ticket) => isActivePasswordResetTicket(ticket)) || null;
-
-    if (existingTicket) {
-      const existingStatus = buildAuthenticatedPasswordResetStatus(existingTicket);
-      return {
-        success: false,
-        alreadyPending: true,
-        message:
-          existingStatus.status === "APPROVED" && existingStatus.canResetNow
-            ? "O reset de senha ja esta liberado para sua conta."
-            : "Ja existe uma solicitacao de reset em andamento para sua conta.",
-        ...existingStatus,
-        ticket: sanitizeTicket(existingTicket),
-      };
-    }
-
-    const now = new Date();
-    const autoApproveAt = getPasswordResetAutoApproveAt(now);
-    const createdTicket = await supportRepository.createTicket({
-      ...buildCreateTicketPayload({
-        requesterId: user.id,
-        requesterEmail: user.email,
-        requesterName: user.name,
-        requesterRole: user.role,
-        type: "PASSWORD_RESET",
-        subject,
-        description,
-      }),
-      autoApproveAt,
-      autoApproved: false,
-    });
-
-    return {
-      success: true,
-      alreadyPending: false,
-      message: buildAuthenticatedPasswordResetRequestMessage(),
-      ...buildAuthenticatedPasswordResetStatus(createdTicket),
-      ticket: sanitizeTicket(createdTicket),
-    };
   }
 
   async function checkAuthenticatedPasswordResetStatus({ authUser }) {
