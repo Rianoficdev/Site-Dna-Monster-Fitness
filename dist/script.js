@@ -1235,6 +1235,7 @@ let restNextSeriesIndex = 0;
 let restWorkoutMediaSignature = '';
 let currentStudentTab = 'dashboard';
 let currentStudentPanel = 'dashboard';
+let adminGeralAutoRefreshTimer = null;
 let activeCheckPulseIndex = -1;
 let progressHistoryMonthCursor = new Date();
 let progressHistorySelectedDateKey = '';
@@ -1243,6 +1244,7 @@ let progressWeightRulerBuilt = false;
 let progressWeightRulerTickSpacing = 8;
 let progressBmiDraftWeightKg = 80;
 let progressBmiDraftHeightCm = 170;
+const ADMIN_GERAL_AUTO_REFRESH_MS = 60 * 1000;
 let progressBmiWeightUnit = 'kg';
 let progressBmiHeightUnit = 'cm';
 let progressBmiWeightRulerBuilt = false;
@@ -8792,6 +8794,7 @@ const openAdminExerciseEditModal = (exercise, triggerButton = null, { readOnly =
 };
 
 const resetAdminOverviewState = () => {
+  stopAdminGeralAutoRefresh();
   closeAdminExerciseEditModal({ keepFocus: false, force: true });
   closeAdminUserDeleteModal({ keepFocus: false, force: true });
   adminSupportView = 'active';
@@ -10432,6 +10435,52 @@ const fetchAdminOverview = async (forceReload = false) => {
   }
 
   return adminOverviewState;
+};
+
+const stopAdminGeralAutoRefresh = () => {
+  if (adminGeralAutoRefreshTimer) {
+    clearInterval(adminGeralAutoRefreshTimer);
+    adminGeralAutoRefreshTimer = null;
+  }
+};
+
+const startAdminGeralAutoRefresh = () => {
+  stopAdminGeralAutoRefresh();
+  adminGeralAutoRefreshTimer = setInterval(async () => {
+    if (!isGeneralAdminUser()) {
+      stopAdminGeralAutoRefresh();
+      return;
+    }
+    if (currentStudentTab !== 'admin-geral') return;
+    if (!studentArea || studentArea.hidden) return;
+    if (!studentApp || !studentApp.classList.contains('is-visible')) return;
+    if (document.visibilityState !== 'visible') return;
+    if (adminOverviewState.loading) return;
+
+    try {
+      const supportResponse = await requestStudentApi('/admin/support-tickets?archived=all&limit=500');
+      const tickets = Array.isArray(supportResponse && supportResponse.tickets)
+        ? supportResponse.tickets
+        : [];
+
+      adminOverviewState.supportTickets = tickets;
+      adminOverviewState.stats = {
+        ...(adminOverviewState.stats && typeof adminOverviewState.stats === 'object'
+          ? adminOverviewState.stats
+          : {}),
+        supportTicketsPendentes: tickets.filter(
+          (ticket) => normalizeSupportTicketStatus(ticket && ticket.status) === 'OPEN'
+        ).length,
+        supportResetPendentes: tickets.filter(
+          (ticket) =>
+            normalizeSupportTicketStatus(ticket && ticket.status) === 'OPEN' &&
+            normalizeSupportTicketType(ticket && ticket.type) === 'PASSWORD_RESET'
+        ).length
+      };
+
+      renderAdminOverviewPanel();
+    } catch (_) {}
+  }, ADMIN_GERAL_AUTO_REFRESH_MS);
 };
 
 const updateAdminUserRole = async (userId, role) => {
@@ -17775,6 +17824,7 @@ const setStudentAppTab = (tabId, immediate = false) => {
   if (studentAppShell) studentAppShell.classList.remove('is-rest-mode');
   if (studentAppShell) studentAppShell.classList.toggle('is-workouts-tab-mode', resolvedTab === 'treinos');
   if (studentAppShell) studentAppShell.classList.remove('is-library-guide-mode');
+  if (!canGeneralAdmin || resolvedTab !== 'admin-geral') stopAdminGeralAutoRefresh();
   currentStudentTab = resolvedTab;
   currentStudentPanel = resolvedTab;
   studentAppTabs.forEach((tab) => tab.classList.toggle('is-active', tab.dataset.studentAppTab === resolvedTab));
@@ -17798,6 +17848,9 @@ const setStudentAppTab = (tabId, immediate = false) => {
     if (resolvedTab === 'admin-geral') {
       void fetchAdminOverview(false);
       void syncSiteTeamMembersFromApi({ silent: false, syncAdminForm: true });
+      if (canGeneralAdmin) startAdminGeralAutoRefresh();
+    } else {
+      stopAdminGeralAutoRefresh();
     }
     if (resolvedTab === 'admin-treinos') void loadTrainerManagementData(false);
     if (resolvedTab === 'progresso' && canTrainerManager) void loadTrainerProgressData(false);
@@ -19559,6 +19612,11 @@ const handleTrainerWorkoutsTableActions = async (event) => {
           trainerExerciseTargetWorkoutId = 0;
         }
         removeTrainerWorkoutLocally(workoutId);
+        adminOverviewState.workouts = (Array.isArray(adminOverviewState.workouts)
+          ? adminOverviewState.workouts
+          : []
+        ).filter((workoutItem) => Number(workoutItem && workoutItem.id) !== workoutId);
+        syncAdminOverviewWorkoutStatsLocally();
         renderTrainerManagementPanel();
         renderTrainerProgressPanel();
 
@@ -22661,6 +22719,7 @@ const initStudentArea = () => {
     studentLogoutButton.addEventListener('click', () => {
       stopSessionHeartbeat();
       stopStudentWorkoutsRefresh();
+      stopAdminGeralAutoRefresh();
       resetAuthIdentityToDefault({
         clearStoredToken: true,
         clearStoredProfile: !loadRememberPreference(),
