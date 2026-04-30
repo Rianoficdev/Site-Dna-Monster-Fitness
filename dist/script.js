@@ -503,6 +503,14 @@ const initThemeToggle = () => {
 
 const normalizeWhatsappPhone = (value) => String(value || '').replace(/\D+/g, '').trim();
 
+const buildWhatsappPhoneLinkDigits = (value) => {
+  const digits = normalizeWhatsappPhone(value);
+  if (!digits) return '';
+  if (digits.startsWith('55') && digits.length >= 12) return digits;
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+  return digits.length >= 8 ? digits : '';
+};
+
 const extractWhatsappPhoneFromHref = (href) => {
   const rawHref = String(href || '').trim();
   if (!rawHref) return '';
@@ -1299,6 +1307,7 @@ let adminWorkoutsPanelCollapsed = false;
 let adminExercisesPanelCollapsed = false;
 let adminSupportPanelCollapsed = false;
 let adminSupportView = 'active';
+const adminSupportExpandedCommentIds = new Set();
 let trainerManagedWorkoutsView = 'assigned';
 let adminTeamPanelCollapsed = false;
 let siteTeamMembersCache = [];
@@ -8798,6 +8807,7 @@ const resetAdminOverviewState = () => {
   closeAdminExerciseEditModal({ keepFocus: false, force: true });
   closeAdminUserDeleteModal({ keepFocus: false, force: true });
   adminSupportView = 'active';
+  adminSupportExpandedCommentIds.clear();
   syncAdminSupportViewUi();
   adminOverviewWorkoutsSearchTerm = '';
   adminOverviewState.loading = false;
@@ -9479,7 +9489,11 @@ const syncAdminSupportViewUi = () => {
 };
 
 const setAdminSupportView = (view, { rerender = true } = {}) => {
-  adminSupportView = normalizeAdminSupportView(view);
+  const nextView = normalizeAdminSupportView(view);
+  if (nextView !== adminSupportView) {
+    adminSupportExpandedCommentIds.clear();
+  }
+  adminSupportView = nextView;
   syncAdminSupportViewUi();
   if (rerender) renderAdminOverviewPanel();
 };
@@ -9798,69 +9812,96 @@ const renderAdminOverviewPanel = () => {
       adminUsersTableBody.innerHTML = '<tr><td colspan="7">Nenhum usuário encontrado.</td></tr>';
     } else {
       adminUsersTableBody.innerHTML = adminOverviewState.users
-        .map((user) => `
-          <tr>
-            <td data-label="Nome">${escapeAdminCell(user.name || '-')}</td>
-            <td data-label="E-mail">${escapeAdminCell(user.email || '-')}</td>
-            <td data-label="Telefone">${escapeAdminCell(user.phone || '-')}</td>
-            <td data-label="Função">
-              <select
-                class="admin-overview-role-select"
-                data-admin-user-role-select
-                data-user-id="${escapeAdminCell(user.id)}"
-                data-current-role="${escapeAdminCell(normalizeRole(user.role))}"
-                ${Number(user.id) === Number(studentData.userId) ? 'disabled' : ''}
-              >
-                ${ADMIN_ROLE_OPTIONS.map((role) => `
-                  <option value="${escapeAdminCell(role)}" ${normalizeRole(user.role) === role ? 'selected' : ''}>
-                    ${escapeAdminCell(getRoleLabel(role))}
-                  </option>
-                `).join('')}
-              </select>
-            </td>
-            <td data-label="Status">
-              <span class="admin-overview-status-badge ${user.isEnabled ? 'is-enabled' : 'is-disabled'}">
-                ${user.isEnabled ? 'Habilitado' : 'Desabilitado'}
-              </span>
-            </td>
-            <td data-label="Ações">
-              ${normalizeRole(user.role) === 'ALUNO'
-                ? `
-                    <div class="admin-overview-actions-group">
-                      <button
-                        class="admin-overview-action-btn"
-                        type="button"
-                        data-admin-user-status-toggle
-                        data-user-id="${escapeAdminCell(user.id)}"
-                        data-next-enabled="${user.isEnabled ? 'false' : 'true'}"
-                        ${Number(user.id) === Number(studentData.userId) ? 'disabled' : ''}
-                      >
-                        ${user.isEnabled ? 'Desabilitar' : 'Habilitar'}
-                      </button>
-                      ${!user.isEnabled
-                        ? `
-                            <button
-                              class="admin-overview-action-btn admin-overview-action-icon-btn is-danger"
-                              type="button"
-                              data-admin-user-delete
-                              data-user-id="${escapeAdminCell(user.id)}"
-                              data-user-name="${escapeAdminCell(user.name || 'Usuário')}"
-                              title="Excluir usuário"
-                              aria-label="Excluir usuário ${escapeAdminCell(user.name || '')}"
-                            >
-                              <svg viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-1 7h2v8H8v-8zm6 0h2v8h-2v-8zm-3 0h2v8h-2v-8zM6 20h12l1-12H5l1 12z"></path>
-                              </svg>
-                            </button>
-                          `
-                        : ''}
-                    </div>
-                  `
-                : '<span class="admin-overview-action-muted">Somente aluno</span>'}
-            </td>
-            <td data-label="Criado em">${escapeAdminCell(formatAdminDate(user.createdAt))}</td>
-          </tr>
-        `)
+        .map((user) => {
+          const phone = String((user && user.phone) || '').trim();
+          const whatsappDigits = buildWhatsappPhoneLinkDigits(phone);
+          const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}` : '';
+          const userName = String((user && user.name) || '').trim();
+
+          return `
+            <tr>
+              <td data-label="Nome">${escapeAdminCell(user.name || '-')}</td>
+              <td data-label="E-mail">${escapeAdminCell(user.email || '-')}</td>
+              <td data-label="Telefone">
+                <div class="admin-user-phone-cell">
+                  <span>${escapeAdminCell(phone || '-')}</span>
+                  ${whatsappHref
+                    ? `
+                        <a
+                          class="admin-user-whatsapp-link"
+                          href="${escapeAdminCell(whatsappHref)}"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Abrir WhatsApp"
+                          aria-label="Abrir WhatsApp de ${escapeAdminCell(userName || 'usuário')}"
+                        >
+                          <svg viewBox="0 0 32 32" aria-hidden="true">
+                            <path d="M16 3.2A12.7 12.7 0 0 0 5.1 22.5L3.7 28.8l6.4-1.5A12.8 12.8 0 1 0 16 3.2Zm0 2.4a10.4 10.4 0 0 1 8.8 15.9 10.3 10.3 0 0 1-13.7 3.6l-.5-.3-3.8.9.8-3.7-.3-.5A10.4 10.4 0 0 1 16 5.6Zm-4.2 5.1c-.3 0-.8.1-1.2.6-.4.5-1.5 1.5-1.5 3.6s1.6 4.2 1.8 4.5c.2.3 3.1 4.9 7.7 6.6 3.8 1.5 4.6.9 5.4.8.8-.1 2.6-1.1 3-2.1.4-1 .4-1.9.3-2.1-.1-.2-.4-.3-.9-.6l-2.8-1.4c-.4-.1-.7-.2-1 .2-.3.5-1.1 1.4-1.4 1.7-.3.3-.5.3-1 .1-.5-.2-1.9-.7-3.6-2.2-1.3-1.2-2.2-2.6-2.5-3.1-.3-.5 0-.7.2-1l.7-.8c.2-.3.3-.5.5-.8.2-.3.1-.6 0-.8l-1.3-3c-.3-.8-.7-.8-1-.8h-1Z"></path>
+                          </svg>
+                        </a>
+                      `
+                    : ''}
+                </div>
+              </td>
+              <td data-label="Função">
+                <select
+                  class="admin-overview-role-select"
+                  data-admin-user-role-select
+                  data-user-id="${escapeAdminCell(user.id)}"
+                  data-current-role="${escapeAdminCell(normalizeRole(user.role))}"
+                  ${Number(user.id) === Number(studentData.userId) ? 'disabled' : ''}
+                >
+                  ${ADMIN_ROLE_OPTIONS.map((role) => `
+                    <option value="${escapeAdminCell(role)}" ${normalizeRole(user.role) === role ? 'selected' : ''}>
+                      ${escapeAdminCell(getRoleLabel(role))}
+                    </option>
+                  `).join('')}
+                </select>
+              </td>
+              <td data-label="Status">
+                <span class="admin-overview-status-badge ${user.isEnabled ? 'is-enabled' : 'is-disabled'}">
+                  ${user.isEnabled ? 'Habilitado' : 'Desabilitado'}
+                </span>
+              </td>
+              <td data-label="Ações">
+                ${normalizeRole(user.role) === 'ALUNO'
+                  ? `
+                      <div class="admin-overview-actions-group">
+                        <button
+                          class="admin-overview-action-btn"
+                          type="button"
+                          data-admin-user-status-toggle
+                          data-user-id="${escapeAdminCell(user.id)}"
+                          data-next-enabled="${user.isEnabled ? 'false' : 'true'}"
+                          ${Number(user.id) === Number(studentData.userId) ? 'disabled' : ''}
+                        >
+                          ${user.isEnabled ? 'Desabilitar' : 'Habilitar'}
+                        </button>
+                        ${!user.isEnabled
+                          ? `
+                              <button
+                                class="admin-overview-action-btn admin-overview-action-icon-btn is-danger"
+                                type="button"
+                                data-admin-user-delete
+                                data-user-id="${escapeAdminCell(user.id)}"
+                                data-user-name="${escapeAdminCell(user.name || 'Usuário')}"
+                                title="Excluir usuário"
+                                aria-label="Excluir usuário ${escapeAdminCell(user.name || '')}"
+                              >
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                  <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-1 7h2v8H8v-8zm6 0h2v8h-2v-8zm-3 0h2v8h-2v-8zM6 20h12l1-12H5l1 12z"></path>
+                                </svg>
+                              </button>
+                            `
+                          : ''}
+                      </div>
+                    `
+                  : '<span class="admin-overview-action-muted">Somente aluno</span>'}
+              </td>
+              <td data-label="Criado em">${escapeAdminCell(formatAdminDate(user.createdAt))}</td>
+            </tr>
+          `;
+        })
         .join('');
     }
   }
@@ -10219,9 +10260,13 @@ const renderAdminOverviewPanel = () => {
           const requesterName = getSupportTicketRequesterName(ticket);
           const requesterEmail = String((ticket && ticket.requesterEmail) || '-').trim() || '-';
           const subject = String((ticket && ticket.subject) || '-').trim() || '-';
+          const comment = String((ticket && ticket.description) || '').trim();
+          const adminResponse = String((ticket && ticket.adminResponse) || '').trim();
           const status = normalizeSupportTicketStatus(ticket && ticket.status);
           const type = normalizeSupportTicketType(ticket && ticket.type);
           const isArchivedTicket = isSupportTicketArchived(ticket);
+          const isCommentExpanded = adminSupportExpandedCommentIds.has(ticketId);
+          const commentRowId = `admin-support-comment-${ticketId}`;
           const canApproveReset =
             !isArchivedTicket &&
             type === 'PASSWORD_RESET' &&
@@ -10250,6 +10295,20 @@ const renderAdminOverviewPanel = () => {
               <td data-label="Criado em">${escapeAdminCell(formatAdminDate(ticket && ticket.createdAt))}</td>
               <td data-label="Ações">
                 <div class="admin-overview-actions-group">
+                  ${ticketId
+                    ? `
+                        <button
+                          class="admin-overview-action-btn"
+                          type="button"
+                          data-admin-support-comment-toggle
+                          data-ticket-id="${escapeAdminCell(ticketId)}"
+                          aria-expanded="${isCommentExpanded ? 'true' : 'false'}"
+                          aria-controls="${escapeAdminCell(commentRowId)}"
+                        >
+                          ${isCommentExpanded ? 'Ocultar' : 'Comentário'}
+                        </button>
+                      `
+                    : ''}
                   ${canApproveReset
                     ? `
                         <button
@@ -10301,6 +10360,24 @@ const renderAdminOverviewPanel = () => {
                 </div>
               </td>
             </tr>
+            ${isCommentExpanded
+              ? `
+                <tr class="admin-support-comment-row" id="${escapeAdminCell(commentRowId)}">
+                  <td colspan="7">
+                    <div class="admin-support-comment-card">
+                      <strong>Comentário do solicitante</strong>
+                      <p>${comment ? escapeAdminCell(comment) : 'Nenhum comentário informado.'}</p>
+                      ${adminResponse
+                        ? `
+                          <strong>Resposta do administrador</strong>
+                          <p>${escapeAdminCell(adminResponse)}</p>
+                        `
+                        : ''}
+                    </div>
+                  </td>
+                </tr>
+              `
+              : ''}
           `;
         })
         .join('');
@@ -22354,6 +22431,21 @@ const initStudentArea = () => {
     adminSupportTableBody.addEventListener('click', (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
+
+      const commentButton = target.closest('[data-admin-support-comment-toggle]');
+      if (commentButton && commentButton instanceof HTMLButtonElement) {
+        const ticketId = Number(commentButton.dataset.ticketId || 0);
+        if (!ticketId) return;
+
+        if (adminSupportExpandedCommentIds.has(ticketId)) {
+          adminSupportExpandedCommentIds.delete(ticketId);
+        } else {
+          adminSupportExpandedCommentIds.add(ticketId);
+        }
+
+        renderAdminOverviewPanel();
+        return;
+      }
 
       const approveButton = target.closest('[data-admin-support-approve-reset]');
       if (approveButton && approveButton instanceof HTMLButtonElement) {

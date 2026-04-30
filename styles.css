@@ -13454,6 +13454,44 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   font-size: 0.74rem;
 }
 
+.admin-user-phone-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin-user-whatsapp-link {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #25d366;
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgba(37, 211, 102, 0.24);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.admin-user-whatsapp-link:hover {
+  background: #1fb95a;
+  box-shadow: 0 10px 20px rgba(37, 211, 102, 0.3);
+  transform: translateY(-1px);
+}
+
+.admin-user-whatsapp-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.24), 0 8px 16px rgba(37, 211, 102, 0.24);
+}
+
+.admin-user-whatsapp-link svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
 .admin-overview-identification-chip {
   display: inline-flex;
   align-items: center;
@@ -13605,6 +13643,41 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
 .admin-overview-action-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.admin-support-comment-row td {
+  padding-top: 0;
+  background: rgba(37, 99, 235, 0.035);
+}
+
+.admin-support-comment-card {
+  display: grid;
+  gap: 7px;
+  max-width: 920px;
+  border: 1px solid rgba(15, 35, 26, 0.12);
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.admin-support-comment-card strong {
+  color: #102238;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-support-comment-card p {
+  margin: 0 0 6px;
+  color: #27384f;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.admin-support-comment-card p:last-child {
+  margin-bottom: 0;
 }
 
 .admin-site-team-form {
@@ -14969,6 +15042,17 @@ body.theme-dark .admin-overview-table td small {
   color: rgba(188, 202, 235, 0.82);
 }
 
+body.theme-dark .admin-user-whatsapp-link {
+  background: #22c55e;
+  color: #f7fff9;
+  box-shadow: 0 8px 18px rgba(34, 197, 94, 0.22);
+}
+
+body.theme-dark .admin-user-whatsapp-link:hover {
+  background: #16a34a;
+  box-shadow: 0 10px 22px rgba(34, 197, 94, 0.28);
+}
+
 body.theme-dark .admin-overview-status-track {
   background: rgba(95, 111, 151, 0.44);
 }
@@ -15022,6 +15106,23 @@ body.theme-dark .admin-overview-action-btn {
   border-color: rgba(106, 142, 244, 0.35);
   background: rgba(17, 27, 46, 0.84);
   color: #eaf0ff;
+}
+
+body.theme-dark .admin-support-comment-row td {
+  background: rgba(96, 129, 210, 0.08);
+}
+
+body.theme-dark .admin-support-comment-card {
+  border-color: rgba(106, 142, 244, 0.26);
+  background: rgba(17, 27, 46, 0.72);
+}
+
+body.theme-dark .admin-support-comment-card strong {
+  color: #edf3ff;
+}
+
+body.theme-dark .admin-support-comment-card p {
+  color: rgba(218, 228, 252, 0.9);
 }
 
 body.theme-dark .admin-site-team-item {
@@ -16049,6 +16150,12 @@ body.theme-dark .trainer-workout-modal-library-item--section {
     text-align: right;
   }
 
+  .student-app-panel .admin-user-phone-cell {
+    margin-left: auto;
+    white-space: normal;
+    justify-content: flex-end;
+  }
+
   body.theme-dark .student-app-panel .admin-overview-table tr {
     border-color: rgba(103, 154, 128, 0.28);
     background: linear-gradient(165deg, rgba(15, 29, 23, 0.96), rgba(12, 24, 19, 0.95));
@@ -16133,6 +16240,12 @@ body.theme-dark .trainer-workout-modal-library-item--section {
     text-align: right;
   }
 
+  .student-app-panel[data-student-app-panel="admin-geral"] .admin-user-phone-cell {
+    margin-left: auto;
+    white-space: normal;
+    justify-content: flex-end;
+  }
+
   .student-app-panel .admin-overview-actions-group,
   .student-app-panel[data-student-app-panel="admin-geral"] .admin-overview-actions-group {
     margin-left: auto;
@@ -16148,6 +16261,23 @@ body.theme-dark .trainer-workout-modal-library-item--section {
   .student-app-panel[data-student-app-panel="admin-geral"] .admin-overview-action-btn.admin-overview-action-icon-btn {
     width: 34px;
     min-width: 34px;
+  }
+
+  .student-app-panel .admin-overview-table tr.admin-support-comment-row,
+  .student-app-panel[data-student-app-panel="admin-geral"] .admin-overview-table tr.admin-support-comment-row {
+    margin-top: -6px;
+    border-top-style: dashed;
+  }
+
+  .student-app-panel .admin-overview-table tr.admin-support-comment-row td,
+  .student-app-panel[data-student-app-panel="admin-geral"] .admin-overview-table tr.admin-support-comment-row td {
+    display: block;
+    text-align: left;
+  }
+
+  .student-app-panel .admin-support-comment-card,
+  .student-app-panel[data-student-app-panel="admin-geral"] .admin-support-comment-card {
+    max-width: none;
   }
 
   body.theme-dark .student-app-panel[data-student-app-panel="admin-geral"] .admin-overview-table tr {
