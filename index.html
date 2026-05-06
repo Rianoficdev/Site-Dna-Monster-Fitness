@@ -2080,11 +2080,84 @@ Core"
               <div class="trainer-workout-screen" data-trainer-workout-panel>
                 <div class="student-panel-head trainer-workout-head">
                   <h4>Gestão de Treinos</h4>
-                  <p>Crie treinos, adicione exercícios com foto, descrição, repetições, tempo e descanso.</p>
+                  <p>Monte treinos, acompanhe alunos e organize a biblioteca.</p>
                   <button class="student-progress-action-btn trainer-workout-refresh" type="button" data-trainer-workout-refresh>
                     Atualizar dados
                   </button>
                 </div>
+
+                <section class="trainer-home-overview" aria-label="Início do instrutor">
+                  <div class="trainer-home-tabs" role="tablist" aria-label="Atalhos do instrutor">
+                    <button class="is-active" type="button" role="tab" aria-selected="true" data-trainer-home-shortcut="top">Início</button>
+                    <button type="button" role="tab" aria-selected="false" data-trainer-home-shortcut="managed">Treinos</button>
+                  </div>
+
+                  <article class="trainer-home-welcome-card">
+                    <button
+                      class="trainer-home-avatar-button"
+                      type="button"
+                      data-trainer-welcome-avatar-edit
+                      aria-label="Alterar foto do instrutor"
+                      title="Alterar foto do instrutor"
+                    >
+                      <img class="trainer-home-avatar-image" data-trainer-welcome-avatar-image alt="" hidden />
+                      <span class="trainer-home-avatar-fallback" data-trainer-welcome-avatar-fallback aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                          <path d="M4 20a8 8 0 0 1 16 0"></path>
+                        </svg>
+                      </span>
+                      <span class="trainer-home-avatar-edit-badge" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M4 20h4l10-10-4-4L4 16v4z"></path>
+                          <path d="m12 6 4 4"></path>
+                        </svg>
+                      </span>
+                    </button>
+                    <div class="trainer-home-welcome-copy">
+                      <small data-trainer-welcome-period>Boa noite</small>
+                      <h5 data-trainer-welcome-name>Instrutor</h5>
+                      <p>
+                        <strong>Bem-vindo à gestão</strong>
+                        <span>Comece designando um treino ou ajustando sua biblioteca.</span>
+                      </p>
+                    </div>
+                    <div class="trainer-home-welcome-actions">
+                      <button class="trainer-home-primary-btn" type="button" data-trainer-home-shortcut="assign">Designar treino</button>
+                      <button class="trainer-home-secondary-btn" type="button" data-trainer-home-shortcut="create">Criar treino</button>
+                    </div>
+                  </article>
+
+                  <section class="trainer-home-tools" aria-label="Ferramentas de treino">
+                    <h5>Treinos</h5>
+                    <div class="trainer-home-tool-grid">
+                      <button class="trainer-home-tool-card" type="button" data-trainer-home-shortcut="create">
+                        <span aria-hidden="true">
+                          <svg viewBox="0 0 24 24"><path d="M4 19V5m5 14V5m5 14V5m5 14V5"></path><path d="M4 7h16M4 17h16"></path></svg>
+                        </span>
+                        <strong>Biblioteca de treinos</strong>
+                      </button>
+                      <button class="trainer-home-tool-card" type="button" data-trainer-home-shortcut="assign">
+                        <span aria-hidden="true">
+                          <svg viewBox="0 0 24 24"><path d="M7 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path><path d="M17 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path><path d="M2 21a5 5 0 0 1 10 0"></path><path d="M14 21a4 4 0 0 1 8 0"></path></svg>
+                        </span>
+                        <strong>Designar aluno</strong>
+                      </button>
+                      <button class="trainer-home-tool-card" type="button" data-trainer-home-shortcut="progress">
+                        <span aria-hidden="true">
+                          <svg viewBox="0 0 24 24"><path d="M8 6h11M8 12h11M8 18h11"></path><path d="M4 6h.01M4 12h.01M4 18h.01"></path></svg>
+                        </span>
+                        <strong>Relatório de frequência</strong>
+                      </button>
+                      <button class="trainer-home-tool-card" type="button" data-trainer-home-shortcut="library">
+                        <span aria-hidden="true">
+                          <svg viewBox="0 0 24 24"><path d="M6 4h9l3 3v13H6z"></path><path d="M15 4v4h4"></path><path d="M9 13h6M9 17h6"></path></svg>
+                        </span>
+                        <strong>Biblioteca de exercícios</strong>
+                      </button>
+                    </div>
+                  </section>
+                </section>
 
                 <p class="student-form-error trainer-workout-error" data-trainer-workout-error aria-live="polite"></p>
 
@@ -2099,7 +2172,7 @@ Core"
                         aria-expanded="true"
                       >Minimizar caixa</button>
                     </div>
-                    <p class="trainer-card-subtitle">Crie um treino novo, dê um nome a ele ou selecione um já cadastrado para ajustar os exercícios.</p>
+                    <p class="trainer-card-subtitle">Crie e edite treinos salvos.</p>
                   </header>
                   <div data-trainer-template-create-body>
                     <div class="trainer-card-section-head">
@@ -2263,7 +2336,7 @@ Core"
                         aria-expanded="true"
                       >Minimizar caixa</button>
                     </div>
-                    <p class="trainer-card-subtitle">Escolha os dias e defina qual nomeclatura de treino o aluno fará em cada um deles.</p>
+                    <p class="trainer-card-subtitle">Escolha aluno, dias e treino.</p>
                   </header>
                   <div data-trainer-workout-create-body>
                     <form class="trainer-workout-form" data-trainer-workout-form novalidate>

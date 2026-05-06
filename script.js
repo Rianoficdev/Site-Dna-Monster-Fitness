@@ -27,6 +27,7 @@ const TRAINER_HIDDEN_WORKOUTS_INITIALIZED_KEY = 'dna_trainer_hidden_workouts_ini
 const TRAINER_TEMPLATE_CREATE_PANEL_COLLAPSED_KEY = 'dna_trainer_template_create_panel_collapsed';
 const TRAINER_WORKOUT_CREATE_PANEL_COLLAPSED_KEY = 'dna_trainer_workout_create_panel_collapsed';
 const TRAINER_MANAGED_WORKOUTS_PANEL_COLLAPSED_KEY = 'dna_trainer_managed_workouts_panel_collapsed';
+const TRAINER_PANEL_V1_COLLAPSE_INITIALIZED_KEY = 'dna_trainer_panel_v1_collapse_initialized';
 const ADMIN_USERS_PANEL_COLLAPSED_KEY = 'dna_admin_users_panel_collapsed';
 const ADMIN_WORKOUTS_PANEL_COLLAPSED_KEY = 'dna_admin_workouts_panel_collapsed';
 const ADMIN_EXERCISES_PANEL_COLLAPSED_KEY = 'dna_admin_exercises_panel_collapsed';
@@ -803,6 +804,12 @@ const adminStudentStatusChart = document.querySelector('[data-admin-student-stat
 const trainerWorkoutPanel = document.querySelector('[data-trainer-workout-panel]');
 const trainerWorkoutError = document.querySelector('[data-trainer-workout-error]');
 const trainerWorkoutRefreshButton = document.querySelector('[data-trainer-workout-refresh]');
+const trainerHomeShortcutButtons = document.querySelectorAll('[data-trainer-home-shortcut]');
+const trainerWelcomePeriod = document.querySelector('[data-trainer-welcome-period]');
+const trainerWelcomeName = document.querySelector('[data-trainer-welcome-name]');
+const trainerWelcomeAvatarButton = document.querySelector('[data-trainer-welcome-avatar-edit]');
+const trainerWelcomeAvatarImage = document.querySelector('[data-trainer-welcome-avatar-image]');
+const trainerWelcomeAvatarFallback = document.querySelector('[data-trainer-welcome-avatar-fallback]');
 const trainerOpenLibraryManagerButton = document.querySelector('[data-trainer-open-library-manager]');
 const trainerTemplateWorkoutForm = document.querySelector('[data-trainer-template-workout-form]');
 const trainerTemplateSelect = document.querySelector('[data-trainer-template-select]');
@@ -2764,6 +2771,7 @@ const handleProfileAvatarFileSelection = async (file) => {
   let persistableAvatarUrl = '';
   try {
     if (profileAvatarEditButton) profileAvatarEditButton.disabled = true;
+    if (trainerWelcomeAvatarButton) trainerWelcomeAvatarButton.disabled = true;
 
     try {
       const uploadedMedia = await uploadStudentMediaFile(file);
@@ -2808,6 +2816,7 @@ const handleProfileAvatarFileSelection = async (file) => {
     studentData.profileAvatarUrl = finalAvatarUrl;
     persistProfileAvatarToStoredSession(finalAvatarUrl);
     renderProfile();
+    if (typeof updateTrainerHomeHeader === 'function') updateTrainerHomeHeader();
     showSiteTopNotice('Foto de perfil atualizada com sucesso.', true);
   } catch (error) {
     const message =
@@ -2817,6 +2826,7 @@ const handleProfileAvatarFileSelection = async (file) => {
     showSiteTopNotice(message, false);
   } finally {
     if (profileAvatarEditButton) profileAvatarEditButton.disabled = false;
+    if (trainerWelcomeAvatarButton) trainerWelcomeAvatarButton.disabled = false;
     if (profileAvatarInput) profileAvatarInput.value = '';
   }
 };
@@ -9579,11 +9589,22 @@ const toggleAdminTeamPanelCollapsed = () => {
   setAdminTeamPanelCollapsed(!adminTeamPanelCollapsed);
 };
 
+const ensureTrainerPanelV1CollapseDefaults = () => {
+  try {
+    if (localStorage.getItem(TRAINER_PANEL_V1_COLLAPSE_INITIALIZED_KEY) === 'true') return;
+    localStorage.setItem(TRAINER_TEMPLATE_CREATE_PANEL_COLLAPSED_KEY, 'true');
+    localStorage.setItem(TRAINER_WORKOUT_CREATE_PANEL_COLLAPSED_KEY, 'true');
+    localStorage.setItem(TRAINER_MANAGED_WORKOUTS_PANEL_COLLAPSED_KEY, 'true');
+    localStorage.setItem(TRAINER_PANEL_V1_COLLAPSE_INITIALIZED_KEY, 'true');
+  } catch (_) {}
+};
+
 const loadTrainerTemplateCreatePanelCollapsed = () => {
   try {
-    return localStorage.getItem(TRAINER_TEMPLATE_CREATE_PANEL_COLLAPSED_KEY) === 'true';
+    const savedValue = localStorage.getItem(TRAINER_TEMPLATE_CREATE_PANEL_COLLAPSED_KEY);
+    return savedValue === null ? true : savedValue === 'true';
   } catch (_) {
-    return false;
+    return true;
   }
 };
 
@@ -9615,9 +9636,10 @@ const toggleTrainerTemplateCreatePanelCollapsed = () => {
 
 const loadTrainerWorkoutCreatePanelCollapsed = () => {
   try {
-    return localStorage.getItem(TRAINER_WORKOUT_CREATE_PANEL_COLLAPSED_KEY) === 'true';
+    const savedValue = localStorage.getItem(TRAINER_WORKOUT_CREATE_PANEL_COLLAPSED_KEY);
+    return savedValue === null ? true : savedValue === 'true';
   } catch (_) {
-    return false;
+    return true;
   }
 };
 
@@ -9649,9 +9671,10 @@ const toggleTrainerWorkoutCreatePanelCollapsed = () => {
 
 const loadTrainerManagedWorkoutsPanelCollapsed = () => {
   try {
-    return localStorage.getItem(TRAINER_MANAGED_WORKOUTS_PANEL_COLLAPSED_KEY) === 'true';
+    const savedValue = localStorage.getItem(TRAINER_MANAGED_WORKOUTS_PANEL_COLLAPSED_KEY);
+    return savedValue === null ? true : savedValue === 'true';
   } catch (_) {
-    return false;
+    return true;
   }
 };
 
@@ -12999,6 +13022,67 @@ const openLibraryManagerPanel = ({ autoOpenForm = false } = {}) => {
   if (autoOpenForm) isLibraryManagerFormOpen = true;
   setStudentAppTab('biblioteca', true);
   syncLibraryManagerUi();
+};
+
+const focusTrainerElement = (element) => {
+  if (!element || typeof element.focus !== 'function') return;
+  window.setTimeout(() => {
+    try {
+      element.focus({ preventScroll: true });
+    } catch (_) {
+      element.focus();
+    }
+  }, 220);
+};
+
+const scrollTrainerShortcutTarget = (element) => {
+  if (!element || typeof element.scrollIntoView !== 'function') return;
+  window.setTimeout(() => {
+    element.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }, 40);
+};
+
+const handleTrainerHomeShortcut = (shortcut) => {
+  const action = String(shortcut || '').trim().toLowerCase();
+
+  if (action === 'top') {
+    scrollTrainerShortcutTarget(trainerWorkoutPanel);
+    return;
+  }
+
+  if (action === 'create') {
+    setTrainerTemplateCreatePanelCollapsed(false);
+    scrollTrainerShortcutTarget(trainerTemplateCreateCard);
+    focusTrainerElement(trainerTemplateFormNameInput);
+    return;
+  }
+
+  if (action === 'assign') {
+    setTrainerWorkoutCreatePanelCollapsed(false);
+    scrollTrainerShortcutTarget(trainerWorkoutCreateCard);
+    focusTrainerElement(trainerWorkoutStudentSearchInput || trainerWorkoutStudentSelect);
+    return;
+  }
+
+  if (action === 'managed') {
+    setTrainerManagedWorkoutsPanelCollapsed(false);
+    scrollTrainerShortcutTarget(trainerManagedWorkoutsCard);
+    focusTrainerElement(trainerManagedWorkoutsSearchInput);
+    return;
+  }
+
+  if (action === 'progress') {
+    setStudentAppTab('progresso', true);
+    void loadTrainerProgressData(true);
+    return;
+  }
+
+  if (action === 'library') {
+    setStudentAppTab('biblioteca', true);
+  }
 };
 
 const setTrainerProgressFeedback = (message, isSuccess = false) => {
@@ -16421,7 +16505,54 @@ const renderTrainerManagedWorkoutsExperience = ({
   `;
 };
 
+const getTrainerGreetingPeriod = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Bom dia';
+  if (hour < 18) return 'Boa tarde';
+  return 'Boa noite';
+};
+
+const updateTrainerWelcomeAvatar = () => {
+  const avatarUrl = resolveProfileAvatarUrl(studentData.profileAvatarUrl || '');
+  const hasAvatarImage = Boolean(avatarUrl);
+
+  if (trainerWelcomeAvatarButton) {
+    trainerWelcomeAvatarButton.classList.toggle('has-image', hasAvatarImage);
+    trainerWelcomeAvatarButton.classList.toggle('is-fallback-visible', !hasAvatarImage);
+    trainerWelcomeAvatarButton.setAttribute(
+      'title',
+      hasAvatarImage ? 'Alterar foto do instrutor' : 'Adicionar foto do instrutor'
+    );
+  }
+
+  if (trainerWelcomeAvatarImage) {
+    trainerWelcomeAvatarImage.hidden = !hasAvatarImage;
+    if (hasAvatarImage) {
+      trainerWelcomeAvatarImage.dataset.expectedSrc = avatarUrl;
+      trainerWelcomeAvatarImage.src = avatarUrl;
+      trainerWelcomeAvatarImage.alt = '';
+    } else {
+      trainerWelcomeAvatarImage.dataset.expectedSrc = '';
+      trainerWelcomeAvatarImage.removeAttribute('src');
+      trainerWelcomeAvatarImage.alt = '';
+    }
+  }
+
+  if (trainerWelcomeAvatarFallback) {
+    trainerWelcomeAvatarFallback.hidden = hasAvatarImage;
+  }
+};
+
+const updateTrainerHomeHeader = () => {
+  if (trainerWelcomePeriod) trainerWelcomePeriod.textContent = getTrainerGreetingPeriod();
+  if (trainerWelcomeName) {
+    trainerWelcomeName.textContent = String(studentData.userName || 'Instrutor').trim() || 'Instrutor';
+  }
+  updateTrainerWelcomeAvatar();
+};
+
 const renderTrainerManagementPanel = () => {
+  updateTrainerHomeHeader();
   syncTrainerManagedWorkoutsPanelCollapseUi();
   syncTrainerManagedWorkoutsViewUi();
   const showPanelData = isTrainerManagerUser();
@@ -20947,6 +21078,7 @@ const handleFinishActiveWorkout = async () => {
 
 const initStudentArea = () => {
   if (!studentArea) return;
+  ensureTrainerPanelV1CollapseDefaults();
   trainerTemplateCreatePanelCollapsed = loadTrainerTemplateCreatePanelCollapsed();
   trainerWorkoutCreatePanelCollapsed = loadTrainerWorkoutCreatePanelCollapsed();
   trainerManagedWorkoutsPanelCollapsed = loadTrainerManagedWorkoutsPanelCollapsed();
@@ -21194,6 +21326,12 @@ const initStudentArea = () => {
       toggleTrainerManagedWorkoutsPanelCollapsed();
     });
   }
+
+  trainerHomeShortcutButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      handleTrainerHomeShortcut(button.dataset.trainerHomeShortcut || '');
+    });
+  });
 
   bindAdminTeamFormEvents();
 
@@ -22677,6 +22815,12 @@ const initStudentArea = () => {
       profileAvatarInput.click();
     });
   }
+  if (trainerWelcomeAvatarButton) {
+    trainerWelcomeAvatarButton.addEventListener('click', () => {
+      if (!profileAvatarInput) return;
+      profileAvatarInput.click();
+    });
+  }
   if (profileAvatarInput) {
     profileAvatarInput.addEventListener('change', (event) => {
       const target = event && event.target;
@@ -22703,6 +22847,22 @@ const initStudentArea = () => {
       if (profileAvatar) profileAvatar.classList.remove('has-image');
       if (profileAvatar) profileAvatar.classList.add('is-fallback-visible');
       if (profileAvatarFallbackIcon) profileAvatarFallbackIcon.hidden = false;
+    });
+  }
+  if (trainerWelcomeAvatarImage) {
+    trainerWelcomeAvatarImage.addEventListener('load', () => {
+      if (trainerWelcomeAvatarButton) trainerWelcomeAvatarButton.classList.add('has-image');
+      if (trainerWelcomeAvatarButton) trainerWelcomeAvatarButton.classList.remove('is-fallback-visible');
+      if (trainerWelcomeAvatarFallback) trainerWelcomeAvatarFallback.hidden = true;
+      trainerWelcomeAvatarImage.hidden = false;
+    });
+    trainerWelcomeAvatarImage.addEventListener('error', () => {
+      trainerWelcomeAvatarImage.hidden = true;
+      trainerWelcomeAvatarImage.removeAttribute('src');
+      trainerWelcomeAvatarImage.dataset.expectedSrc = '';
+      if (trainerWelcomeAvatarButton) trainerWelcomeAvatarButton.classList.remove('has-image');
+      if (trainerWelcomeAvatarButton) trainerWelcomeAvatarButton.classList.add('is-fallback-visible');
+      if (trainerWelcomeAvatarFallback) trainerWelcomeAvatarFallback.hidden = false;
     });
   }
   profileActionCloseButtons.forEach((button) => {
