@@ -9698,7 +9698,7 @@ const scheduleTrainerManagedWorkoutsRender = () => {
   cancelTrainerManagedWorkoutsSearchRender();
   trainerManagedWorkoutsSearchRenderTimer = window.setTimeout(() => {
     trainerManagedWorkoutsSearchRenderTimer = null;
-    renderTrainerManagementPanel();
+    renderTrainerManagedWorkoutsPanelOnly();
   }, 120);
 };
 
@@ -9712,7 +9712,7 @@ const setTrainerManagedWorkoutsView = (view, { rerender = true } = {}) => {
     trainerManagedWorkoutsSearchInput.value = '';
   }
   syncTrainerManagedWorkoutsViewUi();
-  if (rerender) renderTrainerManagementPanel();
+  if (rerender) renderTrainerManagedWorkoutsPanelOnly();
 };
 
 const setTrainerManagedWorkoutsSearchTerm = (
@@ -9723,7 +9723,7 @@ const setTrainerManagedWorkoutsSearchTerm = (
   if (!rerender) return;
   if (immediate) {
     cancelTrainerManagedWorkoutsSearchRender();
-    renderTrainerManagementPanel();
+    renderTrainerManagedWorkoutsPanelOnly();
     return;
   }
   scheduleTrainerManagedWorkoutsRender();
@@ -9742,13 +9742,13 @@ const setTrainerManagedWorkoutsSelectedStudent = (
       trainerManagedWorkoutsSearchInput.value = '';
     }
   }
-  if (rerender) renderTrainerManagementPanel();
+  if (rerender) renderTrainerManagedWorkoutsPanelOnly();
 };
 
 const setTrainerManagedWorkoutsAudience = (view, { rerender = true } = {}) => {
   cancelTrainerManagedWorkoutsSearchRender();
   trainerManagedWorkoutsAudienceView = normalizeTrainerManagedWorkoutsAudienceView(view);
-  if (rerender) renderTrainerManagementPanel();
+  if (rerender) renderTrainerManagedWorkoutsPanelOnly();
 };
 
 const loadAdminTeamPanelCollapsed = () => {
@@ -18010,6 +18010,54 @@ function syncTrainerAssignmentSelectTriggers() {
   syncTrigger('student', trainerWorkoutStudentSelect, 'Selecione o aluno');
   syncTrigger('instructor', trainerWorkoutInstructorSelect, 'Selecione o instrutor');
 }
+
+const getTrainerManagedWorkoutsRenderContext = () => {
+  const showPanelData = isTrainerManagerUser();
+  if (!showPanelData) {
+    return {
+      showPanelData: false,
+      visibleWorkouts: [],
+      templates: [],
+      usersById: new Map()
+    };
+  }
+
+  const students = Array.isArray(trainerManagementState.students) ? trainerManagementState.students : [];
+  const instructors = Array.isArray(trainerManagementState.instructors) ? trainerManagementState.instructors : [];
+  const templates = Array.isArray(trainerManagementState.templates) ? trainerManagementState.templates : [];
+  const workouts = Array.isArray(trainerManagementState.workouts) ? trainerManagementState.workouts : [];
+  const visibleWorkouts = getTrainerVisibleWorkouts(workouts)
+    .filter((workout) => (Number(workout && workout.id) || 0) > 0);
+  const fallbackStudentsFromWorkouts = Array.from(
+    new Set(
+      workouts
+        .map((workout) => Number(workout && workout.studentId) || 0)
+        .filter((studentId) => studentId > 0)
+    )
+  ).map((studentId) => ({
+    id: studentId,
+    name: `Aluno ID ${studentId}`,
+    email: '',
+    role: 'ALUNO',
+    isEnabled: true
+  }));
+  const studentsForSelection = students.length ? students : fallbackStudentsFromWorkouts;
+  const usersById = new Map([...studentsForSelection, ...instructors].map((user) => [Number(user.id), user]));
+
+  return {
+    showPanelData,
+    visibleWorkouts,
+    templates,
+    usersById
+  };
+};
+
+const renderTrainerManagedWorkoutsPanelOnly = () => {
+  syncTrainerManagedWorkoutsPanelCollapseUi();
+  syncTrainerManagedWorkoutsViewUi();
+  const context = getTrainerManagedWorkoutsRenderContext();
+  renderTrainerManagedWorkoutsExperience(context);
+};
 
 const renderTrainerManagementPanel = () => {
   updateTrainerHomeHeader();
