@@ -19405,7 +19405,7 @@ const setStudentAppTab = (tabId, immediate = false) => {
   let resolvedTab = requestedTab;
 
   if (canGeneralAdmin) {
-    const allowedAdminTabs = new Set(['admin-geral', 'admin-treinos', 'biblioteca', 'perfil']);
+    const allowedAdminTabs = new Set(['admin-geral', 'admin-treinos', 'biblioteca', 'progresso', 'perfil']);
     if (!allowedAdminTabs.has(resolvedTab)) {
       resolvedTab = 'admin-geral';
     }

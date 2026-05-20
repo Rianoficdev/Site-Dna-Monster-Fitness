@@ -8791,7 +8791,8 @@ body.theme-dark .student-group-guide-card[data-group-card] .student-group-guide-
 }
 
 .student-app-shell.is-admin-geral-mode .student-app-bottom-nav {
-  --nav-cols: 4;
+  --nav-cols: 5;
+  gap: 4px;
 }
 
 .student-app-shell.is-admin-geral-mode .student-app-main {
@@ -11142,9 +11143,17 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
 }
 
 .student-app-shell.is-admin-geral-mode .student-app-nav-btn[data-student-app-tab="dashboard"],
-.student-app-shell.is-admin-geral-mode .student-app-nav-btn[data-student-app-tab="treinos"],
-.student-app-shell.is-admin-geral-mode .student-app-nav-btn[data-student-app-tab="progresso"] {
+.student-app-shell.is-admin-geral-mode .student-app-nav-btn[data-student-app-tab="treinos"] {
   display: none;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-nav-btn[data-student-app-tab="biblioteca"],
+.student-app-shell.is-admin-geral-mode .student-app-nav-btn[data-student-app-tab="progresso"] {
+  display: flex;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-nav-btn span:last-child {
+  font-size: 0.74rem;
 }
 
 .admin-overview-screen {
