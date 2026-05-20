@@ -5291,13 +5291,31 @@ const getDashboardObjectiveTitle = () => {
   return objective || 'Objetivo definido pelo instrutor';
 };
 
+const renderStudentGreetingName = () => {
+  if (!studentGreetingName) return;
+  const fullName = String(studentData.userName || 'Aluno').trim() || 'Aluno';
+  const [firstName = 'Aluno', ...remainingNameParts] = fullName.split(/\s+/).filter(Boolean);
+  const remainingName = remainingNameParts.join(' ');
+
+  studentGreetingName.textContent = '';
+
+  const firstNameNode = document.createElement('span');
+  firstNameNode.className = 'student-greeting-first-name';
+  firstNameNode.textContent = firstName;
+  studentGreetingName.appendChild(firstNameNode);
+
+  if (remainingName) {
+    studentGreetingName.appendChild(document.createTextNode(` ${remainingName}`));
+  }
+};
+
 const renderDashboard = () => {
   const summary = getWorkoutSummary();
   const completionPercent = summary.total ? Math.round((summary.done / summary.total) * 100) : 0;
   const objectiveTitle = getDashboardObjectiveTitle();
   if (studentNameDisplay) studentNameDisplay.textContent = studentData.userName;
   if (studentPlanDisplay) studentPlanDisplay.textContent = studentData.plan;
-  if (studentGreetingName) studentGreetingName.textContent = studentData.userName;
+  renderStudentGreetingName();
   if (studentDateDisplay) studentDateDisplay.textContent = getCurrentDateLabel();
   if (dashboardGreeting) dashboardGreeting.textContent = 'Plano atualizado para esta semana';
   const currentWorkoutLabel = String(summary.current._displayName || summary.current.name || summary.current.code || 'Treino').trim();

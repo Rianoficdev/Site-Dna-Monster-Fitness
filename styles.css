@@ -3809,6 +3809,16 @@ html.student-area-open {
   margin: 0;
 }
 
+.student-app-brand-meta h4 [data-student-greeting-name] {
+  color: inherit;
+  font-weight: inherit;
+}
+
+.student-greeting-first-name {
+  color: var(--color-primary);
+  font-weight: 900;
+}
+
 .student-app-brand-meta p {
   margin-top: 4px;
   margin-bottom: 0;
@@ -28499,6 +28509,15 @@ body:not(.theme-dark) .student-app-panel[data-student-app-panel="admin-treinos"]
   text-align: left !important;
   text-shadow: none !important;
   white-space: nowrap !important;
+}
+
+.student-app-shell.is-trainer-mode .student-app-brand-meta h4 {
+  color: #ffffff !important;
+}
+
+.student-app-shell.is-trainer-mode .student-app-brand-meta h4 .student-greeting-first-name {
+  color: var(--dna-accent, var(--color-primary)) !important;
+  font-weight: 950 !important;
 }
 
 body:not(.theme-dark) .student-app-panel[data-student-app-panel="admin-treinos"] .trainer-workout-screen.is-exercises-view .trainer-registered-exercises-head h5::after {
