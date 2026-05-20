@@ -1318,6 +1318,7 @@ let trainerExerciseLibraryScreenExerciseId = '';
 let trainerHomeActiveTab = 'home';
 let trainerWorkoutScreenView = 'home';
 let trainerManagedWorkoutsSearchTerm = '';
+let trainerManagedWorkoutsSearchRenderTimer = null;
 let trainerManagedWorkoutsSelectedStudentKey = '';
 let trainerManagedWorkoutsAudienceView = 'instructor';
 let trainerWorkoutStudentConfirmed = false;
@@ -9687,7 +9688,22 @@ const syncTrainerManagedWorkoutsViewUi = () => {
   });
 };
 
+const cancelTrainerManagedWorkoutsSearchRender = () => {
+  if (!trainerManagedWorkoutsSearchRenderTimer) return;
+  window.clearTimeout(trainerManagedWorkoutsSearchRenderTimer);
+  trainerManagedWorkoutsSearchRenderTimer = null;
+};
+
+const scheduleTrainerManagedWorkoutsRender = () => {
+  cancelTrainerManagedWorkoutsSearchRender();
+  trainerManagedWorkoutsSearchRenderTimer = window.setTimeout(() => {
+    trainerManagedWorkoutsSearchRenderTimer = null;
+    renderTrainerManagementPanel();
+  }, 120);
+};
+
 const setTrainerManagedWorkoutsView = (view, { rerender = true } = {}) => {
+  cancelTrainerManagedWorkoutsSearchRender();
   trainerManagedWorkoutsView = normalizeTrainerManagedWorkoutsView(view);
   trainerManagedWorkoutsSearchTerm = '';
   trainerManagedWorkoutsSelectedStudentKey = '';
@@ -9699,15 +9715,25 @@ const setTrainerManagedWorkoutsView = (view, { rerender = true } = {}) => {
   if (rerender) renderTrainerManagementPanel();
 };
 
-const setTrainerManagedWorkoutsSearchTerm = (value, { rerender = true } = {}) => {
+const setTrainerManagedWorkoutsSearchTerm = (
+  value,
+  { rerender = true, immediate = false } = {}
+) => {
   trainerManagedWorkoutsSearchTerm = String(value || '').trim();
-  if (rerender) renderTrainerManagementPanel();
+  if (!rerender) return;
+  if (immediate) {
+    cancelTrainerManagedWorkoutsSearchRender();
+    renderTrainerManagementPanel();
+    return;
+  }
+  scheduleTrainerManagedWorkoutsRender();
 };
 
 const setTrainerManagedWorkoutsSelectedStudent = (
   studentKey,
   { clearSearch = false, rerender = true } = {}
 ) => {
+  cancelTrainerManagedWorkoutsSearchRender();
   trainerManagedWorkoutsSelectedStudentKey = String(studentKey || '').trim();
   trainerManagedWorkoutsAudienceView = 'instructor';
   if (clearSearch) {
@@ -9720,6 +9746,7 @@ const setTrainerManagedWorkoutsSelectedStudent = (
 };
 
 const setTrainerManagedWorkoutsAudience = (view, { rerender = true } = {}) => {
+  cancelTrainerManagedWorkoutsSearchRender();
   trainerManagedWorkoutsAudienceView = normalizeTrainerManagedWorkoutsAudienceView(view);
   if (rerender) renderTrainerManagementPanel();
 };
@@ -12974,16 +13001,34 @@ const openTrainerWorkoutModal = (
   }
   syncTrainerWorkoutModalGroupOptions(workout);
   renderTrainerWorkoutModalCoverSection(workout);
-  renderTrainerWorkoutModalLibraryGuide();
 
   const loadedExercises = getTrainerWorkoutExercisesWithTemplateFallback(workout);
   const expectedExercisesCount = Math.max(0, Number(workout && workout.totalExercises) || 0);
-  if (!loadedExercises.length && (expectedExercisesCount > 0 || Number(workout && workout.originTemplateId) > 0)) {
+  const shouldHydrateExercises =
+    !loadedExercises.length &&
+    (expectedExercisesCount > 0 || Number(workout && workout.originTemplateId) > 0);
+
+  if (trainerWorkoutModalLibraryWrap && trainerWorkoutModalLibraryList && trainerWorkoutModalLibraryEmpty) {
+    trainerWorkoutModalLibraryWrap.hidden = false;
+    trainerWorkoutModalLibraryList.innerHTML = '';
+    trainerWorkoutModalLibraryEmpty.hidden = false;
+    trainerWorkoutModalLibraryEmpty.textContent = shouldHydrateExercises
+      ? 'Carregando exercícios do treino...'
+      : 'Preparando visualização...';
+  }
+
+  const renderModalLibraryGuideIfCurrent = () => {
+    if (!trainerWorkoutModal || trainerWorkoutModal.hidden) return;
+    if (Number(trainerWorkoutEditingId) !== Number(workout && workout.id)) return;
+    renderTrainerWorkoutModalLibraryGuide();
+  };
+
+  if (shouldHydrateExercises) {
     setTrainerWorkoutModalFeedback('Carregando exercícios do treino...', false);
     void hydrateTrainerWorkoutExercises(trainerWorkoutEditingId)
       .then(() => {
         if (Number(trainerWorkoutEditingId) !== Number(workout && workout.id)) return;
-        renderTrainerWorkoutModalLibraryGuide();
+        renderModalLibraryGuideIfCurrent();
         setTrainerWorkoutModalFeedback('', false);
       })
       .catch((error) => {
@@ -13008,6 +13053,9 @@ const openTrainerWorkoutModal = (
   } else if (trainerWorkoutModalNameInput) {
     trainerWorkoutModalNameInput.focus({ preventScroll: true });
     trainerWorkoutModalNameInput.select();
+  }
+  if (!shouldHydrateExercises) {
+    window.requestAnimationFrame(renderModalLibraryGuideIfCurrent);
   }
   return true;
 };
@@ -17440,6 +17488,29 @@ const renderTrainerManagedWorkoutsExperience = ({
   }
 
   if (isDefinitionView) {
+    const definitionStatsByTemplateId = new Map();
+    visibleWorkouts.forEach((workout) => {
+      const templateId = Number(workout && workout.originTemplateId) || 0;
+      if (!templateId) return;
+
+      let stats = definitionStatsByTemplateId.get(templateId);
+      if (!stats) {
+        stats = {
+          studentIds: new Set(),
+          assignmentsCount: 0,
+          activeAssignmentsCount: 0,
+          inactiveAssignmentsCount: 0
+        };
+        definitionStatsByTemplateId.set(templateId, stats);
+      }
+
+      stats.assignmentsCount += 1;
+      const studentId = Number(workout && workout.studentId) || 0;
+      if (studentId > 0) stats.studentIds.add(studentId);
+      if (isWorkoutActive(workout)) stats.activeAssignmentsCount += 1;
+      if (isWorkoutInactive(workout)) stats.inactiveAssignmentsCount += 1;
+    });
+
     const definitionEntries = templates
       .slice()
       .sort((first, second) =>
@@ -17451,14 +17522,12 @@ const renderTrainerManagedWorkoutsExperience = ({
       )
       .map((template) => {
         const templateId = Number(template && template.id) || 0;
-        const linkedWorkouts = visibleWorkouts.filter(
-          (workout) => Number(workout && workout.originTemplateId) === templateId
-        );
-        const studentIds = new Set(
-          linkedWorkouts
-            .map((workout) => Number(workout && workout.studentId) || 0)
-            .filter((studentId) => studentId > 0)
-        );
+        const stats = definitionStatsByTemplateId.get(templateId) || {
+          studentIds: new Set(),
+          assignmentsCount: 0,
+          activeAssignmentsCount: 0,
+          inactiveAssignmentsCount: 0
+        };
 
         return {
           templateId,
@@ -17470,10 +17539,10 @@ const renderTrainerManagedWorkoutsExperience = ({
           exercisesCount: (
             trainerManagementState.templateExercisesByTemplateId[String(templateId)] || []
           ).length,
-          studentsCount: studentIds.size,
-          assignmentsCount: linkedWorkouts.length,
-          activeAssignmentsCount: linkedWorkouts.filter((workout) => isWorkoutActive(workout)).length,
-          inactiveAssignmentsCount: linkedWorkouts.filter((workout) => isWorkoutInactive(workout)).length,
+          studentsCount: stats.studentIds.size,
+          assignmentsCount: stats.assignmentsCount,
+          activeAssignmentsCount: stats.activeAssignmentsCount,
+          inactiveAssignmentsCount: stats.inactiveAssignmentsCount,
           createdAt: template && template.createdAt ? template.createdAt : null
         };
       });
@@ -17949,7 +18018,9 @@ const renderTrainerManagementPanel = () => {
   syncTrainerObjectiveCards();
   syncTrainerManagedWorkoutsPanelCollapseUi();
   syncTrainerManagedWorkoutsViewUi();
-  renderTrainerExerciseLibraryScreen();
+  if (normalizeTrainerWorkoutScreenView(trainerWorkoutScreenView) === 'library') {
+    renderTrainerExerciseLibraryScreen();
+  }
   const showPanelData = isTrainerManagerUser();
 
   if (trainerWorkoutRefreshButton) {
@@ -25066,6 +25137,7 @@ const UI_MOJIBAKE_REPLACEMENTS = [
 let uiTextRepairObserver = null;
 let uiTextRepairQueued = false;
 let uiTextRepairRunning = false;
+const uiTextRepairPendingRoots = new Set();
 
 const normalizeMojibakeText = (value) => {
   if (value === null || value === undefined) return value;
@@ -25078,67 +25150,121 @@ const normalizeMojibakeText = (value) => {
   return next;
 };
 
+const normalizeMojibakeAttributes = (node) => {
+  if (!(node instanceof Element)) return;
+  if (node.hasAttribute('placeholder')) {
+    const original = node.getAttribute('placeholder') || '';
+    const normalized = normalizeMojibakeText(original);
+    if (normalized !== original) node.setAttribute('placeholder', normalized);
+  }
+  if (node.hasAttribute('title')) {
+    const original = node.getAttribute('title') || '';
+    const normalized = normalizeMojibakeText(original);
+    if (normalized !== original) node.setAttribute('title', normalized);
+  }
+  if (node.hasAttribute('aria-label')) {
+    const original = node.getAttribute('aria-label') || '';
+    const normalized = normalizeMojibakeText(original);
+    if (normalized !== original) node.setAttribute('aria-label', normalized);
+  }
+  if (node instanceof HTMLOptionElement) {
+    const original = String(node.textContent || '');
+    const normalized = normalizeMojibakeText(original);
+    if (normalized !== original) node.textContent = normalized;
+  }
+};
+
+const normalizeMojibakeTextNode = (textNode) => {
+  if (!textNode) return;
+  const parent = textNode.parentElement;
+  if (parent && parent.tagName !== 'SCRIPT' && parent.tagName !== 'STYLE') {
+    const originalText = String(textNode.nodeValue || '');
+    const normalizedText = normalizeMojibakeText(originalText);
+    if (normalizedText !== originalText) {
+      textNode.nodeValue = normalizedText;
+    }
+  }
+};
+
 const normalizeMojibakeInDom = (root = document.body) => {
   if (!root || uiTextRepairRunning) return;
   uiTextRepairRunning = true;
   try {
+    if (root.nodeType === Node.TEXT_NODE) {
+      normalizeMojibakeTextNode(root);
+      return;
+    }
+
     const textWalker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let textNode = textWalker.nextNode();
     while (textNode) {
-      const parent = textNode.parentElement;
-      if (parent && parent.tagName !== 'SCRIPT' && parent.tagName !== 'STYLE') {
-        const originalText = String(textNode.nodeValue || '');
-        const normalizedText = normalizeMojibakeText(originalText);
-        if (normalizedText !== originalText) {
-          textNode.nodeValue = normalizedText;
-        }
-      }
+      normalizeMojibakeTextNode(textNode);
       textNode = textWalker.nextNode();
     }
 
-    const attrTargets = root.querySelectorAll('[placeholder], [title], [aria-label], option');
-    attrTargets.forEach((node) => {
-      if (!(node instanceof Element)) return;
-      if (node.hasAttribute('placeholder')) {
-        const original = node.getAttribute('placeholder') || '';
-        const normalized = normalizeMojibakeText(original);
-        if (normalized !== original) node.setAttribute('placeholder', normalized);
-      }
-      if (node.hasAttribute('title')) {
-        const original = node.getAttribute('title') || '';
-        const normalized = normalizeMojibakeText(original);
-        if (normalized !== original) node.setAttribute('title', normalized);
-      }
-      if (node.hasAttribute('aria-label')) {
-        const original = node.getAttribute('aria-label') || '';
-        const normalized = normalizeMojibakeText(original);
-        if (normalized !== original) node.setAttribute('aria-label', normalized);
-      }
-      if (node instanceof HTMLOptionElement) {
-        const original = String(node.textContent || '');
-        const normalized = normalizeMojibakeText(original);
-        if (normalized !== original) node.textContent = normalized;
-      }
-    });
+    normalizeMojibakeAttributes(root);
+    if (typeof root.querySelectorAll === 'function') {
+      root
+        .querySelectorAll('[placeholder], [title], [aria-label], option')
+        .forEach(normalizeMojibakeAttributes);
+    }
   } finally {
     uiTextRepairRunning = false;
   }
 };
 
-const scheduleMojibakeDomRepair = () => {
+const getMojibakeRepairRoot = (node) => {
+  if (!node) return document.body;
+  if (node.nodeType === Node.TEXT_NODE) return node.parentElement || document.body;
+  if (node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+    return node;
+  }
+  return node.parentElement || document.body;
+};
+
+const getMojibakeRepairRoots = () => {
+  const roots = Array.from(uiTextRepairPendingRoots).filter(Boolean);
+  uiTextRepairPendingRoots.clear();
+  if (!roots.length) return [document.body].filter(Boolean);
+  if (roots.includes(document.body)) return [document.body];
+
+  return roots.filter((root) => {
+    if (!(root instanceof Node)) return false;
+    return !roots.some((other) => {
+      if (other === root || !(other instanceof Node)) return false;
+      return typeof other.contains === 'function' && other.contains(root);
+    });
+  });
+};
+
+const scheduleMojibakeDomRepair = (root = document.body) => {
+  const repairRoot = getMojibakeRepairRoot(root);
+  if (repairRoot) uiTextRepairPendingRoots.add(repairRoot);
   if (uiTextRepairQueued) return;
   uiTextRepairQueued = true;
   window.requestAnimationFrame(() => {
     uiTextRepairQueued = false;
-    normalizeMojibakeInDom(document.body);
+    getMojibakeRepairRoots().forEach((pendingRoot) => {
+      normalizeMojibakeInDom(pendingRoot);
+    });
   });
 };
 
 const initMojibakeDomRepair = () => {
   scheduleMojibakeDomRepair();
   if (uiTextRepairObserver || typeof MutationObserver === 'undefined' || !document.body) return;
-  uiTextRepairObserver = new MutationObserver(() => {
-    scheduleMojibakeDomRepair();
+  uiTextRepairObserver = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'childList') {
+        if (mutation.addedNodes && mutation.addedNodes.length) {
+          mutation.addedNodes.forEach((node) => scheduleMojibakeDomRepair(node));
+        } else {
+          scheduleMojibakeDomRepair(mutation.target);
+        }
+        return;
+      }
+      scheduleMojibakeDomRepair(mutation.target);
+    });
   });
   uiTextRepairObserver.observe(document.body, {
     childList: true,
