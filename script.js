@@ -43,7 +43,7 @@ const STUDENT_FORGOT_COUNTDOWN_SECONDS = 30;
 const STUDENT_FORGOT_RELEASE_BUFFER_SECONDS = 5;
 const STUDENT_FORGOT_AUTO_APPROVE_SECONDS =
   STUDENT_FORGOT_COUNTDOWN_SECONDS - STUDENT_FORGOT_RELEASE_BUFFER_SECONDS;
-const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 2000;
+const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 30000;
 const TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT = 3;
 const ADMIN_TEAM_MIN_MEMBERS = 1;
 const ADMIN_TEAM_MAX_MEMBERS = 8;
@@ -671,6 +671,7 @@ const studentDateDisplay = document.querySelector('[data-student-date-display]')
 const studentHomeButton = document.querySelector('[data-student-home-btn]');
 const siteTopNotice = document.querySelector('[data-site-notice]');
 const siteTopNoticeText = document.querySelector('[data-site-notice-text]');
+const siteTopNoticeClose = document.querySelector('[data-site-notice-close]');
 const siteTeamGrid = document.querySelector('[data-site-team-grid]');
 const adminTeamForm = document.querySelector('[data-admin-team-form]');
 const adminTeamFeedback = document.querySelector('[data-admin-team-feedback]');
@@ -728,6 +729,7 @@ const adminExercisesGroupFilter = document.querySelector('[data-admin-exercises-
 const adminExercisesCard = document.querySelector('[data-admin-exercises-card]');
 const adminExercisesBody = document.querySelector('[data-admin-exercises-body]');
 const adminExercisesToggleButton = document.querySelector('[data-admin-exercises-toggle]');
+const adminExercisesCardList = document.querySelector('[data-admin-exercises-card-list]');
 const adminExerciseModal = document.querySelector('[data-admin-exercise-modal]');
 const adminExerciseModalCloseButtons = document.querySelectorAll('[data-admin-exercise-modal-close]');
 const adminExerciseForm = document.querySelector('[data-admin-exercise-form]');
@@ -804,6 +806,8 @@ const adminStudentStatusChart = document.querySelector('[data-admin-student-stat
 const trainerWorkoutPanel = document.querySelector('[data-trainer-workout-panel]');
 const trainerWorkoutError = document.querySelector('[data-trainer-workout-error]');
 const trainerWorkoutRefreshButton = document.querySelector('[data-trainer-workout-refresh]');
+const trainerHomeTabButtons = document.querySelectorAll('[data-trainer-home-tab]');
+const trainerHomePanels = document.querySelectorAll('[data-trainer-home-panel]');
 const trainerHomeShortcutButtons = document.querySelectorAll('[data-trainer-home-shortcut]');
 const trainerWelcomePeriod = document.querySelector('[data-trainer-welcome-period]');
 const trainerWelcomeName = document.querySelector('[data-trainer-welcome-name]');
@@ -825,13 +829,18 @@ const trainerTemplateForm = document.querySelector('[data-trainer-template-form]
 const trainerTemplateFormNameInput = document.querySelector('[data-trainer-template-form-name]');
 const trainerTemplateFormDescriptionInput = document.querySelector('[data-trainer-template-form-description]');
 const trainerTemplateFormActiveSelect = document.querySelector('[data-trainer-template-form-active]');
+const trainerTemplateStatusButtons = Array.from(document.querySelectorAll('[data-trainer-template-status-option]'));
+const trainerTemplateDescriptionCount = document.querySelector('[data-trainer-template-description-count]');
 const trainerTemplateFormSubmitButton = document.querySelector('[data-trainer-template-form-submit]');
 const trainerTemplateEditorForm = document.querySelector('[data-trainer-template-editor-form]');
 const trainerTemplateEditorSelect = document.querySelector('[data-trainer-template-editor-select]');
 const trainerTemplateEditorNameInput = document.querySelector('[data-trainer-template-editor-name]');
 const trainerTemplateEditorDescriptionInput = document.querySelector('[data-trainer-template-editor-description]');
 const trainerTemplateEditorActiveSelect = document.querySelector('[data-trainer-template-editor-active]');
+const trainerTemplateEditorStatusButtons = Array.from(document.querySelectorAll('[data-trainer-template-editor-status-option]'));
+const trainerTemplateEditorDescriptionCount = document.querySelector('[data-trainer-template-editor-description-count]');
 const trainerTemplateEditorSubmitButton = document.querySelector('[data-trainer-template-editor-submit]');
+const trainerTemplateSectionToggleButtons = Array.from(document.querySelectorAll('[data-trainer-template-section-toggle]'));
 const trainerTemplateExerciseForm = document.querySelector('[data-trainer-template-exercise-form]');
 const trainerTemplateExerciseTemplateSelect = document.querySelector('[data-trainer-template-exercise-template]');
 const trainerTemplateExerciseLibrarySelect = document.querySelector('[data-trainer-template-exercise-library]');
@@ -849,9 +858,20 @@ const trainerTemplateCreateBody = document.querySelector('[data-trainer-template
 const trainerTemplateCreateToggleButton = document.querySelector('[data-trainer-template-create-toggle]');
 const trainerWorkoutForm = document.querySelector('[data-trainer-workout-form]');
 const trainerWorkoutCreateCard = document.querySelector('.trainer-workout-create-card');
+const trainerAssignmentHead = document.querySelector('[data-trainer-assignment-head]');
+const trainerAssignmentBackButton = document.querySelector('[data-trainer-assignment-back]');
+const trainerCreateHead = document.querySelector('[data-trainer-create-head]');
+const trainerCreateBackButton = document.querySelector('[data-trainer-create-back]');
+const trainerExerciseLibraryHead = document.querySelector('[data-trainer-exercise-library-head]');
+const trainerExerciseLibraryBackButton = document.querySelector('[data-trainer-exercise-library-back]');
+const trainerExerciseLibraryScreen = document.querySelector('[data-trainer-exercise-library-screen]');
+const trainerRegisteredExercisesBackButton = document.querySelector('[data-trainer-registered-exercises-back]');
+const trainerExerciseLibraryScreenSearchInput = document.querySelector('[data-trainer-exercise-library-screen-search]');
+const trainerExerciseLibraryScreenList = document.querySelector('[data-trainer-exercise-library-screen-list]');
 const trainerWorkoutCreateBody = document.querySelector('[data-trainer-workout-create-body]');
 const trainerWorkoutCreateToggleButton = document.querySelector('[data-trainer-workout-create-toggle]');
 const trainerWorkoutObjectiveSelect = document.querySelector('[data-trainer-workout-objective]');
+const trainerObjectiveCardButtons = document.querySelectorAll('[data-trainer-objective-card]');
 const trainerWorkoutStatusSelect = document.querySelector('[data-trainer-workout-status]');
 const trainerWorkoutDescriptionInput = document.querySelector('[data-trainer-workout-description]');
 const trainerWorkoutCoverBuilder = document.querySelector('[data-trainer-workout-cover-builder]');
@@ -860,6 +880,7 @@ const trainerWorkoutCoverStageImage = document.querySelector('[data-trainer-work
 const trainerWorkoutCoverEyebrow = document.querySelector('[data-trainer-workout-cover-eyebrow]');
 const trainerWorkoutCoverTitle = document.querySelector('[data-trainer-workout-cover-title]');
 const trainerWorkoutCoverMeta = document.querySelector('[data-trainer-workout-cover-meta]');
+const trainerWorkoutCoverPickButton = document.querySelector('[data-trainer-workout-cover-pick]');
 const trainerWorkoutCoverFileInput = document.querySelector('[data-trainer-workout-cover-file]');
 const trainerWorkoutCoverUploadPreview = document.querySelector('[data-trainer-workout-cover-upload-preview]');
 const trainerWorkoutCoverFilename = document.querySelector('[data-trainer-workout-cover-filename]');
@@ -869,6 +890,8 @@ const trainerWorkoutStudentSelect = document.querySelector('[data-trainer-workou
 const trainerWorkoutStudentSearchInput = document.querySelector('[data-trainer-workout-student-search]');
 const trainerWorkoutInstructorSearchInput = document.querySelector('[data-trainer-workout-instructor-search]');
 const trainerWorkoutInstructorSelect = document.querySelector('[data-trainer-workout-instructor]');
+const trainerAssignmentSelectTriggers = document.querySelectorAll('[data-trainer-assignment-select-trigger]');
+const trainerAssignmentSelectLabels = document.querySelectorAll('[data-trainer-assignment-select-label]');
 const trainerWorkoutInstructorWrap = document.querySelector('[data-trainer-workout-instructor-wrap]');
 const trainerWeekdayInputs = document.querySelectorAll('[data-trainer-weekday]');
 const trainerWorkoutSubmitButton = document.querySelector('[data-trainer-workout-submit]');
@@ -923,6 +946,8 @@ const trainerExerciseLibraryPickerScrim = document.querySelector('[data-trainer-
 const trainerExerciseWorkoutSelect = document.querySelector('[data-trainer-exercise-workout]');
 const trainerExerciseWorkoutViewButton = document.querySelector('[data-trainer-exercise-workout-view]');
 const trainerExerciseGroupHint = document.querySelector('[data-trainer-exercise-group-hint]');
+const trainerExerciseGroupSummary = document.querySelector('[data-trainer-exercise-group-summary]');
+const trainerExerciseLibrarySummary = document.querySelector('[data-trainer-exercise-library-summary]');
 const trainerExerciseDetailsWrap = document.querySelector('[data-trainer-exercise-details]');
 const trainerExerciseNameInput = document.querySelector('[data-trainer-exercise-name]');
 const trainerExerciseDescriptionInput = document.querySelector('[data-trainer-exercise-description]');
@@ -1156,6 +1181,9 @@ const progressBmiDot = document.querySelector('.student-progress-bmi-dot');
 const libraryGrid = document.querySelector('[data-student-library-grid]');
 const librarySearchInput = document.querySelector('[data-student-library-search]');
 const libraryFilterButtons = document.querySelectorAll('[data-student-library-filter]');
+const libraryFilterToggleButton = document.querySelector('[data-student-library-filter-toggle]');
+const libraryFilterMenu = document.querySelector('[data-student-library-filter-menu]');
+const libraryRequestTipButton = document.querySelector('[data-library-request-tip]');
 const groupGuideSheet = document.querySelector('[data-group-guide-sheet]');
 const groupDetailSheet = document.querySelector('[data-group-detail-sheet]');
 const groupCreateSheet = document.querySelector('[data-group-create-sheet]');
@@ -1250,6 +1278,7 @@ let restNextSeriesIndex = 0;
 let restWorkoutMediaSignature = '';
 let currentStudentTab = 'dashboard';
 let currentStudentPanel = 'dashboard';
+let lastStudentTabBeforeLibrary = 'dashboard';
 let adminGeralAutoRefreshTimer = null;
 let activeCheckPulseIndex = -1;
 let progressHistoryMonthCursor = new Date();
@@ -1259,7 +1288,7 @@ let progressWeightRulerBuilt = false;
 let progressWeightRulerTickSpacing = 8;
 let progressBmiDraftWeightKg = 80;
 let progressBmiDraftHeightCm = 170;
-const ADMIN_GERAL_AUTO_REFRESH_MS = 60 * 1000;
+const ADMIN_GERAL_AUTO_REFRESH_MS = 3 * 60 * 1000;
 let progressBmiWeightUnit = 'kg';
 let progressBmiHeightUnit = 'cm';
 let progressBmiWeightRulerBuilt = false;
@@ -1268,17 +1297,26 @@ let progressBmiWeightRulerTickSpacing = 6;
 let progressBmiHeightRulerTickSpacing = 6;
 let mobileSelectPickerRoot = null;
 let mobileSelectPickerTitle = null;
+let mobileSelectPickerSubtitle = null;
+let mobileSelectPickerSearchInput = null;
 let mobileSelectPickerList = null;
+let mobileSelectPickerConfirmButton = null;
 let mobileSelectPickerCloseButton = null;
 let mobileSelectPickerActiveSelect = null;
 let mobileSelectPickerFocusOrigin = null;
 let mobileSelectPickerTapIntent = null;
+let mobileSelectPickerSearchTerm = '';
 let mobileSelectPickerSuppressClickUntil = 0;
 let mobileSelectPickerIgnoreCloseUntil = 0;
 let activeProfileAction = '';
 let trainerStudentSearchTerm = '';
 let trainerInstructorSearchTerm = '';
 let trainerExerciseSearchTerm = '';
+let trainerExerciseLibraryScreenSearchTerm = '';
+let trainerExerciseLibraryScreenGroup = '';
+let trainerExerciseLibraryScreenExerciseId = '';
+let trainerHomeActiveTab = 'home';
+let trainerWorkoutScreenView = 'home';
 let trainerManagedWorkoutsSearchTerm = '';
 let trainerManagedWorkoutsSelectedStudentKey = '';
 let trainerManagedWorkoutsAudienceView = 'instructor';
@@ -1338,7 +1376,7 @@ let trainerWorkoutPredefinedLastAppliedLabel = '';
 let siteTopNoticeHideTimer = null;
 let siteTopNoticeCleanupTimer = null;
 let siteTopNoticeLastMessage = '';
-let siteTopNoticeLastIsSuccess = false;
+let siteTopNoticeLastVariant = '';
 let siteTopNoticeLastShownAt = 0;
 let trainerExerciseQuickCreateInFlight = false;
 let trainerWorkoutCreateInFlight = false;
@@ -1411,12 +1449,44 @@ const LIBRARY_GROUP_IMAGES = {
   ombros: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/bdb73d429a-capa-ombro.svg',
   biceps: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/foto-do-grupo-muscular/logo-dna-4/a3ce305e8b-biceps.png',
   triceps: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/foto-do-grupo-muscular/logo-dna-4/e782e930f9-triceps.png',
+  antebraco: 'img/antebreço.jpg',
   gluteos: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/421c49b960-glueteo.svg',
   quadriceps: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/85944dffd8-capa-quadriceps.svg',
   posterior: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/41fcacb69f-posterior-coxa.svg',
   adutores: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/629b3125fe-adutor.svg',
   abdutores: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/5b5b6cf5d9-abdutor.svg',
   panturrilhas: 'https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/img/58ae86e77d-panturrilha.svg'
+};
+
+const LIBRARY_GROUP_DESCRIPTIONS = {
+  peito: 'Exercícios para o treino de Peito.',
+  costas: 'Exercícios para o treino de Costas.',
+  ombros: 'Exercícios para o treino de Ombros.',
+  biceps: 'Exercícios para o treino de Bíceps.',
+  triceps: 'Exercícios para o treino de Tríceps.',
+  antebraco: 'Exercícios para o treino de Antebraço.',
+  abdomen: 'Exercícios para o treino de Abdômen.',
+  lombar: 'Exercícios para o treino de Lombar.',
+  gluteos: 'Exercícios para o treino de Glúteos.',
+  quadriceps: 'Exercícios para o treino de Quadríceps.',
+  posterior: 'Exercícios para o treino de Posterior.',
+  adutores: 'Exercícios para o treino de Adutores.',
+  abdutores: 'Exercícios para o treino de Abdutores.',
+  panturrilhas: 'Exercícios para o treino de Panturrilhas.'
+};
+
+const LIBRARY_GROUP_ICON_SVGS = {
+  quadriceps: '<svg viewBox="0 0 24 24"><path d="M9 3c1.1 2.8 1.2 5.8.2 9l-1.5 5.2c-.3 1 .1 2.1 1.1 2.6.9.5 2.1.2 2.6-.8L12 18l.6 1c.6 1 1.7 1.3 2.6.8 1-.5 1.4-1.6 1.1-2.6L14.8 12c-1-3.2-.9-6.2.2-9"></path><path d="M12 4v14"></path></svg>',
+  posterior: '<svg viewBox="0 0 24 24"><path d="M9 3c1.1 2.8 1.2 5.8.2 9l-1.5 5.2c-.3 1 .1 2.1 1.1 2.6.9.5 2.1.2 2.6-.8L12 18l.6 1c.6 1 1.7 1.3 2.6.8 1-.5 1.4-1.6 1.1-2.6L14.8 12c-1-3.2-.9-6.2.2-9"></path><path d="M12 4v14"></path></svg>',
+  panturrilhas: '<svg viewBox="0 0 24 24"><path d="M9 3c1.1 2.8 1.2 5.8.2 9l-1.5 5.2c-.3 1 .1 2.1 1.1 2.6.9.5 2.1.2 2.6-.8L12 18l.6 1c.6 1 1.7 1.3 2.6.8 1-.5 1.4-1.6 1.1-2.6L14.8 12c-1-3.2-.9-6.2.2-9"></path><path d="M12 4v14"></path></svg>'
+};
+
+const DEFAULT_LIBRARY_GROUP_ICON_SVG = '<svg viewBox="0 0 24 24"><path d="M7 9c1.2-2 2.9-3 5-3s3.8 1 5 3"></path><path d="M6 10c-1.8.7-3 2.3-3 4.4V18h4v-4"></path><path d="M18 10c1.8.7 3 2.3 3 4.4V18h-4v-4"></path><path d="M9 11v8h6v-8"></path><path d="M9 16h6"></path></svg>';
+const TRAINER_EXERCISE_DUMBBELL_ICON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"></path><path d="M6 8v8"></path><path d="M18 8v8"></path><path d="M3.5 10v4"></path><path d="M20.5 10v4"></path><path d="M8.5 9.5v5"></path><path d="M15.5 9.5v5"></path></svg>';
+
+const getLibraryGroupIconSvg = (groupKey) => {
+  const normalizedGroup = String(groupKey || '').trim().toLowerCase();
+  return LIBRARY_GROUP_ICON_SVGS[normalizedGroup] || DEFAULT_LIBRARY_GROUP_ICON_SVG;
 };
 
 const getLibraryGroupImageSrc = (groupKey) => {
@@ -2549,6 +2619,9 @@ const isTrainerManagerUser = () =>
 
 const isInstructorUser = () =>
   hasActiveStudentSession() && isInstructorRole(studentData.userRole);
+
+const canViewRegisteredExercisesPanel = () =>
+  isGeneralAdminUser() || isInstructorUser();
 
 const isLibraryManagerRole = (role) => {
   const normalizedRole = normalizeRole(role);
@@ -4279,7 +4352,7 @@ const startSessionHeartbeat = () => {
   void sendSessionHeartbeat();
   sessionHeartbeatTimer = window.setInterval(() => {
     void sendSessionHeartbeat();
-  }, 20000);
+  }, 120000);
 };
 
 const normalizeText = (value) =>
@@ -7424,6 +7497,7 @@ const getFilteredLibraryItems = () => {
       label: getLibraryGroupLabel(group, group),
       icon: LIBRARY_GROUP_ICONS[group] || '🏋️',
       image: getLibraryGroupImageSrc(group),
+      description: LIBRARY_GROUP_DESCRIPTIONS[group] || 'Exercícios organizados para esse grupo muscular.',
       count: studentData.library.filter(
         (exercise) => normalizeLibraryGroupKey(exercise && exercise.group, '') === group
       ).length
@@ -7457,9 +7531,13 @@ const renderLibrary = () => {
       <span class="${mediaClassName}" aria-hidden="true">
         ${mediaMarkup}
       </span>
+      <span class="student-library-item-badge" aria-hidden="true">
+        ${getLibraryGroupIconSvg(exercise.group)}
+      </span>
       <span class="student-library-item-copy">
         <strong>${exercise.label}</strong>
-        <small>${countLabel}</small>
+        <small>${exercise.description}</small>
+        <em>${countLabel}</em>
       </span>
       <span class="student-library-item-arrow" aria-hidden="true">›</span>
     `;
@@ -8142,8 +8220,17 @@ const buildAdminExerciseIdentification = (exerciseId) => {
 const getAdminOverviewExerciseById = (exerciseId) => {
   const safeId = Number(exerciseId) || 0;
   if (!safeId) return null;
-  if (!Array.isArray(adminOverviewState.exercises)) return null;
-  return adminOverviewState.exercises.find((item) => Number(item && item.id) === safeId) || null;
+  const sources = [
+    adminOverviewState.exercises,
+    trainerManagementState.library,
+    studentData.library
+  ];
+  for (const source of sources) {
+    if (!Array.isArray(source)) continue;
+    const exercise = source.find((item) => Number(item && item.id) === safeId);
+    if (exercise) return exercise;
+  }
+  return null;
 };
 
 const getAdminOverviewWorkoutById = (workoutId) => {
@@ -8247,8 +8334,9 @@ const getAdminExerciseEditGroupKeys = (exercise = null) => {
 };
 
 const SITE_TOP_NOTICE_ANIMATION_MS = 260;
-const SITE_TOP_NOTICE_DEFAULT_DURATION_MS = 4200;
+const SITE_TOP_NOTICE_DEFAULT_DURATION_MS = 4000;
 const INLINE_FEEDBACK_MIN_VISIBLE_MS = 2600;
+const SITE_TOP_NOTICE_VARIANTS = ['success', 'info', 'warning', 'error', 'tip'];
 
 const getInlineFeedbackHoldUntil = (target) => {
   if (!target || !(target instanceof HTMLElement)) return 0;
@@ -8281,12 +8369,57 @@ const clearSiteTopNoticeTimers = () => {
   }
 };
 
+const getSiteTopNoticeVariantClasses = () => SITE_TOP_NOTICE_VARIANTS.map((variant) => `is-${variant}`);
+
+const resolveSiteTopNoticeVariant = (message, isSuccess = false, variant = '') => {
+  const normalizedVariant = String(variant || '').trim().toLowerCase();
+  if (SITE_TOP_NOTICE_VARIANTS.includes(normalizedVariant)) return normalizedVariant;
+  if (isSuccess) return 'success';
+
+  const normalizedMessage = String(message || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (
+    /\b(dica|atalho|sugestao|sugestoes|copiar)\b/.test(normalizedMessage)
+  ) {
+    return 'tip';
+  }
+
+  if (
+    /\b(carregando|enviando|criando|salvando|atualizando|preparando|sincronizando|processando|designando|associando|vinculando|removendo|excluindo|desativando|liberando|aguarde)\b/.test(
+      normalizedMessage
+    )
+  ) {
+    return 'info';
+  }
+
+  if (
+    /\b(ops|erro|falha|falhou|invalido|indisponivel|expirou|tente novamente|nao foi possivel|nao conseguimos|nao encontrado)\b/.test(
+      normalizedMessage
+    )
+  ) {
+    return 'error';
+  }
+
+  if (
+    /\b(atencao|aviso|selecione|escolha|preencha|obrigatorio|obrigatoria|vencido|vencidos|limite|somente|nao pode|precisa)\b/.test(
+      normalizedMessage
+    )
+  ) {
+    return 'warning';
+  }
+
+  return 'warning';
+};
+
 const hideSiteTopNotice = ({ immediate = false } = {}) => {
   if (!siteTopNotice) return;
   clearSiteTopNoticeTimers();
 
   if (immediate) {
-    siteTopNotice.classList.remove('is-visible', 'is-success');
+    siteTopNotice.classList.remove('is-visible', ...getSiteTopNoticeVariantClasses());
     siteTopNotice.hidden = true;
     if (siteTopNoticeText) siteTopNoticeText.textContent = '';
     return;
@@ -8296,12 +8429,16 @@ const hideSiteTopNotice = ({ immediate = false } = {}) => {
   siteTopNoticeCleanupTimer = window.setTimeout(() => {
     if (!siteTopNotice) return;
     siteTopNotice.hidden = true;
-    siteTopNotice.classList.remove('is-success');
+    siteTopNotice.classList.remove(...getSiteTopNoticeVariantClasses());
     if (siteTopNoticeText) siteTopNoticeText.textContent = '';
   }, SITE_TOP_NOTICE_ANIMATION_MS + 40);
 };
 
-const showSiteTopNotice = (message, isSuccess = false, { durationMs = SITE_TOP_NOTICE_DEFAULT_DURATION_MS } = {}) => {
+const showSiteTopNotice = (
+  message,
+  isSuccess = false,
+  { durationMs = SITE_TOP_NOTICE_DEFAULT_DURATION_MS, variant = '' } = {}
+) => {
   if (!siteTopNotice || !siteTopNoticeText) return;
   const normalizedMessage = String(message || '').trim();
   if (!normalizedMessage) {
@@ -8310,34 +8447,42 @@ const showSiteTopNotice = (message, isSuccess = false, { durationMs = SITE_TOP_N
   }
 
   const now = Date.now();
-  const normalizedIsSuccess = Boolean(isSuccess);
+  const resolvedVariant = resolveSiteTopNoticeVariant(normalizedMessage, isSuccess, variant);
   const isDuplicatedBurst =
     normalizedMessage === siteTopNoticeLastMessage &&
-    normalizedIsSuccess === siteTopNoticeLastIsSuccess &&
+    resolvedVariant === siteTopNoticeLastVariant &&
     now - siteTopNoticeLastShownAt < 320;
 
   if (isDuplicatedBurst) return;
 
   siteTopNoticeLastMessage = normalizedMessage;
-  siteTopNoticeLastIsSuccess = normalizedIsSuccess;
+  siteTopNoticeLastVariant = resolvedVariant;
   siteTopNoticeLastShownAt = now;
 
   clearSiteTopNoticeTimers();
   siteTopNotice.hidden = false;
   siteTopNoticeText.textContent = normalizedMessage;
-  siteTopNotice.classList.toggle('is-success', normalizedIsSuccess);
-  siteTopNotice.classList.remove('is-visible');
+  siteTopNotice.classList.remove('is-visible', ...getSiteTopNoticeVariantClasses());
+  siteTopNotice.classList.add(`is-${resolvedVariant}`);
+  siteTopNotice.dataset.noticeVariant = resolvedVariant;
+  siteTopNotice.setAttribute('role', ['warning', 'error'].includes(resolvedVariant) ? 'alert' : 'status');
   void siteTopNotice.offsetWidth;
   window.requestAnimationFrame(() => {
     if (!siteTopNotice) return;
     siteTopNotice.classList.add('is-visible');
   });
 
-  const safeDuration = Math.max(1600, Number(durationMs) || SITE_TOP_NOTICE_DEFAULT_DURATION_MS);
+  const safeDuration = Math.max(SITE_TOP_NOTICE_DEFAULT_DURATION_MS, Number(durationMs) || SITE_TOP_NOTICE_DEFAULT_DURATION_MS);
   siteTopNoticeHideTimer = window.setTimeout(() => {
     hideSiteTopNotice();
   }, safeDuration);
 };
+
+if (siteTopNoticeClose) {
+  siteTopNoticeClose.addEventListener('click', () => {
+    hideSiteTopNotice();
+  });
+}
 
 const setInlineFeedback = (
   target,
@@ -9439,7 +9584,7 @@ const syncAdminExercisesPanelCollapseUi = () => {
   if (adminExercisesCard) adminExercisesCard.classList.toggle('is-collapsed', isCollapsed);
   if (adminExercisesBody) adminExercisesBody.hidden = isCollapsed;
   if (adminExercisesToggleButton) {
-    adminExercisesToggleButton.textContent = isCollapsed ? 'Expandir caixa' : 'Minimizar caixa';
+    adminExercisesToggleButton.textContent = isCollapsed ? 'Expandir' : 'Minimizar';
     adminExercisesToggleButton.setAttribute('aria-expanded', String(!isCollapsed));
   }
 };
@@ -9509,6 +9654,12 @@ const setAdminSupportView = (view, { rerender = true } = {}) => {
 };
 
 const syncTrainerManagedWorkoutsViewUi = () => {
+  if (trainerManagedWorkoutsCard) {
+    trainerManagedWorkoutsCard.classList.toggle(
+      'is-definition-view',
+      normalizeTrainerManagedWorkoutsView(trainerManagedWorkoutsView) === 'definition'
+    );
+  }
   trainerManagedWorkoutsViewButtons.forEach((button) => {
     if (!(button instanceof HTMLButtonElement)) return;
     const buttonView = normalizeTrainerManagedWorkoutsView(button.dataset.trainerManagedWorkoutsView || '');
@@ -9634,6 +9785,33 @@ const toggleTrainerTemplateCreatePanelCollapsed = () => {
   setTrainerTemplateCreatePanelCollapsed(!trainerTemplateCreatePanelCollapsed);
 };
 
+const getTrainerTemplateSectionPanel = (sectionName) => {
+  if (sectionName === 'create') return document.querySelector('.trainer-create-template-panel--showcase');
+  if (sectionName === 'edit') return document.querySelector('.trainer-template-edit-card--exercises');
+  return null;
+};
+
+const syncTrainerTemplateSectionToggleButton = (button, isMinimized) => {
+  if (!button) return;
+  button.textContent = isMinimized ? 'Expandir' : 'Minimizar';
+  button.setAttribute('aria-expanded', String(!isMinimized));
+};
+
+const toggleTrainerTemplateSectionMinimized = (button) => {
+  if (!button) return;
+  const panel = getTrainerTemplateSectionPanel(button.dataset.trainerTemplateSectionToggle);
+  if (!panel) return;
+  const isMinimized = panel.classList.toggle('is-minimized');
+  syncTrainerTemplateSectionToggleButton(button, isMinimized);
+};
+
+const syncTrainerTemplateSectionMinimizeUi = () => {
+  trainerTemplateSectionToggleButtons.forEach((button) => {
+    const panel = getTrainerTemplateSectionPanel(button.dataset.trainerTemplateSectionToggle);
+    syncTrainerTemplateSectionToggleButton(button, Boolean(panel && panel.classList.contains('is-minimized')));
+  });
+};
+
 const loadTrainerWorkoutCreatePanelCollapsed = () => {
   try {
     const savedValue = localStorage.getItem(TRAINER_WORKOUT_CREATE_PANEL_COLLAPSED_KEY);
@@ -9689,7 +9867,7 @@ const syncTrainerManagedWorkoutsPanelCollapseUi = () => {
   if (trainerManagedWorkoutsCard) trainerManagedWorkoutsCard.classList.toggle('is-collapsed', isCollapsed);
   if (trainerManagedWorkoutsBody) trainerManagedWorkoutsBody.hidden = isCollapsed;
   if (trainerManagedWorkoutsToggleButton) {
-    trainerManagedWorkoutsToggleButton.textContent = isCollapsed ? 'Expandir caixa' : 'Minimizar caixa';
+    trainerManagedWorkoutsToggleButton.textContent = isCollapsed ? 'Expandir' : 'Minimizar';
     trainerManagedWorkoutsToggleButton.setAttribute('aria-expanded', String(!isCollapsed));
   }
 };
@@ -9713,6 +9891,7 @@ const renderAdminOverviewPanel = () => {
   syncAdminTeamPanelCollapseUi();
 
   const showPanelData = isGeneralAdminUser();
+  const canViewRegisteredExercises = canViewRegisteredExercisesPanel();
   applyRoleBasedUiMode();
 
   const stats = adminOverviewState.stats || {};
@@ -10126,9 +10305,192 @@ const renderAdminOverviewPanel = () => {
     })
     .sort((first, second) => (Number(second && second.id) || 0) - (Number(first && first.id) || 0));
 
+  const buildRegisteredExerciseActionsMarkup = ({ exerciseId, exerciseName, isActive, canManageExercise }) => {
+    const statusActionMarkup = canManageExercise
+      ? `
+          <button
+            class="admin-overview-action-btn trainer-registered-exercise-action"
+            type="button"
+            data-admin-exercise-status-toggle
+            data-exercise-id="${escapeAdminCell(exerciseId)}"
+            data-next-active="${isActive ? 'false' : 'true'}"
+          >
+            ${isActive ? 'Desabilitar' : 'Habilitar'}
+          </button>
+      `
+      : '';
+    const editActionMarkup = canManageExercise
+      ? `
+            <button
+              class="admin-overview-action-btn admin-overview-action-icon-btn trainer-registered-exercise-action"
+              type="button"
+              data-admin-exercise-edit
+              data-exercise-id="${escapeAdminCell(exerciseId)}"
+              aria-label="Editar exercício ${escapeAdminCell(exerciseName)}"
+              title="Editar exercício"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m4 20 4.5-1 9.7-9.7a2.1 2.1 0 0 0 0-3L17.7 3.8a2.1 2.1 0 0 0-3 0L5 13.5 4 18Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="M13.5 6.5 17.5 10.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+            </button>
+        `
+      : '';
+
+    return `
+      <button
+        class="admin-overview-action-btn admin-overview-action-icon-btn trainer-registered-exercise-icon-action"
+        type="button"
+        data-admin-exercise-view
+        data-exercise-id="${escapeAdminCell(exerciseId)}"
+        aria-label="Visualizar exercício ${escapeAdminCell(exerciseName)}"
+        title="Visualizar exercício"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"></circle>
+        </svg>
+      </button>
+      ${editActionMarkup}
+      ${statusActionMarkup}
+    `;
+  };
+
+  const buildRegisteredExerciseViewModel = (exercise) => {
+    const exerciseId = Number(exercise && exercise.id) || 0;
+    const exerciseName = String((exercise && exercise.name) || '').trim() || '-';
+    const groupKey = getLibraryGroupKeyForAdmin(exercise);
+    const groupLabel = getLibraryGroupLabelForAdmin(groupKey);
+    const identification = buildAdminExerciseIdentification(exerciseId);
+    const seriesCount = Math.max(
+      1,
+      Number(
+        exercise &&
+        (
+          exercise.seriesCount !== undefined
+            ? exercise.seriesCount
+            : exercise.series !== undefined
+              ? exercise.series
+              : exercise.series_count
+        )
+      ) || 3
+    );
+    const repetitions = Math.max(1, Number(exercise && exercise.repetitions) || 10);
+    const durationSeconds = Math.max(10, Number(exercise && exercise.durationSeconds) || 60);
+    const restSeconds = Math.max(0, Number(exercise && exercise.restSeconds) || 30);
+    const persistedCaloriesEstimate = Number(
+      exercise &&
+        (
+          exercise.caloriesEstimate !== undefined
+            ? exercise.caloriesEstimate
+            : exercise.calories_estimate !== undefined
+              ? exercise.calories_estimate
+              : exercise.calories
+        )
+    );
+    const caloriesEstimate =
+      Number.isFinite(persistedCaloriesEstimate) && persistedCaloriesEstimate > 0
+        ? Math.max(0, Math.round(persistedCaloriesEstimate))
+        : estimateExerciseCalories({
+          durationSeconds,
+          repetitions,
+          restSeconds,
+          loadKg: Number(exercise && exercise.loadKg) || 0
+        });
+    const media = resolveExerciseMedia(exercise);
+    const imageUrl = media && media.imageUrl
+      ? media.imageUrl
+      : getLibraryGroupImageSrc(groupKey);
+
+    return {
+      exerciseId,
+      exerciseName,
+      groupLabel,
+      identification,
+      seriesCount,
+      repetitions,
+      durationSeconds,
+      restSeconds,
+      caloriesEstimate,
+      isActive: exercise && exercise.isActive !== false,
+      defaultsLabel: `${seriesCount} séries | ${repetitions} reps | ${formatSecondsLabel(durationSeconds)} | desc ${formatSecondsLabel(restSeconds)} | ${caloriesEstimate} kcal`,
+      imageUrl,
+      createdAt: exercise && exercise.createdAt
+    };
+  };
+
+  if (adminExercisesCardList) {
+    if (!canViewRegisteredExercises) {
+      adminExercisesCardList.innerHTML = '<p class="trainer-registered-exercises-empty">Acesso exclusivo do Administrador Geral e Instrutores.</p>';
+    } else if (!allLibraryExercises.length) {
+      adminExercisesCardList.innerHTML = '<p class="trainer-registered-exercises-empty">Nenhum exercício cadastrado na biblioteca.</p>';
+    } else if (!filteredLibraryExercises.length) {
+      adminExercisesCardList.innerHTML = '<p class="trainer-registered-exercises-empty">Nenhum exercício encontrado para esse filtro.</p>';
+    } else {
+      adminExercisesCardList.innerHTML = filteredLibraryExercises
+        .map((exercise) => {
+          const model = buildRegisteredExerciseViewModel(exercise);
+          const canManageExercise = canViewRegisteredExercises;
+          const safeImageStyle = model.imageUrl
+            ? ` style="--exercise-card-image: url('${escapeAdminCell(model.imageUrl)}');"`
+            : '';
+          return `
+            <article class="trainer-registered-exercise-card"${safeImageStyle}>
+              <div class="trainer-registered-exercise-top">
+                <span class="trainer-registered-exercise-id">
+                  <small>ID</small>
+                  <strong>${escapeAdminCell(model.exerciseId || '-')}</strong>
+                </span>
+                <span class="trainer-registered-exercise-code">${escapeAdminCell(model.identification)}</span>
+                <span class="trainer-registered-exercise-status ${model.isActive ? 'is-active' : 'is-inactive'}">
+                  ${model.isActive ? 'Ativo' : 'Inativo'}
+                </span>
+              </div>
+              <div class="trainer-registered-exercise-content">
+                <h6>${escapeAdminCell(model.exerciseName)}</h6>
+                <p>Grupo: <strong>${escapeAdminCell(model.groupLabel)}</strong></p>
+                <dl class="trainer-registered-exercise-metrics">
+                  <div>
+                    <dt>Séries</dt>
+                    <dd>${escapeAdminCell(model.seriesCount)}</dd>
+                  </div>
+                  <div>
+                    <dt>Reps</dt>
+                    <dd>${escapeAdminCell(model.repetitions)}</dd>
+                  </div>
+                  <div>
+                    <dt>Tempo</dt>
+                    <dd>${escapeAdminCell(formatSecondsLabel(model.durationSeconds))}</dd>
+                  </div>
+                  <div>
+                    <dt>Desc</dt>
+                    <dd>${escapeAdminCell(formatSecondsLabel(model.restSeconds))}</dd>
+                  </div>
+                  <div>
+                    <dt>Kcal</dt>
+                    <dd>${escapeAdminCell(model.caloriesEstimate)}</dd>
+                  </div>
+                </dl>
+              </div>
+              <div class="trainer-registered-exercise-actions">
+                <span class="trainer-registered-exercise-actions-title">Ações</span>
+                ${buildRegisteredExerciseActionsMarkup({
+                  exerciseId: model.exerciseId,
+                  exerciseName: model.exerciseName,
+                  isActive: model.isActive,
+                  canManageExercise
+                })}
+              </div>
+            </article>
+          `;
+        })
+        .join('');
+    }
+  }
+
   if (adminExercisesTableBody) {
-    if (!showPanelData) {
-      adminExercisesTableBody.innerHTML = '<tr><td colspan="8">Acesso exclusivo do Administrador Geral.</td></tr>';
+    if (!canViewRegisteredExercises) {
+      adminExercisesTableBody.innerHTML = '<tr><td colspan="8">Acesso exclusivo do Administrador Geral e Instrutores.</td></tr>';
     } else if (!allLibraryExercises.length) {
       adminExercisesTableBody.innerHTML = '<tr><td colspan="8">Nenhum exercício cadastrado na biblioteca.</td></tr>';
     } else if (!filteredLibraryExercises.length) {
@@ -10178,7 +10540,9 @@ const renderAdminOverviewPanel = () => {
               });
           const isActive = exercise && exercise.isActive !== false;
           const defaultsLabel = `${seriesCount} séries | ${repetitions} reps | ${formatSecondsLabel(durationSeconds)} | desc ${formatSecondsLabel(restSeconds)} | ${caloriesEstimate} kcal`;
-          const statusActionMarkup = `
+          const canManageExercise = canViewRegisteredExercises;
+          const statusActionMarkup = canManageExercise
+            ? `
                 <button
                   class="admin-overview-action-btn"
                   type="button"
@@ -10188,8 +10552,9 @@ const renderAdminOverviewPanel = () => {
                 >
                   ${isActive ? 'Desabilitar' : 'Habilitar'}
                 </button>
-            `;
-          const deleteActionMarkup = !isActive
+            `
+            : '';
+          const deleteActionMarkup = canManageExercise && !isActive
             ? `
                   <button
                     class="admin-overview-action-btn admin-overview-action-icon-btn is-danger"
@@ -10201,6 +10566,23 @@ const renderAdminOverviewPanel = () => {
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       <path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-1 7h2v8H8v-8zm6 0h2v8h-2v-8zm-3 0h2v8h-2v-8zM6 20h12l1-12H5l1 12z"></path>
+                    </svg>
+                  </button>
+              `
+            : '';
+          const editActionMarkup = canManageExercise
+            ? `
+                  <button
+                    class="admin-overview-action-btn admin-overview-action-icon-btn"
+                    type="button"
+                    data-admin-exercise-edit
+                    data-exercise-id="${escapeAdminCell(exerciseId)}"
+                    aria-label="Editar exercício ${escapeAdminCell(exerciseName)}"
+                    title="Editar exercício"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m4 20 4.5-1 9.7-9.7a2.1 2.1 0 0 0 0-3L17.7 3.8a2.1 2.1 0 0 0-3 0L5 13.5 4 18Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                      <path d="M13.5 6.5 17.5 10.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
                     </svg>
                   </button>
               `
@@ -10235,19 +10617,7 @@ const renderAdminOverviewPanel = () => {
                       <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"></circle>
                     </svg>
                   </button>
-                  <button
-                    class="admin-overview-action-btn admin-overview-action-icon-btn"
-                    type="button"
-                    data-admin-exercise-edit
-                    data-exercise-id="${escapeAdminCell(exerciseId)}"
-                    aria-label="Editar exercício ${escapeAdminCell(exerciseName)}"
-                    title="Editar exercício"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="m4 20 4.5-1 9.7-9.7a2.1 2.1 0 0 0 0-3L17.7 3.8a2.1 2.1 0 0 0-3 0L5 13.5 4 18Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                      <path d="M13.5 6.5 17.5 10.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    </svg>
-                  </button>
+                  ${editActionMarkup}
                   ${statusActionMarkup}
                   ${deleteActionMarkup}
                 </div>
@@ -10558,24 +10928,29 @@ const startAdminGeralAutoRefresh = () => {
     if (adminOverviewState.loading) return;
 
     try {
-      const supportResponse = await requestStudentApi('/admin/support-tickets?archived=all&limit=500');
-      const tickets = Array.isArray(supportResponse && supportResponse.tickets)
-        ? supportResponse.tickets
+      const [openResponse, resetResponse] = await Promise.all([
+        requestStudentApi('/admin/support-tickets?status=OPEN&limit=100'),
+        requestStudentApi('/admin/support-tickets?status=OPEN&type=PASSWORD_RESET&limit=100')
+      ]);
+      const openTickets = Array.isArray(openResponse && openResponse.tickets)
+        ? openResponse.tickets
+        : [];
+      const resetTickets = Array.isArray(resetResponse && resetResponse.tickets)
+        ? resetResponse.tickets
+        : [];
+      const nonOpenExisting = Array.isArray(adminOverviewState.supportTickets)
+        ? adminOverviewState.supportTickets.filter(
+          (ticket) => normalizeSupportTicketStatus(ticket && ticket.status) !== 'OPEN'
+        )
         : [];
 
-      adminOverviewState.supportTickets = tickets;
+      adminOverviewState.supportTickets = [...openTickets, ...nonOpenExisting];
       adminOverviewState.stats = {
         ...(adminOverviewState.stats && typeof adminOverviewState.stats === 'object'
           ? adminOverviewState.stats
           : {}),
-        supportTicketsPendentes: tickets.filter(
-          (ticket) => normalizeSupportTicketStatus(ticket && ticket.status) === 'OPEN'
-        ).length,
-        supportResetPendentes: tickets.filter(
-          (ticket) =>
-            normalizeSupportTicketStatus(ticket && ticket.status) === 'OPEN' &&
-            normalizeSupportTicketType(ticket && ticket.type) === 'PASSWORD_RESET'
-        ).length
+        supportTicketsPendentes: openTickets.length,
+        supportResetPendentes: resetTickets.length
       };
 
       renderAdminOverviewPanel();
@@ -11589,6 +11964,19 @@ const requestWorkoutTemplateExerciseDelete = async ({ templateId, templateExerci
 };
 
 const setTrainerManagementFeedback = (message, isSuccess = false) => {
+  if (isSuccess) {
+    setInlineFeedback(
+      trainerWorkoutError,
+      '',
+      false,
+      { notice: false, minVisibleMs: 0, forceClear: true }
+    );
+    if (String(message || '').trim()) {
+      showSiteTopNotice(message, true);
+    }
+    return;
+  }
+
   setInlineFeedback(trainerWorkoutError, message, isSuccess);
 };
 
@@ -11600,6 +11988,27 @@ const setTrainerWorkoutModalFeedback = (message, isSuccess = false) => {
   setInlineFeedback(trainerWorkoutModalFeedback, message, isSuccess);
 };
 
+const formatPersonNameForNotice = (name) => {
+  const tokens = String(name || '')
+    .replace(/\s*\([^)]*\)\s*$/g, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (tokens.length <= 2) return tokens.join(' ');
+
+  const surnameParticles = new Set(['da', 'das', 'de', 'do', 'dos', 'e']);
+  let surnameStartIndex = tokens.length - 1;
+  while (
+    surnameStartIndex > 1 &&
+    surnameParticles.has(String(tokens[surnameStartIndex - 1] || '').toLowerCase())
+  ) {
+    surnameStartIndex -= 1;
+  }
+
+  return `${tokens[0]} ${tokens.slice(surnameStartIndex).join(' ')}`.trim();
+};
+
 const getTrainerWorkoutModalRecord = () => {
   const templateId = Number(trainerWorkoutTemplateEditingId) || 0;
   if (templateId) {
@@ -11608,6 +12017,23 @@ const getTrainerWorkoutModalRecord = () => {
 
   const workoutId = Number(trainerWorkoutEditingId) || 0;
   return workoutId ? getTrainerWorkoutById(workoutId) : null;
+};
+
+const getTrainerWorkoutTitleParts = (workoutName, objectiveLabel = '') => {
+  const normalizedName = String(workoutName || '').trim();
+  const normalizedObjective = String(objectiveLabel || '').trim() || 'Sem objetivo informado';
+  const match = normalizedName.match(/^treino\s+([^-–—]+?)\s+((?:a|b|c|d)\d\b.*)$/i);
+  if (!match) {
+    return {
+      displayName: normalizedName || '-',
+      focus: normalizedObjective
+    };
+  }
+
+  return {
+    displayName: match[2].trim(),
+    focus: match[1].trim()
+  };
 };
 
 const renderTrainerWorkoutModalCoverSection = (workout = null) => {
@@ -11625,9 +12051,15 @@ const renderTrainerWorkoutModalCoverSection = (workout = null) => {
   }
 
   if (trainerWorkoutModalCoverTitle) {
-    trainerWorkoutModalCoverTitle.textContent = String(
+    const recordTitle = String(
       (currentRecord && (currentRecord.title || currentRecord.name)) ||
       (isTemplateMode ? 'Nomeclatura' : 'Treino')
+    ).trim() || (isTemplateMode ? 'Nomeclatura' : 'Treino');
+    const recordObjective = String(
+      (currentRecord && (currentRecord.objective || currentRecord.objetivo)) || ''
+    ).trim();
+    trainerWorkoutModalCoverTitle.textContent = String(
+      getTrainerWorkoutTitleParts(recordTitle, recordObjective).displayName
     ).trim() || (isTemplateMode ? 'Nomeclatura' : 'Treino');
   }
 
@@ -11682,6 +12114,29 @@ const setTrainerWorkoutModalMode = ({ readOnly = false } = {}) => {
   trainerWorkoutModalReadOnly = Boolean(readOnly);
   const isTemplateMode = Number(trainerWorkoutTemplateEditingId) > 0;
   const showStatusControl = isTemplateMode;
+  const modalHead = trainerWorkoutModal
+    ? trainerWorkoutModal.querySelector('.admin-exercise-edit-modal-head')
+    : null;
+
+  if (modalHead && !modalHead.querySelector('.trainer-workout-modal-head-icon')) {
+    const icon = document.createElement('span');
+    icon.className = 'trainer-workout-modal-head-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 8v8"></path><path d="M18 8v8"></path><path d="M3.5 10v4"></path><path d="M20.5 10v4"></path><path d="M8.5 12h7"></path></svg>';
+
+    const title = trainerWorkoutModalTitle;
+    const identification = trainerWorkoutModalIdentification;
+    if (title && identification && !modalHead.querySelector('.trainer-workout-modal-head-copy')) {
+      const copy = document.createElement('div');
+      copy.className = 'trainer-workout-modal-head-copy';
+      copy.appendChild(title);
+      copy.appendChild(identification);
+      modalHead.appendChild(icon);
+      modalHead.appendChild(copy);
+    } else {
+      modalHead.insertBefore(icon, modalHead.firstChild);
+    }
+  }
 
   if (trainerWorkoutModalTitle) {
     if (trainerWorkoutModalReadOnly) {
@@ -12484,7 +12939,11 @@ const openTrainerWorkoutModal = (
     ).trim();
   }
   if (trainerWorkoutModalNameInput) {
-    trainerWorkoutModalNameInput.value = String(workout.title || workout.name || '').trim();
+    const originalWorkoutName = String(workout.title || workout.name || '').trim();
+    const originalWorkoutObjective = String(workout.objective || workout.objetivo || 'Hipertrofia').trim();
+    trainerWorkoutModalNameInput.value = isReadOnly
+      ? getTrainerWorkoutTitleParts(originalWorkoutName, originalWorkoutObjective).displayName
+      : originalWorkoutName;
   }
   if (trainerWorkoutModalObjectiveSelect) {
     trainerWorkoutModalObjectiveSelect.value = String(
@@ -13024,6 +13483,448 @@ const openLibraryManagerPanel = ({ autoOpenForm = false } = {}) => {
   syncLibraryManagerUi();
 };
 
+const normalizeTrainerHomeTab = (tab) => {
+  const normalizedTab = String(tab || '').trim().toLowerCase();
+  return normalizedTab === 'workouts' ? 'workouts' : 'home';
+};
+
+const syncTrainerHomeTabsUi = () => {
+  const activeTab = normalizeTrainerHomeTab(trainerHomeActiveTab);
+  trainerHomeActiveTab = activeTab;
+
+  trainerHomeTabButtons.forEach((button) => {
+    const tab = normalizeTrainerHomeTab(button.dataset.trainerHomeTab || '');
+    const isActive = tab === activeTab;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-selected', String(isActive));
+  });
+
+  trainerHomePanels.forEach((panel) => {
+    const tab = normalizeTrainerHomeTab(panel.dataset.trainerHomePanel || '');
+    panel.hidden = tab !== activeTab;
+    panel.classList.toggle('is-active', tab === activeTab);
+  });
+
+  if (trainerWorkoutPanel) {
+    trainerWorkoutPanel.classList.toggle('is-home-tab-active', activeTab === 'home');
+    trainerWorkoutPanel.classList.toggle('is-workouts-tab-active', activeTab === 'workouts');
+  }
+};
+
+const setTrainerHomeTab = (tab, { scroll = false } = {}) => {
+  trainerHomeActiveTab = normalizeTrainerHomeTab(tab);
+  syncTrainerHomeTabsUi();
+  if (scroll) scrollTrainerShortcutTarget(trainerWorkoutPanel);
+};
+
+const normalizeTrainerWorkoutScreenView = (view) => {
+  const normalizedView = String(view || '').trim().toLowerCase();
+  if (normalizedView === 'assignment') return 'assignment';
+  if (normalizedView === 'create') return 'create';
+  if (normalizedView === 'library') return 'library';
+  if (normalizedView === 'exercises') return 'exercises';
+  return 'home';
+};
+
+const syncTrainerWorkoutScreenViewUi = () => {
+  const currentView = normalizeTrainerWorkoutScreenView(trainerWorkoutScreenView);
+  trainerWorkoutScreenView = currentView;
+  const isAssignmentView = currentView === 'assignment';
+  const isCreateView = currentView === 'create';
+  const isLibraryView = currentView === 'library';
+  const isExercisesView = currentView === 'exercises';
+
+  if (trainerWorkoutPanel) {
+    trainerWorkoutPanel.classList.toggle('is-assignment-view', isAssignmentView);
+    trainerWorkoutPanel.classList.toggle('is-create-view', isCreateView);
+    trainerWorkoutPanel.classList.toggle('is-library-view', isLibraryView);
+    trainerWorkoutPanel.classList.toggle('is-exercises-view', isExercisesView);
+    trainerWorkoutPanel.classList.toggle('is-main-view', !isAssignmentView && !isCreateView && !isLibraryView && !isExercisesView);
+  }
+
+  if (trainerAssignmentHead) trainerAssignmentHead.hidden = !isAssignmentView;
+  if (trainerCreateHead) trainerCreateHead.hidden = !isCreateView;
+  if (trainerExerciseLibraryHead) trainerExerciseLibraryHead.hidden = !isLibraryView;
+  if (trainerExerciseLibraryScreen) trainerExerciseLibraryScreen.hidden = !isLibraryView;
+};
+
+const setTrainerWorkoutScreenView = (view, { scroll = false } = {}) => {
+  trainerWorkoutScreenView = normalizeTrainerWorkoutScreenView(view);
+  syncTrainerWorkoutScreenViewUi();
+  if (scroll) scrollTrainerShortcutTarget(trainerWorkoutPanel);
+};
+
+const openTrainerAssignmentScreen = () => {
+  setTrainerHomeTab('home');
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+  setTrainerWorkoutScreenView('assignment', { scroll: true });
+  setTrainerWorkoutCreatePanelCollapsed(false);
+};
+
+const openTrainerCreateScreen = () => {
+  setTrainerHomeTab('home');
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+  setTrainerWorkoutScreenView('create', { scroll: true });
+  setTrainerTemplateCreatePanelCollapsed(false);
+};
+
+const openTrainerExerciseLibraryScreen = () => {
+  setTrainerHomeTab('home');
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+  setTrainerWorkoutScreenView('library', { scroll: true });
+  renderTrainerExerciseLibraryScreen();
+  removeTrainerExerciseLibraryHeaderExtras();
+};
+
+const refreshRegisteredExercisesData = async (forceReload = false) => {
+  if (isGeneralAdminUser()) {
+    return fetchAdminOverview(forceReload);
+  }
+  if (!isInstructorUser()) {
+    renderAdminOverviewPanel();
+    return null;
+  }
+
+  try {
+    const response = await requestStudentApi('/library/exercises?includeInactive=true');
+    const exercises = Array.isArray(response && response.exercises)
+      ? response.exercises
+      : [];
+    trainerManagementState.library = exercises;
+    studentData.library = exercises.map(mapLibraryExerciseToStudentItem);
+    adminOverviewState.exercises = exercises;
+    adminOverviewState.loaded = true;
+    adminOverviewState.error = '';
+  } catch (error) {
+    adminOverviewState.exercises = [];
+    adminOverviewState.error = error && error.message
+      ? error.message
+      : 'Não foi possível carregar os exercícios cadastrados.';
+  }
+  renderAdminOverviewPanel();
+  return adminOverviewState;
+};
+
+const openTrainerRegisteredExercisesScreen = async () => {
+  setTrainerHomeTab('home');
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+  setTrainerWorkoutScreenView('exercises', { scroll: true });
+  void refreshRegisteredExercisesData(false);
+};
+
+const removeTrainerExerciseLibraryHeaderExtras = () => {
+  document
+    .querySelectorAll(
+      '[data-trainer-exercise-library-screen] > .trainer-exercise-library-screen-head > p'
+    )
+    .forEach((node) => node.remove());
+};
+
+const getTrainerLibraryExerciseId = (exercise) =>
+  String((exercise && (exercise.id || exercise.exerciseId || exercise.libraryExerciseId)) || '').trim();
+
+const getTrainerLibraryExerciseImage = (exercise, groupKey = '') =>
+  resolveApiMediaUrl(
+    String(
+      (exercise &&
+        (
+          exercise.imageUrl !== undefined
+            ? exercise.imageUrl
+            : exercise.image_url !== undefined
+              ? exercise.image_url
+              : exercise.mediaType === 'image'
+                ? exercise.mediaUrl
+                : ''
+        )) || ''
+    ).trim()
+  ) || getLibraryGroupImageSrc(groupKey);
+
+function renderTrainerExerciseLibraryScreen() {
+  if (!trainerExerciseLibraryScreenList) return;
+
+  if (trainerExerciseLibraryScreen) {
+    trainerExerciseLibraryScreen.classList.toggle('is-exercise-list-view', Boolean(trainerExerciseLibraryScreenGroup && !trainerExerciseLibraryScreenExerciseId));
+    trainerExerciseLibraryScreen.classList.toggle('is-exercise-detail-view', Boolean(trainerExerciseLibraryScreenGroup && trainerExerciseLibraryScreenExerciseId));
+  }
+
+  if (trainerExerciseLibraryScreenSearchInput) {
+    const currentValue = String(trainerExerciseLibraryScreenSearchInput.value || '');
+    if (currentValue !== String(trainerExerciseLibraryScreenSearchTerm || '')) {
+      trainerExerciseLibraryScreenSearchInput.value = String(trainerExerciseLibraryScreenSearchTerm || '');
+    }
+  }
+
+  if (!isTrainerManagerUser()) {
+    trainerExerciseLibraryScreenList.innerHTML = `
+      <article class="trainer-exercise-library-empty">
+        <p>Acesso exclusivo para Administrador Geral e Instrutor.</p>
+      </article>
+    `;
+    return;
+  }
+
+  if (trainerManagementState.loading) {
+    trainerExerciseLibraryScreenList.innerHTML = `
+      <article class="trainer-exercise-library-empty">
+        <p>Carregando biblioteca...</p>
+      </article>
+    `;
+    return;
+  }
+
+  const exercises = Array.isArray(trainerManagementState.library)
+    ? trainerManagementState.library
+    : [];
+  const search = normalizeText(trainerExerciseLibraryScreenSearchTerm || '');
+
+  if (trainerExerciseLibraryScreenGroup) {
+    const selectedGroup = String(trainerExerciseLibraryScreenGroup || '').trim();
+    const groupLabel = getLibraryGroupLabel(selectedGroup, selectedGroup);
+    const allGroupExercises = exercises
+      .filter(
+        (exercise) =>
+          normalizeLibraryGroupKey(
+            exercise && (exercise.group || exercise.muscleGroup || exercise.muscle_group),
+            ''
+          ) === selectedGroup
+      );
+    const selectedExercise = trainerExerciseLibraryScreenExerciseId
+      ? allGroupExercises.find((exercise) => getTrainerLibraryExerciseId(exercise) === trainerExerciseLibraryScreenExerciseId)
+      : null;
+
+    if (selectedExercise) {
+      const name = String((selectedExercise && selectedExercise.name) || '').trim() || 'Exercício';
+      const description = String(
+        (selectedExercise && (selectedExercise.description || selectedExercise.instructions || selectedExercise.tutorialText || selectedExercise.tutorial_text)) || ''
+      ).trim();
+      const imageUrl = getTrainerLibraryExerciseImage(selectedExercise, selectedGroup);
+      const muscles = Array.isArray(selectedExercise.musclesWorked)
+        ? selectedExercise.musclesWorked
+        : Array.isArray(selectedExercise.muscles_worked)
+          ? selectedExercise.muscles_worked
+          : (LIBRARY_GROUP_MUSCLES[selectedGroup] || [groupLabel]);
+      const intensityScore = readExerciseIntensityScore(selectedExercise) || 3;
+      const intensityLabel = getIntensityLabelFromScore(intensityScore);
+      const tutorialSteps = normalizeTextList(
+        String((selectedExercise && (selectedExercise.tutorialSteps || selectedExercise.tutorial_steps || description)) || '').trim(),
+        { splitCommas: false }
+      );
+
+      trainerExerciseLibraryScreenList.innerHTML = `
+        <section class="trainer-exercise-library-detail">
+          <button class="trainer-exercise-library-detail-back" type="button" data-trainer-exercise-library-detail-back aria-label="Voltar">
+            <span aria-hidden="true">‹</span>
+          </button>
+          <header class="trainer-exercise-library-detail-head">
+            <h6>${escapeAdminCell(name)}</h6>
+            <p>Músculo primário: ${escapeAdminCell(groupLabel)}</p>
+          </header>
+          <div class="trainer-exercise-library-detail-media">
+            ${imageUrl ? `<img src="${escapeAdminCell(imageUrl)}" alt="" loading="lazy" decoding="async" />` : ''}
+          </div>
+          <p class="trainer-exercise-library-detail-description">${escapeAdminCell(description || 'Sem descrição cadastrada.')}</p>
+          <div class="trainer-exercise-library-detail-tabs" role="tablist" aria-label="Informações do exercício">
+            <span>Músculos</span>
+            <span>Tutorial</span>
+          </div>
+          <article class="trainer-exercise-library-detail-card">
+            <h6>Músculos Trabalhados</h6>
+            <ul>${muscles.map((muscle) => `<li>${escapeAdminCell(muscle)}</li>`).join('')}</ul>
+          </article>
+          <article class="trainer-exercise-library-detail-card">
+            <h6>Tutorial</h6>
+            <ul>${
+              tutorialSteps.length
+                ? tutorialSteps.map((step) => `<li>${escapeAdminCell(step)}</li>`).join('')
+                : '<li>Execute com controle, mantendo postura e amplitude segura.</li>'
+            }</ul>
+          </article>
+          <article class="trainer-exercise-library-detail-card">
+            <h6>Intensidade</h6>
+            <div class="trainer-exercise-library-intensity" aria-label="Intensidade">
+              ${Array.from({ length: 5 }, (_, index) => `<span class="${index < intensityScore ? 'is-active' : ''}"></span>`).join('')}
+            </div>
+            <p>Nível ${escapeAdminCell(intensityLabel)} (${escapeAdminCell(intensityScore)}/5)</p>
+          </article>
+        </section>
+      `;
+      return;
+    }
+
+    const groupExercises = allGroupExercises.filter((exercise) => {
+        if (!search) return true;
+        return normalizeText(
+          `${exercise && exercise.name ? exercise.name : ''} ${exercise && exercise.description ? exercise.description : ''}`
+        ).includes(search);
+      });
+
+    trainerExerciseLibraryScreenList.innerHTML = `
+      <header class="trainer-exercise-library-list-hero">
+        <button class="trainer-exercise-library-list-back" type="button" data-trainer-exercise-library-screen-back aria-label="Voltar">
+          <span aria-hidden="true">‹</span>
+        </button>
+        <div>
+          <h6>Exercícios de <span>${escapeAdminCell(groupLabel)}</span></h6>
+          <p>Selecionar exercício para adicionar ao treino</p>
+        </div>
+        <span class="trainer-exercise-library-list-icon" aria-hidden="true">${getLibraryGroupIconSvg(selectedGroup)}</span>
+      </header>
+      <div class="trainer-exercise-library-exercise-list">
+        ${
+          groupExercises.length
+            ? groupExercises
+                .map((exercise) => {
+                  const name = String((exercise && exercise.name) || '').trim() || 'Exercício';
+                  const repetitions = Math.max(1, Number(exercise && exercise.repetitions) || 10);
+                  const series = Math.max(
+                    1,
+                    Number(
+                      exercise &&
+                        (exercise.seriesCount !== undefined
+                          ? exercise.seriesCount
+                          : exercise.series !== undefined
+                            ? exercise.series
+                            : exercise.series_count)
+                    ) || 3
+                  );
+                  const restSeconds = Math.max(0, Number(exercise && exercise.restSeconds) || 30);
+                  const description = String(
+                    (exercise && (exercise.description || exercise.instructions || exercise.tutorialText)) || ''
+                  ).trim();
+                  const imageUrl = getTrainerLibraryExerciseImage(exercise, selectedGroup);
+                  const exerciseId = getTrainerLibraryExerciseId(exercise);
+                  const intensityScore = readExerciseIntensityScore(exercise) || 3;
+                  const intensityLabel = getIntensityLabelFromScore(intensityScore);
+                  return `
+                    <button class="trainer-exercise-library-exercise-card" type="button" data-trainer-exercise-library-exercise="${escapeAdminCell(exerciseId)}">
+                      <span class="trainer-exercise-library-exercise-thumb" aria-hidden="true">
+                        <span class="trainer-exercise-library-exercise-icon">${TRAINER_EXERCISE_DUMBBELL_ICON_SVG}</span>
+                        ${imageUrl ? `<img src="${escapeAdminCell(imageUrl)}" alt="" loading="lazy" decoding="async" />` : ''}
+                      </span>
+                      <span class="trainer-exercise-library-exercise-copy">
+                        <em>${escapeAdminCell(series)} SÉRIES</em>
+                        <strong>${escapeAdminCell(name)}</strong>
+                        <span class="trainer-exercise-library-exercise-rule" aria-hidden="true"></span>
+                        <small>
+                          <span>${escapeAdminCell(repetitions)} reps</span>
+                          <i aria-hidden="true"></i>
+                          <span>${escapeAdminCell(intensityLabel)}</span>
+                        </small>
+                      </span>
+                      <span class="trainer-exercise-library-exercise-arrow" aria-hidden="true">›</span>
+                    </button>
+                  `;
+                })
+                .join('')
+            : '<article class="trainer-exercise-library-empty"><p>Nenhum exercício encontrado neste grupo.</p></article>'
+        }
+      </div>
+      <footer class="trainer-exercise-library-request">
+        <span aria-hidden="true">i</span>
+        <p><strong>Não encontrou o exercício que procura?</strong><small>Solicite um novo exercício para sua biblioteca.</small></p>
+        <button type="button" data-library-manager-toggle><b aria-hidden="true">+</b> Solicitar exercício</button>
+      </footer>
+    `;
+    return;
+  }
+
+  const groupKeys = getAvailableLibraryGroupKeys(exercises, { includeKnownWhenEmpty: false });
+  const items = groupKeys
+    .map((groupKey) => {
+      const groupExercises = exercises.filter(
+        (exercise) =>
+          normalizeLibraryGroupKey(
+            exercise && (exercise.group || exercise.muscleGroup || exercise.muscle_group),
+            ''
+          ) === groupKey
+      );
+      return {
+        group: groupKey,
+        label: getLibraryGroupLabel(groupKey, groupKey),
+        image: getLibraryGroupImageSrc(groupKey),
+        description: LIBRARY_GROUP_DESCRIPTIONS[groupKey] || 'Exercícios organizados para esse grupo muscular.',
+        count: groupExercises.length,
+        exercises: groupExercises
+      };
+    })
+    .filter((item) => {
+      if (!search) return true;
+      const exerciseNames = item.exercises
+        .map((exercise) => String((exercise && exercise.name) || '').trim())
+        .filter(Boolean)
+        .join(' ');
+      return normalizeText(`${item.label} ${item.group} ${exerciseNames}`).includes(search);
+    });
+
+  if (!items.length) {
+    trainerExerciseLibraryScreenList.innerHTML = `
+      <article class="trainer-exercise-library-empty">
+        <p>Nenhum grupo encontrado.</p>
+      </article>
+    `;
+    return;
+  }
+
+  trainerExerciseLibraryScreenList.innerHTML = items
+    .map((item) => {
+      const countLabel = `${item.count} ${item.count === 1 ? 'exercício' : 'exercícios'}`;
+      const mediaMarkup = item.image
+        ? `<img src="${escapeAdminCell(item.image)}" alt="" loading="lazy" decoding="async" />`
+        : `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12M6 8v8M18 8v8M3 10v4M21 10v4"></path></svg>`;
+      return `
+        <button class="trainer-exercise-library-group-card" type="button" data-trainer-exercise-library-screen-group="${escapeAdminCell(item.group)}">
+          <span class="trainer-exercise-library-group-media" aria-hidden="true">${mediaMarkup}</span>
+          <span class="trainer-exercise-library-group-badge" aria-hidden="true">${getLibraryGroupIconSvg(item.group)}</span>
+          <span class="trainer-exercise-library-group-copy">
+            <strong>${escapeAdminCell(item.label)}</strong>
+            <small>${escapeAdminCell(item.description)}</small>
+            <em>${escapeAdminCell(countLabel)}</em>
+          </span>
+          <span class="trainer-exercise-library-group-arrow" aria-hidden="true">›</span>
+        </button>
+      `;
+    })
+    .join('');
+}
+
+const syncTrainerObjectiveCards = () => {
+  const selectedObjective = String(
+    trainerWorkoutObjectiveSelect ? trainerWorkoutObjectiveSelect.value || '' : ''
+  ).trim();
+
+  trainerObjectiveCardButtons.forEach((button) => {
+    const cardObjective = String(button.dataset.trainerObjectiveCard || '').trim();
+    const isActive = Boolean(cardObjective) && cardObjective === selectedObjective;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+  });
+};
+
+const setTrainerWorkoutObjective = (objective) => {
+  const normalizedObjective = String(objective || '').trim();
+  if (!trainerWorkoutObjectiveSelect || !normalizedObjective) return;
+
+  const hasOption = Array.from(trainerWorkoutObjectiveSelect.options || [])
+    .some((option) => String((option && option.value) || '').trim() === normalizedObjective);
+  if (!hasOption) {
+    const option = document.createElement('option');
+    option.value = normalizedObjective;
+    option.textContent = normalizedObjective;
+    trainerWorkoutObjectiveSelect.appendChild(option);
+  }
+
+  trainerWorkoutObjectiveSelect.value = normalizedObjective;
+  syncTrainerObjectiveCards();
+};
+
 const focusTrainerElement = (element) => {
   if (!element || typeof element.focus !== 'function') return;
   window.setTimeout(() => {
@@ -13036,11 +13937,26 @@ const focusTrainerElement = (element) => {
 };
 
 const scrollTrainerShortcutTarget = (element) => {
-  if (!element || typeof element.scrollIntoView !== 'function') return;
+  if (!element) return;
   window.setTimeout(() => {
-    element.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
+    if (studentArea && typeof studentArea.scrollTo === 'function') {
+      studentArea.scrollTo({ top: 0, behavior: 'auto' });
+    }
+
+    if (!studentAppMain || typeof studentAppMain.scrollTo !== 'function') {
+      if (typeof element.scrollIntoView === 'function') {
+        element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      return;
+    }
+
+    const containerRect = studentAppMain.getBoundingClientRect();
+    const elementRect = element.getBoundingClientRect();
+    const targetTop = Math.max(0, studentAppMain.scrollTop + elementRect.top - containerRect.top - 8);
+
+    studentAppMain.scrollTo({
+      top: targetTop,
+      behavior: 'smooth'
     });
   }, 40);
 };
@@ -13049,25 +13965,23 @@ const handleTrainerHomeShortcut = (shortcut) => {
   const action = String(shortcut || '').trim().toLowerCase();
 
   if (action === 'top') {
+    setTrainerWorkoutScreenView('home');
     scrollTrainerShortcutTarget(trainerWorkoutPanel);
     return;
   }
 
   if (action === 'create') {
-    setTrainerTemplateCreatePanelCollapsed(false);
-    scrollTrainerShortcutTarget(trainerTemplateCreateCard);
-    focusTrainerElement(trainerTemplateFormNameInput);
+    openTrainerCreateScreen();
     return;
   }
 
   if (action === 'assign') {
-    setTrainerWorkoutCreatePanelCollapsed(false);
-    scrollTrainerShortcutTarget(trainerWorkoutCreateCard);
-    focusTrainerElement(trainerWorkoutStudentSearchInput || trainerWorkoutStudentSelect);
+    openTrainerAssignmentScreen();
     return;
   }
 
   if (action === 'managed') {
+    setTrainerWorkoutScreenView('home');
     setTrainerManagedWorkoutsPanelCollapsed(false);
     scrollTrainerShortcutTarget(trainerManagedWorkoutsCard);
     focusTrainerElement(trainerManagedWorkoutsSearchInput);
@@ -13081,7 +13995,12 @@ const handleTrainerHomeShortcut = (shortcut) => {
   }
 
   if (action === 'library') {
-    setStudentAppTab('biblioteca', true);
+    openTrainerExerciseLibraryScreen();
+    return;
+  }
+
+  if (action === 'exercises') {
+    openTrainerRegisteredExercisesScreen();
   }
 };
 
@@ -14172,6 +15091,47 @@ function getTrainerWeekdayAssignmentsForSelectedDays(selectedWeekDays = []) {
   }, {});
 }
 
+function formatTrainerAssignmentDayBadge(day = '') {
+  const normalizedDay = String(day || '').trim();
+  if (normalizeText(normalizedDay) === 'sab') return 'SÁB';
+  return normalizedDay.toUpperCase();
+}
+
+function getTrainerAssignmentCardIconMarkup(day = '', hasWorkout = false) {
+  const normalizedDay = normalizeText(day);
+  if (!hasWorkout) {
+    return `
+      <span class="trainer-weekday-assignment-empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 5v14M5 12h14"></path>
+        </svg>
+      </span>
+    `;
+  }
+  if (normalizedDay === 'sab' || normalizedDay === 'dom') {
+    return `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 21s-7-4.5-9-9a5 5 0 0 1 8-6 5 5 0 0 1 8 6c-2 4.5-9 9-9 9Z"></path>
+        <path d="M8 12h2l1.2-3 2.2 6 1.3-3H18"></path>
+      </svg>
+    `;
+  }
+  if (normalizedDay === 'ter' || normalizedDay === 'sex') {
+    return `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M7 20V10M17 20V10"></path>
+        <path d="M5 10c0-2 1-4 3-5M19 10c0-2-1-4-3-5"></path>
+        <path d="M8 5h8M5 20h4M15 20h4"></path>
+      </svg>
+    `;
+  }
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"></path>
+    </svg>
+  `;
+}
+
 function renderTrainerWeekdayAssignmentSelectors(templates = []) {
   if (!trainerWeekdayAssignmentWrap || !trainerWeekdayAssignmentList) return;
 
@@ -14208,6 +15168,14 @@ function renderTrainerWeekdayAssignmentSelectors(templates = []) {
   trainerWeekdayAssignmentWrap.hidden = false;
   trainerWeekdayAssignmentList.innerHTML = selectedWeekDays
     .map((day) => {
+      const selectedWorkoutId = Number(trainerWorkoutDayAssignments[day]) || 0;
+      const assignedTemplate = selectedWorkoutId
+        ? availableTemplates.find((template) => Number(template && template.id) === selectedWorkoutId) || null
+        : null;
+      const assignedName = String(
+        (assignedTemplate && assignedTemplate.name) || ''
+      ).trim();
+      const hasAssignedWorkout = Boolean(selectedWorkoutId && assignedTemplate);
       const optionsMarkup = hasAssignableWorkouts
         ? [
           `<option value="">Escolha o treino de ${escapeAdminCell(day)}</option>`,
@@ -14220,27 +15188,31 @@ function renderTrainerWeekdayAssignmentSelectors(templates = []) {
           })
         ].join('')
         : `<option value="">Nenhuma nomeclatura disponível</option>`;
-      const assignmentLabel = `Treino de ${day}`;
+      const safeDay = escapeAdminCell(day);
+      const safeAssignedTitle = escapeAdminCell(assignedName || 'Nenhum treino definido');
+      const statusText = hasAssignedWorkout
+        ? 'Treino cadastrado'
+        : hasAssignableWorkouts
+          ? 'Clique para adicionar um treino'
+          : 'Nenhuma nomenclatura disponível';
+      const actionText = hasAssignedWorkout ? 'Editar' : 'Adicionar';
+      const cardStateClass = hasAssignedWorkout ? 'is-assigned' : 'is-empty';
 
       return `
-        <label class="trainer-weekday-assignment-field">
-          <span>${escapeAdminCell(assignmentLabel)}</span>
-          <div class="trainer-workout-select-actions">
-            <select
-              data-trainer-weekday-assignment-select
-              data-day="${escapeAdminCell(day)}"
-              ${hasAssignableWorkouts ? '' : 'disabled'}
-            >
-              ${optionsMarkup}
-            </select>
+        <article class="trainer-weekday-assignment-card ${cardStateClass}" data-trainer-weekday-assignment-card data-day="${safeDay}">
+          <div class="trainer-weekday-assignment-card-top">
+            <div class="trainer-weekday-assignment-card-meta">
+              <span class="trainer-weekday-assignment-day">${escapeAdminCell(formatTrainerAssignmentDayBadge(day))}</span>
+              <span class="trainer-weekday-assignment-icon">${getTrainerAssignmentCardIconMarkup(day, hasAssignedWorkout)}</span>
+            </div>
             <button
-              class="trainer-workout-select-action"
+              class="trainer-weekday-card-eye"
               type="button"
               data-trainer-weekday-assignment-view
-              data-day="${escapeAdminCell(day)}"
-              aria-label="Visualizar treino de ${escapeAdminCell(day)}"
-              title="Visualizar treino de ${escapeAdminCell(day)}"
-              disabled
+              data-day="${safeDay}"
+              aria-label="Visualizar treino de ${safeDay}"
+              title="Visualizar treino de ${safeDay}"
+              ${hasAssignedWorkout ? '' : 'disabled'}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"></path>
@@ -14248,7 +15220,45 @@ function renderTrainerWeekdayAssignmentSelectors(templates = []) {
               </svg>
             </button>
           </div>
-        </label>
+          <strong>${safeAssignedTitle}</strong>
+          <p>${escapeAdminCell(statusText)}</p>
+          <div class="trainer-weekday-assignment-card-actions">
+            <button
+              class="trainer-weekday-card-action trainer-weekday-card-action--view"
+              type="button"
+              data-trainer-weekday-assignment-view
+              data-day="${safeDay}"
+              ${hasAssignedWorkout ? '' : 'disabled'}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <span>Ver</span>
+            </button>
+            <select
+              class="trainer-weekday-assignment-native-select"
+              data-trainer-weekday-assignment-select
+              data-day="${safeDay}"
+              aria-label="Escolher treino de ${safeDay}"
+              ${hasAssignableWorkouts ? '' : 'disabled'}
+            >
+              ${optionsMarkup}
+            </select>
+            <button
+              class="trainer-weekday-card-action trainer-weekday-card-action--picker ${hasAssignableWorkouts ? '' : 'is-disabled'}"
+              type="button"
+              data-trainer-weekday-assignment-pick
+              data-day="${safeDay}"
+              ${hasAssignableWorkouts ? '' : 'disabled'}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                ${hasAssignedWorkout ? '<path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>' : '<path d="M12 5v14M5 12h14"></path>'}
+              </svg>
+              <span>${escapeAdminCell(actionText)}</span>
+            </button>
+          </div>
+        </article>
       `;
     })
     .join('');
@@ -14260,12 +15270,13 @@ function renderTrainerWeekdayAssignmentSelectors(templates = []) {
     const day = String(select.dataset.day || '').trim();
     const selectedWorkoutId = Number(trainerWorkoutDayAssignments[day]) || 0;
     select.value = selectedWorkoutId ? String(selectedWorkoutId) : '';
-    const viewButton = trainerWeekdayAssignmentList.querySelector(
-      `[data-trainer-weekday-assignment-view][data-day="${escapeAdminCell(day)}"]`
-    );
-    if (viewButton instanceof HTMLButtonElement) {
-      viewButton.disabled = !selectedWorkoutId;
-    }
+    trainerWeekdayAssignmentList
+      .querySelectorAll(`[data-trainer-weekday-assignment-view][data-day="${escapeAdminCell(day)}"]`)
+      .forEach((viewButton) => {
+        if (viewButton instanceof HTMLButtonElement) {
+          viewButton.disabled = !selectedWorkoutId;
+        }
+      });
   });
 }
 
@@ -14430,8 +15441,17 @@ const isMobileSelectPickerCandidate = (select) => {
   return true;
 };
 
+const isAdminExercisesGroupFilterSelect = (select) =>
+  select instanceof HTMLSelectElement && select.matches('[data-admin-exercises-group-filter]');
+
 const getMobileSelectPickerTitle = (select) => {
-  if (select === trainerExerciseWorkoutSelect) return 'Nomeclatura de treino';
+  if (select === trainerWorkoutStudentSelect) return 'Selecionar aluno';
+  if (select === trainerWorkoutInstructorSelect) return 'Selecionar instrutor';
+  if (select instanceof HTMLSelectElement && select.matches('[data-trainer-weekday-assignment-select]')) {
+    const day = formatTrainerAssignmentDayBadge(select.dataset.day || '');
+    return `${Number(select.value) > 0 ? 'Editar' : 'Adicionar'} treino de ${day || 'dia'}`;
+  }
+  if (select === trainerExerciseWorkoutSelect) return 'Nome do treino';
   const labelEl = select.closest('label');
   const rawTitle = labelEl
     ? String((labelEl.querySelector('span') && labelEl.querySelector('span').textContent) || '')
@@ -14441,6 +15461,103 @@ const getMobileSelectPickerTitle = (select) => {
     .replace(/\s+/g, ' ')
     .trim();
   return cleanedTitle || 'Selecionar opção';
+};
+
+const isTrainerAssignmentWorkoutSelect = (select) =>
+  select instanceof HTMLSelectElement && select.matches('[data-trainer-weekday-assignment-select]');
+
+const isEnhancedMobileSelectPicker = (select) =>
+  select === trainerWorkoutStudentSelect ||
+  select === trainerWorkoutInstructorSelect ||
+  isTrainerAssignmentWorkoutSelect(select);
+
+const getMobileSelectPickerOptionAvatarUrl = (select, option) => {
+  if (
+    select !== trainerWorkoutStudentSelect &&
+    select !== trainerWorkoutInstructorSelect
+  ) {
+    return '';
+  }
+
+  const avatarUrl = option && option.dataset
+    ? String(option.dataset.avatarUrl || '').trim()
+    : '';
+  return resolveProfileAvatarUrl(avatarUrl);
+};
+
+const getMobileSelectPickerSubtitle = (select) => {
+  if (select === trainerWorkoutStudentSelect) return 'Escolha o aluno que receberá o treino.';
+  if (select === trainerWorkoutInstructorSelect) return 'Escolha o instrutor responsável.';
+  if (isTrainerAssignmentWorkoutSelect(select)) {
+    return 'Selecione o treino que será associado a este dia.';
+  }
+  return '';
+};
+
+const getMobileSelectPickerSearchPlaceholder = (select) => {
+  if (select === trainerWorkoutStudentSelect) return 'Buscar aluno...';
+  if (select === trainerWorkoutInstructorSelect) return 'Buscar instrutor...';
+  if (isTrainerAssignmentWorkoutSelect(select)) return 'Buscar treinos...';
+  return 'Buscar opção...';
+};
+
+const parseMobileWorkoutOptionText = (optionText = '') => {
+  const normalizedText = String(optionText || '').trim();
+  if (!normalizedText) {
+    return {
+      title: 'Nenhum treino',
+      subtitle: 'Deixar este dia sem treino'
+    };
+  }
+
+  const formatWeekdayPrefix = (value = '') => {
+    const rawValue = String(value || '').trim();
+    const weekdayMatch = rawValue.match(/^(segunda|terça|terca|quarta|quinta|sexta)(?:-|\s)*feira\b/iu);
+    if (!weekdayMatch) return rawValue;
+
+    const normalizedDay = weekdayMatch[1]
+      .replace(/terca/i, 'terça')
+      .toUpperCase();
+    const rest = rawValue
+      .slice(weekdayMatch[0].length)
+      .replace(/^[\s\-–—:|/]+/, '')
+      .trim();
+
+    return rest ? `${normalizedDay} (${rest.replace(/^\((.*)\)$/, '$1').trim()})` : normalizedDay;
+  };
+
+  const splitMatch = normalizedText.match(/^(.+?)\s[-–]\s(.+)$/);
+  if (!splitMatch) {
+    return {
+      title: normalizedText,
+      subtitle: 'Treino cadastrado'
+    };
+  }
+
+  return {
+    title: splitMatch[1].trim() || normalizedText,
+    subtitle: formatWeekdayPrefix(splitMatch[2]) || 'Treino cadastrado'
+  };
+};
+
+const getMobileSelectPickerOptionIcon = (select, optionValue = '', optionText = '') => {
+  if (isTrainerAssignmentWorkoutSelect(select)) {
+    if (!String(optionValue || '').trim()) {
+      return '<path d="M12 5v14M5 12h14"></path>';
+    }
+    const normalizedText = normalizeText(optionText);
+    if (normalizedText.includes('perna')) {
+      return '<path d="M8 3c1.8 4.2 1.5 8.4 0 13M16 3c-1.8 4.2-1.5 8.4 0 13M7 21l2-5M17 21l-2-5"></path>';
+    }
+    if (normalizedText.includes('superior') || normalizedText.includes('ombro')) {
+      return '<path d="M7 20V10M17 20V10"></path><path d="M5 10c0-2 1-4 3-5M19 10c0-2-1-4-3-5"></path><path d="M8 5h8M5 20h4M15 20h4"></path>';
+    }
+    return '<path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"></path>';
+  }
+  if (select === trainerWorkoutStudentSelect || select === trainerWorkoutInstructorSelect) {
+    return '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path><path d="M4 20a8 8 0 0 1 16 0"></path>';
+  }
+  return '';
 };
 
 const closeMobileSelectPicker = ({ restoreFocus = true } = {}) => {
@@ -14456,7 +15573,11 @@ const closeMobileSelectPicker = ({ restoreFocus = true } = {}) => {
   mobileSelectPickerRoot.classList.remove('is-multiple');
   mobileSelectPickerRoot.classList.remove('is-workout-select');
   mobileSelectPickerRoot.classList.remove('is-trainer-progress-select');
+  mobileSelectPickerRoot.classList.remove('is-enhanced-picker');
+  mobileSelectPickerRoot.classList.remove('is-assignment-workout-picker');
   mobileSelectPickerActiveSelect = null;
+  mobileSelectPickerSearchTerm = '';
+  if (mobileSelectPickerSearchInput) mobileSelectPickerSearchInput.value = '';
   if (studentAppShell) studentAppShell.classList.remove('is-mobile-select-picker-open');
   document.body.classList.remove('student-mobile-select-picker-open');
   if (
@@ -14488,7 +15609,15 @@ const syncMobileSelectPickerSelectionState = () => {
 };
 
 const ensureMobileSelectPicker = () => {
-  if (mobileSelectPickerRoot && mobileSelectPickerTitle && mobileSelectPickerList && mobileSelectPickerCloseButton) {
+  if (
+    mobileSelectPickerRoot &&
+    mobileSelectPickerTitle &&
+    mobileSelectPickerSubtitle &&
+    mobileSelectPickerSearchInput &&
+    mobileSelectPickerList &&
+    mobileSelectPickerConfirmButton &&
+    mobileSelectPickerCloseButton
+  ) {
     return true;
   }
 
@@ -14506,17 +15635,42 @@ const ensureMobileSelectPicker = () => {
     ></button>
     <article class="student-mobile-select-picker-card" role="dialog" aria-modal="true">
       <header class="student-mobile-select-picker-head">
-        <strong data-mobile-select-picker-title>Selecionar opção</strong>
-        <button type="button" data-mobile-select-picker-close>Fechar</button>
+        <div>
+          <strong data-mobile-select-picker-title>Selecionar opção</strong>
+          <p data-mobile-select-picker-subtitle></p>
+        </div>
+        <button type="button" data-mobile-select-picker-close aria-label="Fechar seletor">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"></path>
+          </svg>
+        </button>
       </header>
+      <label class="student-mobile-select-picker-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="6"></circle>
+          <path d="m16 16 5 5"></path>
+        </svg>
+        <input type="search" data-mobile-select-picker-search placeholder="Buscar opção..." autocomplete="off" />
+      </label>
       <div class="student-mobile-select-picker-list" data-mobile-select-picker-list></div>
+      <footer class="student-mobile-select-picker-footer">
+        <button type="button" data-mobile-select-picker-confirm>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m5 12 4 4L19 6"></path>
+          </svg>
+          <span>Confirmar seleção</span>
+        </button>
+      </footer>
     </article>
   `;
   document.body.appendChild(root);
 
   mobileSelectPickerRoot = root;
   mobileSelectPickerTitle = root.querySelector('[data-mobile-select-picker-title]');
+  mobileSelectPickerSubtitle = root.querySelector('[data-mobile-select-picker-subtitle]');
+  mobileSelectPickerSearchInput = root.querySelector('[data-mobile-select-picker-search]');
   mobileSelectPickerList = root.querySelector('[data-mobile-select-picker-list]');
+  mobileSelectPickerConfirmButton = root.querySelector('[data-mobile-select-picker-confirm]');
   mobileSelectPickerCloseButton = root.querySelector('.student-mobile-select-picker-head [data-mobile-select-picker-close]');
 
   root.querySelectorAll('[data-mobile-select-picker-close]').forEach((button) => {
@@ -14535,6 +15689,19 @@ const ensureMobileSelectPicker = () => {
       closeMobileSelectPicker();
     }
   });
+
+  if (mobileSelectPickerSearchInput) {
+    mobileSelectPickerSearchInput.addEventListener('input', () => {
+      mobileSelectPickerSearchTerm = String(mobileSelectPickerSearchInput.value || '').trim();
+      renderMobileSelectPickerOptions();
+    });
+  }
+
+  if (mobileSelectPickerConfirmButton) {
+    mobileSelectPickerConfirmButton.addEventListener('click', () => {
+      closeMobileSelectPicker({ restoreFocus: false });
+    });
+  }
 
   if (mobileSelectPickerList) {
     mobileSelectPickerList.addEventListener('click', (event) => {
@@ -14600,27 +15767,26 @@ const ensureMobileSelectPicker = () => {
   return Boolean(mobileSelectPickerRoot && mobileSelectPickerTitle && mobileSelectPickerList);
 };
 
-const openMobileSelectPicker = (select) => {
-  if (!isMobileSelectPickerCandidate(select)) return false;
-  if (!shouldUseMobileSelectPicker(select)) return false;
-  if (!ensureMobileSelectPicker()) return false;
-  if (!mobileSelectPickerRoot || !mobileSelectPickerTitle || !mobileSelectPickerList) return false;
+function renderMobileSelectPickerOptions() {
+  if (!mobileSelectPickerList || !mobileSelectPickerActiveSelect) return;
 
+  const select = mobileSelectPickerActiveSelect;
   const isMultipleSelect = Boolean(select.multiple);
   const isWorkoutSelect = select === trainerExerciseWorkoutSelect;
-  const isTrainerProgressSelect = select === trainerProgressStudentSelect;
-  mobileSelectPickerActiveSelect = select;
-  mobileSelectPickerFocusOrigin = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  mobileSelectPickerRoot.classList.toggle('is-multiple', isMultipleSelect);
-  mobileSelectPickerRoot.classList.toggle('is-workout-select', isWorkoutSelect);
-  mobileSelectPickerRoot.classList.toggle('is-trainer-progress-select', isTrainerProgressSelect);
-  mobileSelectPickerTitle.textContent = getMobileSelectPickerTitle(select);
+  const isAssignmentWorkoutSelect = isTrainerAssignmentWorkoutSelect(select);
+  const isEnhancedPicker = isEnhancedMobileSelectPicker(select);
+  const normalizedSearch = normalizeText(mobileSelectPickerSearchTerm || '');
   mobileSelectPickerList.innerHTML = '';
 
+  let renderedCount = 0;
   Array.from(select.options).forEach((option, optionIndex) => {
     if (option.hidden) return;
     const optionValue = String(option.value || '').trim();
     if (isWorkoutSelect && !optionValue) return;
+
+    const optionText = String(option.textContent || '').trim();
+    const searchText = normalizeText(`${optionText} ${optionValue}`);
+    if (normalizedSearch && !searchText.includes(normalizedSearch)) return;
 
     const optionButton = document.createElement('button');
     optionButton.type = 'button';
@@ -14629,37 +15795,74 @@ const openMobileSelectPicker = (select) => {
     optionButton.dataset.optionIndex = String(optionIndex);
     optionButton.disabled = Boolean(option.disabled);
     if (option.selected) optionButton.classList.add('is-selected');
+    if (!optionValue) optionButton.classList.add('is-empty-value');
     if (isMultipleSelect) {
       optionButton.setAttribute('aria-pressed', option.selected ? 'true' : 'false');
     }
 
-    const optionText = String(option.textContent || '').trim();
-    const isCreateWorkoutOption =
-      isWorkoutSelect && optionValue === TRAINER_WORKOUT_CREATE_OPTION_VALUE;
-    const label = document.createElement('span');
-    if (isWorkoutSelect) {
+    if (isEnhancedPicker || isWorkoutSelect) {
+      const iconPath = getMobileSelectPickerOptionIcon(select, optionValue, optionText);
+      const avatarUrl = getMobileSelectPickerOptionAvatarUrl(select, option);
+      if (avatarUrl) {
+        const icon = document.createElement('span');
+        icon.className = 'student-mobile-select-picker-option-icon has-image';
+        const avatar = document.createElement('img');
+        avatar.className = 'student-mobile-select-picker-option-avatar';
+        avatar.src = avatarUrl;
+        avatar.alt = optionText ? `Foto de ${optionText}` : '';
+        avatar.loading = 'lazy';
+        avatar.decoding = 'async';
+        avatar.addEventListener('error', () => {
+          icon.classList.remove('has-image');
+          icon.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${iconPath || '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path><path d="M4 20a8 8 0 0 1 16 0"></path>'}</svg>`;
+        });
+        icon.appendChild(avatar);
+        optionButton.appendChild(icon);
+      } else if (iconPath) {
+        const icon = document.createElement('span');
+        icon.className = 'student-mobile-select-picker-option-icon';
+        icon.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${iconPath}</svg>`;
+        optionButton.appendChild(icon);
+      }
+
+      const label = document.createElement('span');
       label.className = 'student-mobile-select-picker-option-copy';
       const title = document.createElement('strong');
       title.className = 'student-mobile-select-picker-option-title';
-      title.textContent = isCreateWorkoutOption ? 'Nova nomeclatura' : 'Nomeclatura';
       const subtitle = document.createElement('small');
       subtitle.className = 'student-mobile-select-picker-option-subtitle';
-      subtitle.textContent = isCreateWorkoutOption
-        ? 'Criar treino agora'
-        : optionText
-          ? `Treino cadastrado: ${optionText}`
-          : 'Treino cadastrado';
+
+      if (isAssignmentWorkoutSelect) {
+        const parsedWorkout = parseMobileWorkoutOptionText(optionValue ? optionText : '');
+        title.textContent = parsedWorkout.title;
+        subtitle.textContent = parsedWorkout.subtitle;
+      } else if (isWorkoutSelect) {
+        const isCreateWorkoutOption = optionValue === TRAINER_WORKOUT_CREATE_OPTION_VALUE;
+        title.textContent = isCreateWorkoutOption ? 'Novo treino' : 'Nome do treino';
+        subtitle.textContent = isCreateWorkoutOption
+          ? 'Criar treino agora'
+          : optionText;
+      } else {
+        title.textContent = optionText || 'Selecionar';
+        subtitle.textContent = select === trainerWorkoutStudentSelect
+          ? 'Aluno cadastrado'
+          : select === trainerWorkoutInstructorSelect
+            ? 'Instrutor responsável'
+            : '';
+      }
+
       label.appendChild(title);
-      label.appendChild(subtitle);
+      if (subtitle.textContent) label.appendChild(subtitle);
+      optionButton.appendChild(label);
     } else {
+      const label = document.createElement('span');
       label.textContent = optionText;
+      optionButton.appendChild(label);
     }
 
     const radio = document.createElement('span');
     radio.className = 'student-mobile-select-picker-radio';
     radio.setAttribute('aria-hidden', 'true');
-
-    optionButton.appendChild(label);
     optionButton.appendChild(radio);
 
     if (isWorkoutSelect) {
@@ -14667,7 +15870,7 @@ const openMobileSelectPicker = (select) => {
       row.className = 'student-mobile-select-picker-option-row';
       row.appendChild(optionButton);
       const canEdit =
-        !isCreateWorkoutOption &&
+        optionValue !== TRAINER_WORKOUT_CREATE_OPTION_VALUE &&
         (Number(option.value) || 0) > 0;
       if (canEdit) {
         const editButton = document.createElement('button');
@@ -14685,11 +15888,52 @@ const openMobileSelectPicker = (select) => {
         row.appendChild(editButton);
       }
       mobileSelectPickerList.appendChild(row);
-      return;
+    } else {
+      mobileSelectPickerList.appendChild(optionButton);
     }
-
-    mobileSelectPickerList.appendChild(optionButton);
+    renderedCount += 1;
   });
+
+  if (!renderedCount) {
+    const empty = document.createElement('p');
+    empty.className = 'student-mobile-select-picker-empty';
+    empty.textContent = normalizedSearch
+      ? 'Nenhuma opção encontrada.'
+      : 'Nenhuma opção disponível.';
+    mobileSelectPickerList.appendChild(empty);
+  }
+}
+
+const openMobileSelectPicker = (select, { force = false } = {}) => {
+  if (!isMobileSelectPickerCandidate(select)) return false;
+  if (!force && !shouldUseMobileSelectPicker(select)) return false;
+  if (!ensureMobileSelectPicker()) return false;
+  if (!mobileSelectPickerRoot || !mobileSelectPickerTitle || !mobileSelectPickerList) return false;
+
+  const isMultipleSelect = Boolean(select.multiple);
+  const isWorkoutSelect = select === trainerExerciseWorkoutSelect;
+  const isTrainerProgressSelect = select === trainerProgressStudentSelect;
+  const isAssignmentWorkoutSelect = isTrainerAssignmentWorkoutSelect(select);
+  const isEnhancedPicker = isEnhancedMobileSelectPicker(select);
+  mobileSelectPickerActiveSelect = select;
+  mobileSelectPickerFocusOrigin = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  mobileSelectPickerRoot.classList.toggle('is-multiple', isMultipleSelect);
+  mobileSelectPickerRoot.classList.toggle('is-workout-select', isWorkoutSelect);
+  mobileSelectPickerRoot.classList.toggle('is-trainer-progress-select', isTrainerProgressSelect);
+  mobileSelectPickerRoot.classList.toggle('is-enhanced-picker', isEnhancedPicker);
+  mobileSelectPickerRoot.classList.toggle('is-assignment-workout-picker', isAssignmentWorkoutSelect);
+  mobileSelectPickerTitle.textContent = getMobileSelectPickerTitle(select);
+  if (mobileSelectPickerSubtitle) {
+    const subtitle = getMobileSelectPickerSubtitle(select);
+    mobileSelectPickerSubtitle.textContent = subtitle;
+    mobileSelectPickerSubtitle.hidden = !subtitle;
+  }
+  mobileSelectPickerSearchTerm = '';
+  if (mobileSelectPickerSearchInput) {
+    mobileSelectPickerSearchInput.value = '';
+    mobileSelectPickerSearchInput.placeholder = getMobileSelectPickerSearchPlaceholder(select);
+  }
+  renderMobileSelectPickerOptions();
 
   mobileSelectPickerRoot.hidden = false;
   mobileSelectPickerRoot.setAttribute('aria-hidden', 'false');
@@ -14798,6 +16042,15 @@ const handleMobileSelectPickerPointerDown = (event) => {
     select.blur();
   }
 
+  if (isAdminExercisesGroupFilterSelect(select)) {
+    mobileSelectPickerTapIntent = null;
+    const opened = openMobileSelectPicker(select, { force: true });
+    if (opened) mobileSelectPickerSuppressClickUntil = Date.now() + 450;
+    if (event.cancelable) event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+
   // Intercept touch-driven selects early so mobile browsers do not wait on the native select behavior.
   if (event.cancelable) event.preventDefault();
   event.stopPropagation();
@@ -14890,6 +16143,10 @@ const handleMobileSelectPickerKeydown = (event) => {
 const handleMobileSelectPickerFocusIn = (event) => {
   const select = getMobileSelectPickerSelectFromEvent(event);
   if (!isMobileSelectPickerCandidate(select)) return;
+  if (isAdminExercisesGroupFilterSelect(select)) {
+    if (typeof select.blur === 'function') select.blur();
+    return;
+  }
   if (!shouldUseMobileSelectPicker(select)) return;
   if (mobileSelectPickerActiveSelect === select && mobileSelectPickerRoot && !mobileSelectPickerRoot.hidden) {
     return;
@@ -15058,6 +16315,13 @@ function renderTrainerExerciseLibraryPicker() {
           : '';
       return `
         <article class="trainer-workout-modal-library-item">
+          <span class="trainer-workout-modal-library-item-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M8 20c-1.6-2.9-1.6-6.1 0-9M16 20c1.6-2.9 1.6-6.1 0-9"></path>
+              <path d="M7 10c1.4-3.8 3-5.7 5-5.7s3.6 1.9 5 5.7"></path>
+              <path d="M9.2 14h5.6M10 18h4"></path>
+            </svg>
+          </span>
           <div class="trainer-workout-modal-library-item-copy">
             <strong>${escapeAdminCell(exerciseName)}</strong>
             <small>
@@ -15233,6 +16497,27 @@ function syncTrainerExerciseGroupDrivenUi() {
     trainerExerciseDetailsWrap.hidden = false;
   }
   if (trainerExerciseGroupHint) trainerExerciseGroupHint.hidden = hasSelectedGroup;
+  syncTrainerExerciseComposerSummaries();
+}
+
+function syncTrainerExerciseComposerSummaries() {
+  if (trainerExerciseGroupSummary && trainerExerciseGroupSelect) {
+    const selectedGroups = getSelectedTrainerExerciseGroups();
+    trainerExerciseGroupSummary.textContent =
+      selectedGroups.length === 1
+        ? getLibraryGroupLabel(selectedGroups[0], '1 selecionado')
+        : `${selectedGroups.length} selecionados`;
+  }
+
+  if (trainerExerciseLibrarySummary && trainerExerciseLibrarySelect) {
+    const selectedOption = trainerExerciseLibrarySelect.selectedOptions && trainerExerciseLibrarySelect.selectedOptions.length
+      ? trainerExerciseLibrarySelect.selectedOptions[0]
+      : null;
+    const selectedText = selectedOption
+      ? String(selectedOption.textContent || '').trim()
+      : '';
+    trainerExerciseLibrarySummary.textContent = selectedText || 'Clique para abrir a biblioteca geral';
+  }
 }
 
 function applyPredefinedWorkoutSelectionToAssignmentForm() {
@@ -16098,6 +17383,12 @@ const renderTrainerManagedWorkoutsExperience = ({
     'trainer-managed-workouts-context--selected',
     !isDefinitionView && Boolean(selectedStudent)
   );
+  if (trainerManagedWorkoutsCard) {
+    trainerManagedWorkoutsCard.classList.toggle(
+      'is-student-workouts-view',
+      !isDefinitionView && Boolean(selectedStudent)
+    );
+  }
 
   if (trainerManagedWorkoutsSearchInput) {
     const placeholder = isDefinitionView
@@ -16212,7 +17503,11 @@ const renderTrainerManagedWorkoutsExperience = ({
                 data-trainer-workout-definition-preview
                 data-template-id="${safeCell(entry.templateId)}"
               >
-                Ver
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span>Ver</span>
               </button>
               <button
                 class="trainer-managed-action-btn is-primary"
@@ -16221,7 +17516,11 @@ const renderTrainerManagedWorkoutsExperience = ({
                 data-template-id="${safeCell(entry.templateId)}"
                 data-definition-name="${safeCell(entry.name)}"
               >
-                Editar
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m4 20 4.5-1 9.7-9.7a2.1 2.1 0 0 0 0-3L17.7 3.8a2.1 2.1 0 0 0-3 0L5 13.5 4 18Z"></path>
+                  <path d="M13.5 6.5 17.5 10.5"></path>
+                </svg>
+                <span>Editar</span>
               </button>
               <button
                 class="trainer-managed-action-btn ${entry.statusLabel === 'Inativo' ? 'is-danger' : 'is-warning'}"
@@ -16230,7 +17529,12 @@ const renderTrainerManagedWorkoutsExperience = ({
                 data-template-id="${safeCell(entry.templateId)}"
                 data-definition-name="${safeCell(entry.name)}"
               >
-                ${entry.statusLabel === 'Inativo' ? 'Excluir' : 'Desativar'}
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  ${entry.statusLabel === 'Inativo'
+                    ? '<path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path>'
+                    : '<circle cx="12" cy="12" r="9"></circle><path d="m5.6 5.6 12.8 12.8"></path>'}
+                </svg>
+                <span>${entry.statusLabel === 'Inativo' ? 'Excluir' : 'Desativar'}</span>
               </button>
             </div>
           `;
@@ -16240,7 +17544,6 @@ const renderTrainerManagedWorkoutsExperience = ({
               <div class="trainer-managed-card-top">
                 <div class="trainer-managed-card-copy">
                   <strong>${safeCell(entry.name)}</strong>
-                  <p>Nomeclatura pronta para ser editada e atribuída aos alunos.</p>
                 </div>
                 <span class="trainer-managed-pill ${safeCell(entry.statusTone)}">${safeCell(entry.statusLabel)}</span>
               </div>
@@ -16261,10 +17564,6 @@ const renderTrainerManagedWorkoutsExperience = ({
                   <small>Ativos</small>
                   <strong>${safeCell(entry.activeAssignmentsCount)} / ${safeCell(entry.assignmentsCount)}</strong>
                 </div>
-              </div>
-              <div class="trainer-managed-card-meta">
-                <span>Criado em ${safeCell(formatAdminDate(entry.createdAt))}</span>
-                <span>${safeCell(entry.inactiveAssignmentsCount)} vínculo(s) inativo(s)</span>
               </div>
               ${actionMarkup}
             </article>
@@ -16287,6 +17586,9 @@ const renderTrainerManagedWorkoutsExperience = ({
     const completedCount = filteredWorkouts.filter(
       (workout) => getTrainerManagedWorkoutStatusMeta(workout).isCompleted
     ).length;
+    const completionPercent = filteredWorkouts.length
+      ? Math.max(0, Math.min(100, Math.round((completedCount / filteredWorkouts.length) * 100)))
+      : 0;
 
     trainerManagedWorkoutsContext.innerHTML = `
       <button class="trainer-managed-back-btn" type="button" data-trainer-managed-workouts-back aria-label="Voltar para os alunos">
@@ -16295,8 +17597,23 @@ const renderTrainerManagedWorkoutsExperience = ({
         </svg>
       </button>
       <div class="trainer-managed-workouts-context-copy">
-        <small>Treinos do aluno</small>
-        <strong>Treinos - ${safeCell(selectedStudent.name)}</strong>
+        <small>Gestão</small>
+        <strong>Treinos do <span>Aluno</span></strong>
+        <p>Visualize, edite e acompanhe o desempenho dos treinos.</p>
+        <button class="trainer-managed-new-workout-btn" type="button" data-trainer-home-shortcut="assign">
+          <span aria-hidden="true">+</span>
+          <strong>Novo treino</strong>
+        </button>
+      </div>
+      <div class="trainer-managed-student-summary">
+        <small>Treinos concluídos</small>
+        <strong><span>${safeCell(completedCount)}</span>/${safeCell(filteredWorkouts.length)}</strong>
+        <div class="trainer-managed-summary-progress">
+          <span class="trainer-managed-summary-track" aria-hidden="true">
+            <span style="width: ${safeCell(completionPercent)}%;"></span>
+          </span>
+          <em>${safeCell(completionPercent)}%</em>
+        </div>
         <p>${safeCell(completedCount)} de ${safeCell(filteredWorkouts.length)} treino(s) concluído(s) na visualização atual.</p>
       </div>
       <div class="trainer-managed-view-toggle" role="tablist" aria-label="Visão dos treinos do aluno">
@@ -16347,6 +17664,7 @@ const renderTrainerManagedWorkoutsExperience = ({
           const workoutId = Number(workout && workout.id) || 0;
           const workoutName = String((workout && (workout.title || workout.name)) || `Treino ${workoutId || '-'}`).trim() || '-';
           const objectiveLabel = String((workout && (workout.objective || workout.objetivo)) || '').trim() || 'Sem objetivo informado';
+          const workoutTitleParts = getTrainerWorkoutTitleParts(workoutName, objectiveLabel);
           const createdAtLabel = formatAdminDate(workout && workout.createdAt);
           const exercises = getTrainerWorkoutExercisesWithTemplateFallback(workout);
           const exercisesCount = Array.isArray(exercises) && exercises.length
@@ -16358,8 +17676,8 @@ const renderTrainerManagedWorkoutsExperience = ({
             <article class="trainer-managed-workout-card" data-workout-id="${safeCell(workoutId)}">
               <div class="trainer-managed-card-top">
                 <div class="trainer-managed-card-copy">
-                  <strong>${safeCell(workoutName)}</strong>
-                  <p>${safeCell(objectiveLabel)}</p>
+                  <strong>${safeCell(workoutTitleParts.displayName)}</strong>
+                  <p>${safeCell(workoutTitleParts.focus)}</p>
                 </div>
                 <span class="trainer-managed-pill ${safeCell(
                   audienceView === 'student' ? statusMeta.studentTone : statusMeta.instructorTone
@@ -16373,8 +17691,8 @@ const renderTrainerManagedWorkoutsExperience = ({
               </div>
               <div class="trainer-managed-card-details">
                 <div class="trainer-managed-card-stat">
-                  <small>Objetivo</small>
-                  <strong>${safeCell(objectiveLabel)}</strong>
+                  <small>Foco</small>
+                  <strong>${safeCell(workoutTitleParts.focus)}</strong>
                 </div>
                 <div class="trainer-managed-card-stat">
                   <small>Status</small>
@@ -16399,7 +17717,11 @@ const renderTrainerManagedWorkoutsExperience = ({
                       data-trainer-workout-preview
                       data-workout-id="${safeCell(workoutId)}"
                     >
-                      Ver
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      <span>Ver</span>
                     </button>
                     <button
                       class="trainer-managed-action-btn is-primary"
@@ -16407,7 +17729,11 @@ const renderTrainerManagedWorkoutsExperience = ({
                       data-trainer-workout-edit
                       data-workout-id="${safeCell(workoutId)}"
                     >
-                      Editar
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m4 20 4.5-1 9.7-9.7a2.1 2.1 0 0 0 0-3L17.7 3.8a2.1 2.1 0 0 0-3 0L5 13.5 4 18Z"></path>
+                        <path d="M13.5 6.5 17.5 10.5"></path>
+                      </svg>
+                      <span>Editar</span>
                     </button>
                     <button
                       class="trainer-managed-action-btn is-danger"
@@ -16415,7 +17741,12 @@ const renderTrainerManagedWorkoutsExperience = ({
                       data-trainer-workout-delete
                       data-workout-id="${safeCell(workoutId)}"
                     >
-                      Excluir
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 6h18"></path>
+                        <path d="M8 6V4h8v2"></path>
+                        <path d="m19 6-1 14H6L5 6"></path>
+                      </svg>
+                      <span>Excluir</span>
                     </button>
                   </div>
                 `}
@@ -16432,8 +17763,8 @@ const renderTrainerManagedWorkoutsExperience = ({
     : studentEntries;
 
   trainerManagedWorkoutsContext.innerHTML = [
-    '<small>Treinos gerenciados</small>',
-    '<strong>Selecione um aluno para ver os treinos</strong>',
+    '<small><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M16 3h3a2 2 0 0 1 2 2v3"></path><path d="M8 21H5a2 2 0 0 1-2-2v-3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg> Treinos gerenciados</small>',
+    '<strong>Selecione um aluno para <span>ver os treinos</span></strong>',
     `<p>${safeCell(filteredStudents.length)} aluno(s) com treinos atribuídos no painel atual.</p>`
   ].join('');
 
@@ -16465,6 +17796,9 @@ const renderTrainerManagedWorkoutsExperience = ({
           : entry.completedCount > 0
             ? 'is-pending'
             : 'is-neutral';
+        const progressPercent = entry.workoutsCount
+          ? Math.max(0, Math.min(100, Math.round((entry.completedCount / entry.workoutsCount) * 100)))
+          : 0;
 
         return `
           <button
@@ -16493,15 +17827,24 @@ const renderTrainerManagedWorkoutsExperience = ({
               </span>
             </div>
             <div class="trainer-managed-student-progress">
-              <span>Progresso</span>
-              <span class="trainer-managed-pill ${safeCell(progressTone)}">
-                ${safeCell(entry.completedCount)}/${safeCell(entry.workoutsCount)}
+              <span>${safeCell(entry.completedCount)}/${safeCell(entry.workoutsCount)}</span>
+              <span class="trainer-managed-progress-track" aria-hidden="true">
+                <span class="trainer-managed-progress-bar ${safeCell(progressTone)}" style="width: ${safeCell(progressPercent)}%;"></span>
               </span>
+              <span class="trainer-managed-progress-percent">${safeCell(progressPercent)}%</span>
             </div>
           </button>
         `;
       }).join('')}
     </div>
+    <footer class="trainer-managed-workouts-tip">
+      <span aria-hidden="true">i</span>
+      <p>Acompanhe o progresso dos alunos.</p>
+      <button type="button" data-trainer-managed-progress-report>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16"></path><path d="m6 15 4-4 3 3 5-7"></path><path d="M18 7h-4"></path><path d="M18 7v4"></path></svg>
+        <span>Ver relatórios</span>
+      </button>
+    </footer>
   `;
 };
 
@@ -16551,10 +17894,44 @@ const updateTrainerHomeHeader = () => {
   updateTrainerWelcomeAvatar();
 };
 
+function syncTrainerAssignmentSelectTriggers() {
+  const labelByType = new Map();
+  trainerAssignmentSelectLabels.forEach((label) => {
+    if (!(label instanceof HTMLElement)) return;
+    labelByType.set(String(label.dataset.trainerAssignmentSelectLabel || '').trim(), label);
+  });
+
+  const syncTrigger = (type, select, fallbackLabel) => {
+    const label = labelByType.get(type);
+    const trigger = Array.from(trainerAssignmentSelectTriggers || []).find(
+      (button) => String(button && button.dataset.trainerAssignmentSelectTrigger || '').trim() === type
+    );
+    const selectedText =
+      select &&
+      select.selectedOptions &&
+      select.selectedOptions.length
+        ? String(select.selectedOptions[0].textContent || '').trim()
+        : '';
+    const displayText = selectedText || fallbackLabel;
+    if (label) label.textContent = displayText;
+    if (trigger instanceof HTMLButtonElement) {
+      trigger.disabled = Boolean(select && select.disabled);
+      trigger.setAttribute('aria-label', displayText);
+    }
+  };
+
+  syncTrigger('student', trainerWorkoutStudentSelect, 'Selecione o aluno');
+  syncTrigger('instructor', trainerWorkoutInstructorSelect, 'Selecione o instrutor');
+}
+
 const renderTrainerManagementPanel = () => {
   updateTrainerHomeHeader();
+  syncTrainerHomeTabsUi();
+  syncTrainerWorkoutScreenViewUi();
+  syncTrainerObjectiveCards();
   syncTrainerManagedWorkoutsPanelCollapseUi();
   syncTrainerManagedWorkoutsViewUi();
+  renderTrainerExerciseLibraryScreen();
   const showPanelData = isTrainerManagerUser();
 
   if (trainerWorkoutRefreshButton) {
@@ -16775,6 +18152,9 @@ const renderTrainerManagementPanel = () => {
     trainerTemplateEditorActiveSelect.disabled = trainerManagementState.loading || !templates.length;
   }
 
+  syncTrainerTemplateEditorStatusUi();
+  updateTrainerTemplateEditorDescriptionCount();
+
   if (trainerTemplateExerciseTemplateSelect) {
     const previousValue = String(
       trainerTemplateExerciseTemplateSelect.value ||
@@ -16882,7 +18262,7 @@ const renderTrainerManagementPanel = () => {
         '<option value="">Selecione o aluno</option>',
         ...selectableStudents.map(
           (student) =>
-            `<option value="${safeCell(student.id)}">${safeCell(student.name)}${student && student.isEnabled === false ? ' (Desabilitado)' : ''}</option>`
+            `<option value="${safeCell(student.id)}" data-avatar-url="${safeCell(resolveProfileAvatarUrl(getProfileAvatarFromSource(student)))}">${safeCell(student.name)}${student && student.isEnabled === false ? ' (Desabilitado)' : ''}</option>`
         )
       ].join('');
 
@@ -16909,7 +18289,7 @@ const renderTrainerManagementPanel = () => {
         trainerTemplateInstructorSelect.innerHTML = selectableInstructors
           .map(
             (instructor) =>
-              `<option value="${safeCell(instructor.id)}">${safeCell(instructor.name)} (${safeCell(getRoleLabel(instructor.role))})</option>`
+              `<option value="${safeCell(instructor.id)}" data-avatar-url="${safeCell(resolveProfileAvatarUrl(getProfileAvatarFromSource(instructor)))}">${safeCell(instructor.name)} (${safeCell(getRoleLabel(instructor.role))})</option>`
           )
           .join('');
 
@@ -16920,7 +18300,7 @@ const renderTrainerManagementPanel = () => {
       trainerTemplateInstructorSelect.disabled = false;
     } else {
       const currentId = Number(studentData.userId) || 0;
-      trainerTemplateInstructorSelect.innerHTML = `<option value="${currentId}">${studentData.userName || 'Instrutor atual'}</option>`;
+      trainerTemplateInstructorSelect.innerHTML = `<option value="${safeCell(currentId)}" data-avatar-url="${safeCell(resolveProfileAvatarUrl(studentData.profileAvatarUrl || ''))}">${safeCell(studentData.userName || 'Instrutor atual')}</option>`;
       trainerTemplateInstructorSelect.disabled = true;
     }
   }
@@ -16938,7 +18318,7 @@ const renderTrainerManagementPanel = () => {
         '<option value="">Selecione o aluno</option>',
         ...selectableStudents.map(
           (student) =>
-            `<option value="${safeCell(student.id)}">${safeCell(student.name)}${student && student.isEnabled === false ? ' (Desabilitado)' : ''}</option>`
+            `<option value="${safeCell(student.id)}" data-avatar-url="${safeCell(resolveProfileAvatarUrl(getProfileAvatarFromSource(student)))}">${safeCell(student.name)}${student && student.isEnabled === false ? ' (Desabilitado)' : ''}</option>`
         )
       ].join('');
 
@@ -16969,7 +18349,7 @@ const renderTrainerManagementPanel = () => {
           '<option value="">Selecione o instrutor</option>',
           ...selectableInstructors.map(
             (instructor) =>
-              `<option value="${safeCell(instructor.id)}">${safeCell(instructor.name)} (${safeCell(getRoleLabel(instructor.role))})</option>`
+              `<option value="${safeCell(instructor.id)}" data-avatar-url="${safeCell(resolveProfileAvatarUrl(getProfileAvatarFromSource(instructor)))}">${safeCell(instructor.name)} (${safeCell(getRoleLabel(instructor.role))})</option>`
           )
         ].join('');
 
@@ -16982,10 +18362,12 @@ const renderTrainerManagementPanel = () => {
       trainerWorkoutInstructorSelect.disabled = false;
     } else {
       const currentId = Number(studentData.userId) || 0;
-      trainerWorkoutInstructorSelect.innerHTML = `<option value="${currentId}">${studentData.userName || 'Instrutor atual'}</option>`;
+      trainerWorkoutInstructorSelect.innerHTML = `<option value="${safeCell(currentId)}" data-avatar-url="${safeCell(resolveProfileAvatarUrl(studentData.profileAvatarUrl || ''))}">${safeCell(studentData.userName || 'Instrutor atual')}</option>`;
       trainerWorkoutInstructorSelect.disabled = true;
     }
   }
+
+  syncTrainerAssignmentSelectTriggers();
 
   if (trainerWorkoutPredefinedSelect) {
     const previousValue = normalizeWorkoutDefinitionLabel(trainerWorkoutPredefinedSelect.value);
@@ -17141,6 +18523,7 @@ const renderTrainerManagementPanel = () => {
         !hasSelectedExerciseGroup ||
         !groupedLibraryExercises.length;
     }
+    syncTrainerExerciseComposerSummaries();
   }
 
   if (trainerExercisesFilterSelect) {
@@ -17176,7 +18559,7 @@ const renderTrainerManagementPanel = () => {
 
   if (trainerWorkoutSubmitButton) {
     const submitLabelNode = trainerWorkoutSubmitButton.querySelector('span');
-    const submitLabel = 'Designar ao aluno';
+    const submitLabel = 'Associar treino';
     if (submitLabelNode) {
       submitLabelNode.textContent = submitLabel;
     } else {
@@ -17857,7 +19240,7 @@ const renderTrainerProgressPanel = () => {
     const end = formatDateKeyPtBr(trainerProgressState.weekEndKey);
     trainerProgressRange.textContent =
       start !== '-' && end !== '-'
-        ? `Semana: ${start} até ${end}`
+        ? `${start} até ${end}`
         : 'Semana atual';
   }
 
@@ -17919,6 +19302,17 @@ const renderTrainerProgressPanel = () => {
   }
 };
 
+const removeStudentLibraryBackButtons = () => {
+  document
+    .querySelectorAll(
+      '[data-student-app-panel="biblioteca"] [data-student-library-back], ' +
+      '[data-student-app-panel="biblioteca"] .student-workouts-back, ' +
+      '.student-library-hero [data-student-library-back], ' +
+      '.student-library-hero .student-workouts-back'
+    )
+    .forEach((button) => button.remove());
+};
+
 const renderStudentApp = ({ animateWorkoutListItems = true } = {}) => {
   applyRoleBasedUiMode();
   renderDashboard();
@@ -17928,6 +19322,7 @@ const renderStudentApp = ({ animateWorkoutListItems = true } = {}) => {
   renderActiveWorkout();
   renderProgress();
   renderLibrary();
+  removeStudentLibraryBackButtons();
   renderProfile();
   renderAdminOverviewPanel();
   renderTrainerManagementPanel();
@@ -18003,6 +19398,10 @@ const setStudentAppTab = (tabId, immediate = false) => {
     if (resolvedTab === 'dashboard' && canTrainerManager) resolvedTab = 'admin-treinos';
   }
 
+  if (resolvedTab === 'biblioteca' && currentStudentTab && currentStudentTab !== 'biblioteca') {
+    lastStudentTabBeforeLibrary = currentStudentTab;
+  }
+
   if (resolvedTab !== 'pre-treino') clearPrepCountdown();
   if (resolvedTab !== 'treino-execucao') clearRunCountdown();
   if (resolvedTab !== 'treino-execucao') setRunHelpModalOpen(false);
@@ -18043,6 +19442,7 @@ const setStudentAppTab = (tabId, immediate = false) => {
       panel.classList.toggle('is-active', active);
       panel.hidden = !active;
     });
+    if (resolvedTab === 'biblioteca') removeStudentLibraryBackButtons();
     if (studentAppMain) studentAppMain.scrollTo({ top: 0, behavior: 'auto' });
     if (studentArea && !studentArea.hidden && studentApp && studentApp.classList.contains('is-visible')) {
       saveStudentAreaState({
@@ -18075,6 +19475,32 @@ const setStudentAppTab = (tabId, immediate = false) => {
     studentTabLoading.hidden = true;
   }, 220);
 };
+
+const goBackFromStudentLibrary = () => {
+  const fallbackTab = getDefaultMainTabForCurrentRole();
+  const targetTab = lastStudentTabBeforeLibrary && lastStudentTabBeforeLibrary !== 'biblioteca'
+    ? lastStudentTabBeforeLibrary
+    : fallbackTab;
+  setStudentAppTab(targetTab, true);
+};
+
+document.addEventListener('click', (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+
+  const libraryBackTarget = target.closest('[data-student-library-back]');
+  const homeTarget = target.closest('[data-student-home-btn]');
+  const libraryPanel = document.querySelector('[data-student-app-panel="biblioteca"]');
+  const libraryIsOpen = currentStudentPanel === 'biblioteca' ||
+    Boolean(libraryPanel && !libraryPanel.hidden && libraryPanel.classList.contains('is-active'));
+
+  if (!libraryBackTarget && !(homeTarget && libraryIsOpen)) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+  goBackFromStudentLibrary();
+}, true);
 
 const handleTrainerWorkoutSubmit = async (event) => {
   event.preventDefault();
@@ -18286,16 +19712,18 @@ const handleTrainerWorkoutSubmit = async (event) => {
     );
     trainerTemplateExerciseSelectedId = selectedTemplateAfterSubmit;
     trainerExerciseComposerSelectedId = selectedTemplateAfterSubmit;
-    const visibilityHint = 'Treino já disponível para o aluno.';
-    const successMessage = selectedStudentName
+    const selectedStudentNoticeName = formatPersonNameForNotice(selectedStudentName);
+    const successMessage = selectedStudentNoticeName
       ? dayAssignments.length > 1
-        ? `${dayAssignments.length} treinos foram designados ao aluno ${selectedStudentName}. ${visibilityHint}`
-        : `Treino designado ao aluno ${selectedStudentName}. ${visibilityHint}`
-      : visibilityHint;
+        ? `${dayAssignments.length} treinos designados para ${selectedStudentNoticeName}.`
+        : `Treino designado para ${selectedStudentNoticeName}.`
+      : dayAssignments.length > 1
+        ? `${dayAssignments.length} treinos designados.`
+        : 'Treino designado.';
     const finalSuccessMessage = trainerWorkoutPendingCoverFile && !coverAutoApplied
-      ? `${successMessage} A capa ficou pendente; ela será salva ao clicar em "Adicionar ao treino".`
+      ? `${successMessage} Capa pendente.`
       : coverAutoApplied
-        ? `${successMessage} A capa do treino também foi salva.`
+        ? `${successMessage} Capa salva.`
         : successMessage;
     const failedAssignmentsMessage = failedAssignments.length
       ? ` Dias com falha: ${failedAssignments
@@ -18434,6 +19862,62 @@ const handleTrainerTemplateWorkoutSubmit = async (event) => {
   }
 };
 
+const syncTrainerTemplateStatusUi = (activeButton = null) => {
+  if (!trainerTemplateStatusButtons.length) return;
+
+  const currentValue = trainerTemplateFormActiveSelect
+    ? String(trainerTemplateFormActiveSelect.value || 'true').trim().toLowerCase()
+    : 'true';
+  const selectedButton =
+    activeButton ||
+    trainerTemplateStatusButtons.find((button) => {
+      if (!button) return false;
+      return String(button.dataset.trainerTemplateStatusOption || 'true').trim().toLowerCase() === currentValue;
+    }) ||
+    trainerTemplateStatusButtons[0];
+
+  trainerTemplateStatusButtons.forEach((button) => {
+    const isSelected = button === selectedButton;
+    button.classList.toggle('is-active', isSelected);
+    button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+  });
+};
+
+const updateTrainerTemplateDescriptionCount = () => {
+  if (!trainerTemplateDescriptionCount || !trainerTemplateFormDescriptionInput) return;
+  const maxLength = Number(trainerTemplateFormDescriptionInput.getAttribute('maxlength')) || 300;
+  const currentLength = String(trainerTemplateFormDescriptionInput.value || '').length;
+  trainerTemplateDescriptionCount.textContent = `${currentLength} / ${maxLength}`;
+};
+
+const syncTrainerTemplateEditorStatusUi = (activeButton = null) => {
+  if (!trainerTemplateEditorStatusButtons.length) return;
+
+  const currentValue = trainerTemplateEditorActiveSelect
+    ? String(trainerTemplateEditorActiveSelect.value || 'true').trim().toLowerCase()
+    : 'true';
+  const selectedButton =
+    activeButton ||
+    trainerTemplateEditorStatusButtons.find((button) => {
+      if (!button) return false;
+      return String(button.dataset.trainerTemplateEditorStatusOption || 'true').trim().toLowerCase() === currentValue;
+    }) ||
+    trainerTemplateEditorStatusButtons[0];
+
+  trainerTemplateEditorStatusButtons.forEach((button) => {
+    const isSelected = button === selectedButton;
+    button.classList.toggle('is-active', isSelected);
+    button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+  });
+};
+
+const updateTrainerTemplateEditorDescriptionCount = () => {
+  if (!trainerTemplateEditorDescriptionCount || !trainerTemplateEditorDescriptionInput) return;
+  const maxLength = Number(trainerTemplateEditorDescriptionInput.getAttribute('maxlength')) || 300;
+  const currentLength = String(trainerTemplateEditorDescriptionInput.value || '').length;
+  trainerTemplateEditorDescriptionCount.textContent = `${currentLength} / ${maxLength}`;
+};
+
 const handleTrainerTemplateFormSubmit = async (event) => {
   event.preventDefault();
   if (!isTrainerManagerUser()) return;
@@ -18477,6 +19961,8 @@ const handleTrainerTemplateFormSubmit = async (event) => {
 
     if (trainerTemplateForm) trainerTemplateForm.reset();
     if (trainerTemplateFormActiveSelect) trainerTemplateFormActiveSelect.value = 'true';
+    syncTrainerTemplateStatusUi();
+    updateTrainerTemplateDescriptionCount();
 
     if (response && response.template) {
       replaceTrainerTemplateLocally(response.template);
@@ -18578,6 +20064,8 @@ const handleTrainerTemplateEditorSubmit = async (event) => {
     } else {
       updateTrainerTemplateLocally(templateId, body);
     }
+    syncTrainerTemplateEditorStatusUi();
+    updateTrainerTemplateEditorDescriptionCount();
     renderTrainerManagementPanel();
 
     if (trainerTemplateExercisesFilterSelect) {
@@ -18603,7 +20091,7 @@ const handleTrainerTemplateEditorSubmit = async (event) => {
       false
     );
   } finally {
-    clearButtonLoading(trainerTemplateEditorSubmitButton, 'Salvar template');
+    clearButtonLoading(trainerTemplateEditorSubmitButton, 'Salvar edição');
   }
 };
 
@@ -19938,6 +21426,18 @@ const handleTrainerManagedWorkoutsInteractions = async (event) => {
     return;
   }
 
+  const reportButton = target.closest('[data-trainer-managed-progress-report]');
+  if (reportButton && reportButton instanceof HTMLButtonElement) {
+    handleTrainerHomeShortcut('progress');
+    return;
+  }
+
+  const shortcutButton = target.closest('[data-trainer-home-shortcut]');
+  if (shortcutButton && shortcutButton instanceof HTMLButtonElement) {
+    handleTrainerHomeShortcut(shortcutButton.dataset.trainerHomeShortcut || '');
+    return;
+  }
+
   await handleTrainerWorkoutsTableActions(event);
 };
 
@@ -21089,6 +22589,7 @@ const initStudentArea = () => {
   adminTeamPanelCollapsed = loadAdminTeamPanelCollapsed();
   syncAdminUsersPanelCollapseUi();
   syncTrainerTemplateCreatePanelCollapseUi();
+  syncTrainerTemplateSectionMinimizeUi();
   syncTrainerWorkoutCreatePanelCollapseUi();
   syncTrainerManagedWorkoutsPanelCollapseUi();
   syncAdminWorkoutsPanelCollapseUi();
@@ -21315,6 +22816,12 @@ const initStudentArea = () => {
     });
   }
 
+  trainerTemplateSectionToggleButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      toggleTrainerTemplateSectionMinimized(button);
+    });
+  });
+
   if (trainerWorkoutCreateToggleButton) {
     trainerWorkoutCreateToggleButton.addEventListener('click', () => {
       toggleTrainerWorkoutCreatePanelCollapsed();
@@ -21326,6 +22833,86 @@ const initStudentArea = () => {
       toggleTrainerManagedWorkoutsPanelCollapsed();
     });
   }
+
+  if (trainerAssignmentBackButton) {
+    trainerAssignmentBackButton.addEventListener('click', () => {
+      setTrainerWorkoutScreenView('home', { scroll: true });
+    });
+  }
+
+  if (trainerCreateBackButton) {
+    trainerCreateBackButton.addEventListener('click', () => {
+      setTrainerWorkoutScreenView('home', { scroll: true });
+    });
+  }
+
+  if (trainerExerciseLibraryBackButton) {
+    trainerExerciseLibraryBackButton.addEventListener('click', () => {
+      setTrainerWorkoutScreenView('home', { scroll: true });
+    });
+  }
+
+  if (trainerRegisteredExercisesBackButton) {
+    trainerRegisteredExercisesBackButton.addEventListener('click', () => {
+      setTrainerWorkoutScreenView('home', { scroll: true });
+    });
+  }
+
+  if (trainerExerciseLibraryScreenSearchInput) {
+    trainerExerciseLibraryScreenSearchInput.addEventListener('input', () => {
+      trainerExerciseLibraryScreenSearchTerm = String(trainerExerciseLibraryScreenSearchInput.value || '');
+      renderTrainerExerciseLibraryScreen();
+    });
+  }
+
+  if (trainerExerciseLibraryScreenList) {
+    trainerExerciseLibraryScreenList.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const backButton = target.closest('[data-trainer-exercise-library-screen-back]');
+      if (backButton) {
+        trainerExerciseLibraryScreenGroup = '';
+        trainerExerciseLibraryScreenExerciseId = '';
+        renderTrainerExerciseLibraryScreen();
+        return;
+      }
+
+      const detailBackButton = target.closest('[data-trainer-exercise-library-detail-back]');
+      if (detailBackButton) {
+        trainerExerciseLibraryScreenExerciseId = '';
+        renderTrainerExerciseLibraryScreen();
+        return;
+      }
+
+      const exerciseButton = target.closest('[data-trainer-exercise-library-exercise]');
+      if (exerciseButton) {
+        trainerExerciseLibraryScreenExerciseId = String(
+          exerciseButton.getAttribute('data-trainer-exercise-library-exercise') || ''
+        ).trim();
+        renderTrainerExerciseLibraryScreen();
+        return;
+      }
+
+      const groupButton = target.closest('[data-trainer-exercise-library-screen-group]');
+      if (!groupButton) return;
+
+      trainerExerciseLibraryScreenGroup = String(
+        groupButton.getAttribute('data-trainer-exercise-library-screen-group') || ''
+      ).trim();
+      trainerExerciseLibraryScreenExerciseId = '';
+      trainerExerciseLibraryScreenSearchTerm = '';
+      if (trainerExerciseLibraryScreenSearchInput) trainerExerciseLibraryScreenSearchInput.value = '';
+      renderTrainerExerciseLibraryScreen();
+    });
+  }
+
+  trainerHomeTabButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      setTrainerWorkoutScreenView('home');
+      setTrainerHomeTab(button.dataset.trainerHomeTab || 'home');
+    });
+  });
 
   trainerHomeShortcutButtons.forEach((button) => {
     button.addEventListener('click', () => {
@@ -21501,14 +23088,33 @@ const initStudentArea = () => {
   if (trainerWorkoutStudentSelect) {
     trainerWorkoutStudentSelect.addEventListener('change', () => {
       trainerWorkoutStudentConfirmed = (Number(trainerWorkoutStudentSelect.value) || 0) > 0;
+      syncTrainerAssignmentSelectTriggers();
       renderTrainerManagementPanel();
     });
   }
+
+  trainerAssignmentSelectTriggers.forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) return;
+    button.addEventListener('click', () => {
+      const type = String(button.dataset.trainerAssignmentSelectTrigger || '').trim();
+      const targetSelect = type === 'instructor'
+        ? trainerWorkoutInstructorSelect
+        : trainerWorkoutStudentSelect;
+      if (!(targetSelect instanceof HTMLSelectElement) || targetSelect.disabled) return;
+      openMobileSelectPicker(targetSelect, { force: true });
+    });
+  });
 
   if (trainerWorkoutInstructorSearchInput) {
     trainerWorkoutInstructorSearchInput.addEventListener('input', () => {
       trainerInstructorSearchTerm = String(trainerWorkoutInstructorSearchInput.value || '').trim();
       renderTrainerManagementPanel();
+    });
+  }
+
+  if (trainerWorkoutInstructorSelect) {
+    trainerWorkoutInstructorSelect.addEventListener('change', () => {
+      syncTrainerAssignmentSelectTriggers();
     });
   }
 
@@ -21521,6 +23127,18 @@ const initStudentArea = () => {
       renderTrainerManagementPanel();
     });
   }
+
+  if (trainerWorkoutObjectiveSelect) {
+    trainerWorkoutObjectiveSelect.addEventListener('change', () => {
+      syncTrainerObjectiveCards();
+    });
+  }
+
+  trainerObjectiveCardButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      setTrainerWorkoutObjective(button.dataset.trainerObjectiveCard || '');
+    });
+  });
 
   Array.from(trainerWeekdayInputs || []).forEach((weekdayInput) => {
     if (!weekdayInput) return;
@@ -21545,17 +23163,34 @@ const initStudentArea = () => {
         delete trainerWorkoutDayAssignments[day];
       }
 
-      const viewButton = trainerWeekdayAssignmentList.querySelector(
-        `[data-trainer-weekday-assignment-view][data-day="${escapeAdminCell(day)}"]`
-      );
-      if (viewButton instanceof HTMLButtonElement) {
-        viewButton.disabled = workoutId <= 0;
-      }
+      trainerWeekdayAssignmentList
+        .querySelectorAll(`[data-trainer-weekday-assignment-view][data-day="${escapeAdminCell(day)}"]`)
+        .forEach((viewButton) => {
+          if (viewButton instanceof HTMLButtonElement) {
+            viewButton.disabled = workoutId <= 0;
+          }
+        });
+      renderTrainerManagementPanel();
     });
 
     trainerWeekdayAssignmentList.addEventListener('click', (event) => {
       const target = event && event.target;
       if (!(target instanceof Element)) return;
+
+      const pickButton = target.closest('[data-trainer-weekday-assignment-pick]');
+      if (pickButton instanceof HTMLButtonElement) {
+        event.preventDefault();
+        event.stopPropagation();
+        const card = pickButton.closest('[data-trainer-weekday-assignment-card]');
+        const select = card
+          ? card.querySelector('[data-trainer-weekday-assignment-select]')
+          : null;
+        if (select instanceof HTMLSelectElement && !select.disabled) {
+          openMobileSelectPicker(select, { force: true });
+        }
+        return;
+      }
+
       const viewButton = target.closest('[data-trainer-weekday-assignment-view]');
       if (!(viewButton instanceof HTMLButtonElement)) return;
 
@@ -21590,8 +23225,58 @@ const initStudentArea = () => {
     trainerTemplateForm.addEventListener('submit', handleTrainerTemplateFormSubmit);
   }
 
+  if (trainerTemplateStatusButtons.length) {
+    syncTrainerTemplateStatusUi();
+    trainerTemplateStatusButtons.forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return;
+      button.addEventListener('click', () => {
+        const nextValue = String(button.dataset.trainerTemplateStatusOption || 'true').trim().toLowerCase();
+        if (trainerTemplateFormActiveSelect) {
+          trainerTemplateFormActiveSelect.value = nextValue === 'false' ? 'false' : 'true';
+        }
+        syncTrainerTemplateStatusUi(button);
+      });
+    });
+  }
+
+  if (trainerTemplateFormActiveSelect) {
+    trainerTemplateFormActiveSelect.addEventListener('change', () => {
+      syncTrainerTemplateStatusUi();
+    });
+  }
+
+  if (trainerTemplateFormDescriptionInput) {
+    updateTrainerTemplateDescriptionCount();
+    trainerTemplateFormDescriptionInput.addEventListener('input', updateTrainerTemplateDescriptionCount);
+  }
+
   if (trainerTemplateEditorForm) {
     trainerTemplateEditorForm.addEventListener('submit', handleTrainerTemplateEditorSubmit);
+  }
+
+  if (trainerTemplateEditorStatusButtons.length) {
+    syncTrainerTemplateEditorStatusUi();
+    trainerTemplateEditorStatusButtons.forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return;
+      button.addEventListener('click', () => {
+        const nextValue = String(button.dataset.trainerTemplateEditorStatusOption || 'true').trim().toLowerCase();
+        if (trainerTemplateEditorActiveSelect) {
+          trainerTemplateEditorActiveSelect.value = nextValue === 'false' ? 'false' : 'true';
+        }
+        syncTrainerTemplateEditorStatusUi(button);
+      });
+    });
+  }
+
+  if (trainerTemplateEditorActiveSelect) {
+    trainerTemplateEditorActiveSelect.addEventListener('change', () => {
+      syncTrainerTemplateEditorStatusUi();
+    });
+  }
+
+  if (trainerTemplateEditorDescriptionInput) {
+    updateTrainerTemplateEditorDescriptionCount();
+    trainerTemplateEditorDescriptionInput.addEventListener('input', updateTrainerTemplateEditorDescriptionCount);
   }
 
   if (trainerTemplateExerciseForm) {
@@ -21654,6 +23339,10 @@ const initStudentArea = () => {
       const selectedWorkoutId = Number(selectedWorkoutValue) || 0;
       trainerExerciseComposerSelectedId = selectedWorkoutId ? String(selectedWorkoutId) : '';
       trainerExerciseTargetWorkoutId = 0;
+      if (trainerTemplateEditorSelect && selectedWorkoutId) {
+        trainerTemplateEditorSelect.value = String(selectedWorkoutId);
+        trainerTemplateEditorSelectedId = String(selectedWorkoutId);
+      }
       isTrainerLinkedExercisesExpanded = false;
       renderTrainerManagementPanel();
     });
@@ -21669,6 +23358,12 @@ const initStudentArea = () => {
       updateTrainerWorkoutCoverPreview(selectedFile);
       setTrainerWorkoutCoverFeedback('', false);
       renderTrainerWorkoutCoverBuilder();
+    });
+  }
+
+  if (trainerWorkoutCoverPickButton && trainerWorkoutCoverFileInput) {
+    trainerWorkoutCoverPickButton.addEventListener('click', () => {
+      trainerWorkoutCoverFileInput.click();
     });
   }
 
@@ -21745,6 +23440,7 @@ const initStudentArea = () => {
         isTrainerExerciseLibraryPickerOpen = true;
         renderTrainerExerciseLibraryPicker();
       }
+      syncTrainerExerciseComposerSummaries();
       const selected = getSelectedLibraryExercise();
       if (!selected) return;
       applyLibraryExerciseToExerciseForm(selected);
@@ -22112,13 +23808,25 @@ const initStudentArea = () => {
     });
   }
 
-  if (adminExercisesTableBody) {
-    adminExercisesTableBody.addEventListener('click', async (event) => {
+  const handleAdminExerciseActionClick = async (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
 
-      const statusToggleButton = target.closest('[data-admin-exercise-status-toggle]');
+      const actionButton = target.closest(
+        '[data-admin-exercise-status-toggle], [data-admin-exercise-delete], [data-admin-exercise-view], [data-admin-exercise-edit]'
+      );
+      if (!(actionButton instanceof HTMLButtonElement)) return;
+      if (event.cancelable) event.preventDefault();
+      event.stopPropagation();
+
+      const statusToggleButton = actionButton.matches('[data-admin-exercise-status-toggle]')
+        ? actionButton
+        : null;
       if (statusToggleButton && statusToggleButton instanceof HTMLButtonElement) {
+        if (!canViewRegisteredExercisesPanel()) {
+          setAdminOverviewFeedback('Você não tem permissão para alterar status de exercícios.', false);
+          return;
+        }
         const exerciseId = Number(statusToggleButton.dataset.exerciseId || 0);
         if (!exerciseId) return;
 
@@ -22128,7 +23836,7 @@ const initStudentArea = () => {
 
         void setAdminLibraryExerciseStatus(exerciseId, nextActive)
           .then(async (response) => {
-            await fetchAdminOverview(true);
+            await refreshRegisteredExercisesData(true);
             await syncLibraryFromBackend({ silent: true });
             renderLibrary();
             setAdminOverviewFeedback(
@@ -22148,8 +23856,14 @@ const initStudentArea = () => {
         return;
       }
 
-      const deleteButton = target.closest('[data-admin-exercise-delete]');
+      const deleteButton = actionButton.matches('[data-admin-exercise-delete]')
+        ? actionButton
+        : null;
       if (deleteButton && deleteButton instanceof HTMLButtonElement) {
+        if (!canViewRegisteredExercisesPanel()) {
+          setAdminOverviewFeedback('Você não tem permissão para excluir exercícios.', false);
+          return;
+        }
         const exerciseId = Number(deleteButton.dataset.exerciseId || 0);
         if (!exerciseId) return;
 
@@ -22182,7 +23896,7 @@ const initStudentArea = () => {
             if (Number(adminExerciseEditingId) === exerciseId) {
               closeAdminExerciseEditModal({ keepFocus: false, force: true });
             }
-            await fetchAdminOverview(true);
+            await refreshRegisteredExercisesData(true);
             await syncLibraryFromBackend({ silent: true });
             renderLibrary();
             setAdminOverviewFeedback(
@@ -22202,7 +23916,9 @@ const initStudentArea = () => {
         return;
       }
 
-      const viewButton = target.closest('[data-admin-exercise-view]');
+      const viewButton = actionButton.matches('[data-admin-exercise-view]')
+        ? actionButton
+        : null;
       if (viewButton && viewButton instanceof HTMLButtonElement) {
         const exerciseId = Number(viewButton.dataset.exerciseId || 0);
         if (!exerciseId) return;
@@ -22219,8 +23935,14 @@ const initStudentArea = () => {
         return;
       }
 
-      const editButton = target.closest('[data-admin-exercise-edit]');
+      const editButton = actionButton.matches('[data-admin-exercise-edit]')
+        ? actionButton
+        : null;
       if (!editButton || !(editButton instanceof HTMLButtonElement)) return;
+      if (!canViewRegisteredExercisesPanel()) {
+        setAdminOverviewFeedback('Você não tem permissão para editar exercícios.', false);
+        return;
+      }
 
       const exerciseId = Number(editButton.dataset.exerciseId || 0);
       if (!exerciseId) return;
@@ -22234,7 +23956,18 @@ const initStudentArea = () => {
       if (!opened) {
         setAdminOverviewFeedback('Não foi possível abrir a tela de edição do exercício.', false);
       }
-    });
+  };
+
+  if (adminExercisesTableBody) {
+    adminExercisesTableBody.addEventListener('click', handleAdminExerciseActionClick);
+  }
+
+  if (adminExercisesCardList) {
+    adminExercisesCardList.addEventListener('click', handleAdminExerciseActionClick, true);
+  }
+
+  if (adminExercisesCard) {
+    adminExercisesCard.addEventListener('click', handleAdminExerciseActionClick, true);
   }
 
   adminExerciseModalCloseButtons.forEach((button) => {
@@ -22421,7 +24154,7 @@ const initStudentArea = () => {
             true
           );
           closeAdminExerciseEditModal({ keepFocus: false, force: true });
-          await fetchAdminOverview(true);
+          await refreshRegisteredExercisesData(true);
           await syncLibraryFromBackend({ silent: true });
           renderLibrary();
         })
@@ -22774,9 +24507,10 @@ const initStudentArea = () => {
   }
 
   if (libraryBackButton) {
-    libraryBackButton.addEventListener('click', () => {
-      const targetTab = getDefaultMainTabForCurrentRole();
-      setStudentAppTab(targetTab, true);
+    libraryBackButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      goBackFromStudentLibrary();
     });
   }
 
@@ -22784,6 +24518,19 @@ const initStudentArea = () => {
     librarySearchInput.addEventListener('input', (event) => {
       librarySearchTerm = event.target.value || '';
       renderLibrary();
+    });
+  }
+
+  const setLibraryFilterMenuOpen = (isOpen) => {
+    if (!libraryFilterMenu || !libraryFilterToggleButton) return;
+    libraryFilterMenu.hidden = !isOpen;
+    libraryFilterToggleButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  };
+
+  if (libraryFilterToggleButton) {
+    libraryFilterToggleButton.addEventListener('click', (event) => {
+      event.stopPropagation();
+      setLibraryFilterMenuOpen(Boolean(libraryFilterMenu && libraryFilterMenu.hidden));
     });
   }
 
@@ -22796,9 +24543,28 @@ const initStudentArea = () => {
     button.addEventListener('click', () => {
       activeLibraryFilter = button.dataset.studentLibraryFilter || 'todos';
       libraryFilterButtons.forEach((item) => item.classList.toggle('is-active', item === button));
+      setLibraryFilterMenuOpen(false);
       renderLibrary();
     });
   });
+
+  document.addEventListener('click', (event) => {
+    if (!libraryFilterMenu || libraryFilterMenu.hidden) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('[data-student-library-filter-menu]') || target.closest('[data-student-library-filter-toggle]')) return;
+    setLibraryFilterMenuOpen(false);
+  });
+
+  if (libraryRequestTipButton) {
+    libraryRequestTipButton.addEventListener('click', () => {
+      if (libraryManagerToggleButton && !libraryManagerToggleButton.hidden) {
+        libraryManagerToggleButton.click();
+        return;
+      }
+      if (librarySearchInput) librarySearchInput.focus();
+    });
+  }
 
   if (profileSettings) {
     profileSettings.addEventListener('click', (event) => {
