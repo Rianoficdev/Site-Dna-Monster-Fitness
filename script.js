@@ -20490,6 +20490,23 @@ const openTrainerTemplateEditorModal = (templateId, triggerButton = null) => {
   return true;
 };
 
+const runTrainerManagedActionWithFeedback = (button, action) => {
+  if (!(button instanceof HTMLButtonElement) || typeof action !== 'function') return;
+  button.disabled = true;
+  button.classList.add('is-busy');
+  button.setAttribute('aria-busy', 'true');
+
+  window.requestAnimationFrame(() => {
+    try {
+      action();
+    } finally {
+      button.disabled = false;
+      button.classList.remove('is-busy');
+      button.removeAttribute('aria-busy');
+    }
+  });
+};
+
 const handleTrainerLibrarySubmit = async (event) => {
   event.preventDefault();
   if (!isLibraryManagerUser()) return;
@@ -21278,10 +21295,12 @@ const handleTrainerWorkoutsTableActions = async (event) => {
     const templateId = Number(definitionPreviewButton.dataset.templateId || 0) || 0;
     if (!templateId) return;
 
-    const opened = openTrainerTemplatePreview(templateId, definitionPreviewButton);
-    if (!opened) {
-      setTrainerManagementFeedback('Não foi possível abrir a visualização da nomeclatura.', false);
-    }
+    runTrainerManagedActionWithFeedback(definitionPreviewButton, () => {
+      const opened = openTrainerTemplatePreview(templateId, definitionPreviewButton);
+      if (!opened) {
+        setTrainerManagementFeedback('Não foi possível abrir a visualização da nomeclatura.', false);
+      }
+    });
     return;
   }
 
@@ -21290,10 +21309,12 @@ const handleTrainerWorkoutsTableActions = async (event) => {
     const templateId = Number(definitionEditButton.dataset.templateId || 0) || 0;
     if (!templateId) return;
 
-    const opened = openTrainerTemplateEditorModal(templateId, definitionEditButton);
-    if (!opened) {
-      setTrainerManagementFeedback('Não foi possível abrir a edição da nomeclatura.', false);
-    }
+    runTrainerManagedActionWithFeedback(definitionEditButton, () => {
+      const opened = openTrainerTemplateEditorModal(templateId, definitionEditButton);
+      if (!opened) {
+        setTrainerManagementFeedback('Não foi possível abrir a edição da nomeclatura.', false);
+      }
+    });
     return;
   }
 

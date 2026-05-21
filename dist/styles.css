@@ -13038,6 +13038,8 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
 }
 
 .trainer-managed-action-btn {
+  box-sizing: border-box;
+  max-width: 100%;
   min-height: 42px;
   padding: 0 16px;
   border-radius: 14px;
@@ -13444,6 +13446,11 @@ body.theme-dark .student-app-panel[data-student-app-panel="progresso"] .student-
   max-width: 100%;
   overflow: hidden;
   text-overflow: clip;
+}
+
+.trainer-managed-action-btn.is-busy {
+  pointer-events: none;
+  opacity: 0.72;
 }
 
 .student-app-shell.is-trainer-mode .trainer-progress-head h4 span {
@@ -29157,9 +29164,15 @@ body .student-area.view-app .student-app-main {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 14px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
 }
 
 .student-app-shell.is-trainer-mode .trainer-managed-workouts-card.is-definition-view .trainer-managed-action-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  padding-inline: 10px !important;
   min-height: 54px !important;
   border-radius: 12px !important;
   font-size: clamp(0.86rem, 3vw, 1.05rem) !important;
@@ -29214,6 +29227,12 @@ body .student-area.view-app .student-app-main {
 
   .student-app-shell.is-trainer-mode .trainer-managed-workouts-card.is-definition-view .trainer-managed-actions {
     grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .student-app-shell.is-trainer-mode .trainer-managed-workouts-card.is-definition-view .trainer-managed-action-btn {
+    min-height: 48px !important;
+    padding-inline: 12px !important;
   }
 }
 
