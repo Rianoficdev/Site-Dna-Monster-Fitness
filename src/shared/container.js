@@ -73,6 +73,7 @@ function createContainer() {
   const services = {
     userService: withTiming("service.user", createUserService({
       userRepository: repositories.userRepository,
+      progressRepository: repositories.progressRepository,
       bcrypt,
       signAccessToken,
       validRoles: VALID_ROLES,

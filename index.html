@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css?v=20260521-001" />
-  <link rel="stylesheet" href="css/admin.css?v=20260531-002" />
+  <link id="dna-admin-stylesheet" rel="stylesheet" href="css/admin.css?v=20260531-003" />
 </head>
 <body>
   <!-- Header fixo com navegacao principal e atalhos -->
@@ -386,6 +386,15 @@
               </div>
 
               <p class="student-form-error" data-student-form-error aria-live="polite"></p>
+
+              <button
+                class="student-form-link student-reactivation-support"
+                type="button"
+                data-student-reactivation-support
+                hidden
+              >
+                <span>Solicitar liberação ao Administrador Geral</span>
+              </button>
 
               <button class="student-login-btn" type="submit" data-student-submit>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path></svg>

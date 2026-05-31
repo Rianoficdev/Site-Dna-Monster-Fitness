@@ -421,6 +421,52 @@ ORDER BY user_id ASC, date_key ASC, updated_at ASC
     });
   }
 
+  async function findLatestWorkoutCompletionByUserId(userId) {
+    const normalizedUserId = Number(userId) || 0;
+    if (!normalizedUserId) return null;
+
+    return prisma.workoutCompletion.findFirst({
+      where: {
+        userId: normalizedUserId,
+      },
+      orderBy: [
+        { completedAt: "desc" },
+        { id: "desc" },
+      ],
+      select: {
+        id: true,
+        userId: true,
+        completedAt: true,
+        completedDateKey: true,
+      },
+    });
+  }
+
+  async function listLatestWorkoutCompletionsByUserIds(userIds = []) {
+    const normalizedIds = Array.isArray(userIds)
+      ? [...new Set(userIds.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0))]
+      : [];
+
+    if (!normalizedIds.length) return [];
+
+    const rows = await prisma.workoutCompletion.groupBy({
+      by: ["userId"],
+      where: {
+        userId: {
+          in: normalizedIds,
+        },
+      },
+      _max: {
+        completedAt: true,
+      },
+    });
+
+    return (Array.isArray(rows) ? rows : []).map((row) => ({
+      userId: Number(row && row.userId) || 0,
+      completedAt: row && row._max ? row._max.completedAt : null,
+    }));
+  }
+
   async function listWorkoutCompletions({
     limit = 5000,
     completedDateFrom = "",
@@ -529,6 +575,8 @@ ORDER BY user_id ASC, date_key ASC, updated_at ASC
     upsertWeeklyCheck,
     removeWeeklyCheck,
     listWorkoutCompletionsByUser,
+    findLatestWorkoutCompletionByUserId,
+    listLatestWorkoutCompletionsByUserIds,
     listWorkoutCompletions,
     upsertWorkoutCompletion,
   };

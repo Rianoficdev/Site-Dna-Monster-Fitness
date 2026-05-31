@@ -2,6 +2,7 @@
 
 function createUserService({
   userRepository,
+  progressRepository,
   bcrypt,
   signAccessToken,
   validRoles,
@@ -24,6 +25,9 @@ function createUserService({
   const loginAttemptsPerBlock = 3;
   const loginTemporaryBlockMinutes = [2, 5, 10];
   const passwordResetEmailDisabledMessage = "Recuperação por e-mail desativada no momento.";
+  const inactiveStudentAutoDisableDays = 60;
+  const inactiveStudentAutoDisableMs =
+    inactiveStudentAutoDisableDays * 24 * 60 * 60 * 1000;
 
   function withDbTimeout(promise, code = "USER_DB_TIMEOUT") {
     return Promise.race([
@@ -152,6 +156,151 @@ function createUserService({
     const lockUntil = getLockUntilDate(user && user.loginLockUntil);
     if (!lockUntil) return 0;
     return Math.max(0, lockUntil.getTime() - now.getTime());
+  }
+
+  function getValidDate(value) {
+    if (!value) return null;
+    const parsed = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function getLatestDate(...values) {
+    return values
+      .map((value) => getValidDate(value))
+      .filter(Boolean)
+      .sort((left, right) => right.getTime() - left.getTime())[0] || null;
+  }
+
+  function isAutoDisableEligibleStudent(user, now = new Date()) {
+    if (!user || normalizeRole(user.role) !== "ALUNO" || user.isEnabled === false) return false;
+    const createdAt = getValidDate(user.createdAt);
+    if (!createdAt) return false;
+    return now.getTime() - createdAt.getTime() >= inactiveStudentAutoDisableMs;
+  }
+
+  async function getLatestStudentMovementDate(user) {
+    let latestWorkoutCompletionAt = null;
+
+    if (
+      progressRepository &&
+      typeof progressRepository.findLatestWorkoutCompletionByUserId === "function"
+    ) {
+      try {
+        const latestCompletion = await progressRepository.findLatestWorkoutCompletionByUserId(
+          user.id
+        );
+        latestWorkoutCompletionAt = latestCompletion && latestCompletion.completedAt;
+      } catch (error) {
+        if (!isDatabaseConnectivityError(error)) {
+          latestWorkoutCompletionAt = null;
+        }
+      }
+    }
+
+    return getLatestDate(
+      user.lastSeenAt,
+      user.lastLoginAt,
+      latestWorkoutCompletionAt,
+      user.createdAt
+    );
+  }
+
+  async function getLatestWorkoutCompletionMap(userIds) {
+    if (
+      !progressRepository ||
+      typeof progressRepository.listLatestWorkoutCompletionsByUserIds !== "function"
+    ) {
+      return new Map();
+    }
+
+    try {
+      const rows = await progressRepository.listLatestWorkoutCompletionsByUserIds(userIds);
+      return new Map(
+        (Array.isArray(rows) ? rows : [])
+          .map((row) => [Number(row && row.userId) || 0, row && row.completedAt])
+          .filter(([userId]) => userId > 0)
+      );
+    } catch (_error) {
+      return new Map();
+    }
+  }
+
+  async function autoDisableInactiveStudents(users, now = new Date()) {
+    const list = Array.isArray(users) ? users : [];
+    const candidates = list.filter((user) => isAutoDisableEligibleStudent(user, now));
+    if (!candidates.length) return list;
+
+    const latestCompletionByUserId = await getLatestWorkoutCompletionMap(
+      candidates.map((user) => user.id)
+    );
+    const cutoff = new Date(now.getTime() - inactiveStudentAutoDisableMs);
+    const disabledIds = new Set();
+
+    await Promise.all(
+      candidates.map(async (user) => {
+        const latestMovementAt = getLatestDate(
+          user.lastSeenAt,
+          user.lastLoginAt,
+          latestCompletionByUserId.get(Number(user.id) || 0),
+          user.createdAt
+        );
+
+        if (latestMovementAt && latestMovementAt.getTime() > cutoff.getTime()) return;
+
+        try {
+          await userRepository.updateUserEnabledStatus({
+            userId: user.id,
+            isEnabled: false,
+          });
+          disabledIds.add(Number(user.id) || 0);
+        } catch (_error) {
+          // A listagem do admin não deve cair se uma atualização pontual falhar.
+        }
+      })
+    );
+
+    if (!disabledIds.size) return list;
+    return list.map((user) =>
+      disabledIds.has(Number(user && user.id) || 0)
+        ? { ...user, isEnabled: false }
+        : user
+    );
+  }
+
+  async function disableInactiveStudentIfNeeded(user, now = new Date()) {
+    if (!isAutoDisableEligibleStudent(user, now)) return user;
+
+    const latestMovementAt = await getLatestStudentMovementDate(user);
+    const cutoff = new Date(now.getTime() - inactiveStudentAutoDisableMs);
+
+    if (latestMovementAt && latestMovementAt.getTime() > cutoff.getTime()) {
+      return user;
+    }
+
+    try {
+      await withDbTimeout(
+        userRepository.updateUserEnabledStatus({
+          userId: user.id,
+          isEnabled: false,
+        }),
+        "USER_LOGIN_DB_TIMEOUT"
+      );
+    } catch (error) {
+      if (isDatabaseConnectivityError(error)) {
+        throw new AppError(
+          "Serviço de autenticação temporariamente indisponível.",
+          503,
+          "AUTH_SERVICE_UNAVAILABLE"
+        );
+      }
+      throw error;
+    }
+
+    throw new AppError(
+      "Conta desabilitada automaticamente por 60 dias sem atividade. Solicite a liberação ao Administrador Geral para voltar a acessar.",
+      403,
+      "ACCOUNT_INACTIVE_AUTO_DISABLED"
+    );
   }
 
   function formatLockWait(remainingMs) {
@@ -316,9 +465,11 @@ function createUserService({
       );
     }
 
+    user = await disableInactiveStudentIfNeeded(user, now);
+
     if (!user.isEnabled) {
       throw new AppError(
-        "Conta desabilitada. Procure a administração para reativar o acesso.",
+        "Conta desabilitada. Solicite a liberação ao Administrador Geral para reativar o acesso.",
         403,
         "ACCOUNT_DISABLED"
       );
@@ -486,7 +637,8 @@ function createUserService({
   }
 
   async function listUsers() {
-    return userRepository.listUsers();
+    const users = await userRepository.listUsers();
+    return autoDisableInactiveStudents(users);
   }
 
   async function updateProfileAvatar(userId, { avatarUrl }) {

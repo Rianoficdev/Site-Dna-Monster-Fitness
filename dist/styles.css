@@ -3705,6 +3705,22 @@ html.student-area-open {
   color: #aef3cb;
 }
 
+.student-reactivation-support {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(255, 214, 102, 0.34);
+  border-radius: 10px;
+  background: rgba(255, 214, 102, 0.1);
+  color: #ffe8a3;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.student-reactivation-support:hover {
+  background: rgba(255, 214, 102, 0.16);
+  color: #fff2c2;
+}
+
 .student-login-note {
   text-align: center;
   color: rgba(188, 210, 197, 0.72);

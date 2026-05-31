@@ -172,7 +172,7 @@ const ensureLazyStylesheet = (id, href) => {
 };
 
 const ensureAdminStylesheet = () => {
-  ensureLazyStylesheet('dna-admin-stylesheet', 'css/admin.css?v=20260530-001');
+  ensureLazyStylesheet('dna-admin-stylesheet', 'css/admin.css?v=20260531-003');
 };
 
 const shouldIgnoreLocalOriginApiResponse = (status, baseUrl) => {
@@ -644,6 +644,7 @@ const studentShowPassInput = document.querySelector('[data-student-show-pass]');
 const studentFormError = document.querySelector('[data-student-form-error]');
 const studentSubmitButton = document.querySelector('[data-student-submit]');
 const studentForgotLink = document.querySelector('[data-student-forgot]');
+const studentReactivationSupportButton = document.querySelector('[data-student-reactivation-support]');
 
 const studentRegisterForm = document.querySelector('[data-student-register-form]');
 const studentRegisterName = document.querySelector('[data-student-register-name]');
@@ -1257,6 +1258,7 @@ let forgotSupportPendingEmail = '';
 let forgotSupportPendingTicketId = 0;
 let forgotSupportAutoApproveAt = '';
 let forgotSupportCountdownEndsAt = '';
+let disabledLoginSupportEmail = '';
 let profilePasswordResetPollTimer = null;
 let profilePasswordResetPollInFlight = false;
 let selectedWorkoutId = null;
@@ -2376,6 +2378,7 @@ const resetStudentForms = () => {
   if (studentForgotResetError) { studentForgotResetError.textContent = ''; studentForgotResetError.classList.remove('is-success'); }
   if (profileSupportFeedback) { profileSupportFeedback.textContent = ''; profileSupportFeedback.classList.remove('is-success'); }
   if (profilePasswordResetFeedback) { profilePasswordResetFeedback.textContent = ''; profilePasswordResetFeedback.classList.remove('is-success'); }
+  setReactivationSupportVisible(false);
   stopForgotSupportCountdown();
   forgotSupportAutoApproveAt = '';
   forgotSupportCountdownEndsAt = '';
@@ -2409,6 +2412,7 @@ const resetStudentForms = () => {
   clearButtonLoading(studentRegisterSubmit, 'Cadastrar');
   clearButtonLoading(studentForgotRequestSubmit, 'Enviar solicitação');
   clearButtonLoading(studentForgotResetSubmit, 'Redefinir senha');
+  clearButtonLoading(studentReactivationSupportButton, 'Solicitar liberação ao Administrador Geral');
   clearButtonLoading(profileSupportSubmit, 'Enviar solicitação');
   clearButtonLoading(profilePasswordResetSubmit, 'Atualizar senha');
   if (studentShowPassInput) studentShowPassInput.checked = false;
@@ -3201,6 +3205,15 @@ const buildApiResponseError = (response, payload, fallbackMessage = GENERIC_REQU
   error.payload = payload && typeof payload === 'object' ? payload : null;
   return error;
 };
+
+const getApiErrorCode = (error) =>
+  String(error && error.payload && error.payload.error && error.payload.error.code
+    ? error.payload.error.code
+    : '').trim().toUpperCase();
+
+const isAccountReactivationError = (error) =>
+  ['ACCOUNT_DISABLED', 'ACCOUNT_INACTIVE_AUTO_DISABLED', 'ACCOUNT_LOCKED_ADMIN_REQUIRED']
+    .includes(getApiErrorCode(error));
 
 const extractWorkoutsFromResponse = (payload) => {
   if (Array.isArray(payload && payload.workouts)) return payload.workouts;
@@ -22451,6 +22464,58 @@ const closeStudentArea = () => {
   }, 320);
 };
 
+const setReactivationSupportVisible = (visible, email = '') => {
+  if (!studentReactivationSupportButton) return;
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  disabledLoginSupportEmail = visible && normalizedEmail ? normalizedEmail : '';
+  studentReactivationSupportButton.hidden = !visible;
+  studentReactivationSupportButton.disabled = !visible || !disabledLoginSupportEmail;
+};
+
+const requestAccountReactivationSupport = async () => {
+  if (!studentReactivationSupportButton || !studentFormError) return;
+  const email = String(
+    disabledLoginSupportEmail ||
+    (studentUserInput && studentUserInput.value) ||
+    ''
+  ).trim().toLowerCase();
+
+  if (!email || !isValidEmail(email)) {
+    studentFormError.textContent = 'Informe o e-mail cadastrado para pedir a liberação.';
+    return;
+  }
+
+  setButtonLoading(studentReactivationSupportButton, 'Enviando...');
+  studentFormError.textContent = '';
+  studentFormError.classList.remove('is-success');
+
+  try {
+    await requestStudentApi('/support/tickets/public', {
+      method: 'POST',
+      body: {
+        email,
+        requesterName: '',
+        type: 'LOGIN_ISSUE',
+        subject: 'Solicitação de liberação de conta desabilitada',
+        description:
+          'Aluno solicitou liberação de acesso após bloqueio/desabilitação por inatividade ou status administrativo.'
+      }
+    });
+
+    studentFormError.textContent =
+      'Solicitação enviada. Aguarde o Administrador Geral liberar sua conta.';
+    studentFormError.classList.add('is-success');
+    setReactivationSupportVisible(false);
+  } catch (error) {
+    studentFormError.textContent =
+      error && error.message
+        ? error.message
+        : 'Não foi possível enviar a solicitação de liberação agora.';
+  } finally {
+    clearButtonLoading(studentReactivationSupportButton, 'Solicitar liberação ao Administrador Geral');
+  }
+};
+
 const handleLoginSubmit = async (event) => {
   event.preventDefault();
   if (!studentUserInput || !studentPassInput || !studentFormError) return;
@@ -22458,6 +22523,7 @@ const handleLoginSubmit = async (event) => {
   clearInvalidState(studentUserInput, studentPassInput);
   studentFormError.textContent = '';
   studentFormError.classList.remove('is-success');
+  setReactivationSupportVisible(false);
 
   const user = studentUserInput.value.trim().toLowerCase();
   const pass = studentPassInput.value.trim();
@@ -22538,6 +22604,9 @@ const handleLoginSubmit = async (event) => {
     stopSessionHeartbeat();
     resetAuthIdentityToDefault({ clearStoredToken: true });
     studentFormError.textContent = error && error.message ? error.message : 'Falha ao realizar login.';
+    if (isAccountReactivationError(error)) {
+      setReactivationSupportVisible(true, user);
+    }
   } finally {
     clearButtonLoading(studentSubmitButton, 'Entrar');
   }
@@ -23445,6 +23514,9 @@ const initStudentArea = () => {
   }
 
   if (studentLoginForm) studentLoginForm.addEventListener('submit', handleLoginSubmit);
+  if (studentReactivationSupportButton) {
+    studentReactivationSupportButton.addEventListener('click', requestAccountReactivationSupport);
+  }
   if (studentRememberInput) {
     studentRememberInput.addEventListener('change', () => {
       saveRememberPreference(Boolean(studentRememberInput.checked));
