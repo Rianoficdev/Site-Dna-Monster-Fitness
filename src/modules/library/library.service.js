@@ -21,6 +21,7 @@ const ALLOWED_GROUPS = new Set([
 const ALLOWED_LEVELS = new Set(["iniciante", "intermediario", "avancado"]);
 const ALLOWED_TYPES = new Set(["forca", "cardio", "mobilidade", "funcional", "resistencia", "geral"]);
 const ADMIN_ROLES = new Set(["ADMIN", "ADMIN_GERAL"]);
+const LIBRARY_EDITOR_ROLES = new Set(["INSTRUTOR", "ADMIN", "ADMIN_GERAL"]);
 const INSTRUCTOR_ROLE = "INSTRUTOR";
 const STUDENT_ROLE = "ALUNO";
 const LIBRARY_LIST_CACHE_TTL_MS = 300000;
@@ -146,9 +147,9 @@ function createLibraryService({
 
   function ensureLibraryAdmin(authUser) {
     const actor = ensureAuthenticated(authUser);
-    if (!ADMIN_ROLES.has(actor.role)) {
+    if (!LIBRARY_EDITOR_ROLES.has(actor.role)) {
       throw new AppError(
-        "Somente ADMIN e ADMIN_GERAL podem gerenciar a biblioteca de exercicios.",
+        "Somente INSTRUTOR, ADMIN e ADMIN_GERAL podem gerenciar a biblioteca de exercicios.",
         403,
         "FORBIDDEN"
       );
@@ -595,14 +596,16 @@ function createLibraryService({
 
     if (actor.role === INSTRUCTOR_ROLE) {
       if (databaseEnabled) {
-        await bootstrapDatabaseFromMemory({ includeInactive: false });
-        const exercises = await libraryDatabaseRepository.listLibraryExercises({ includeInactive: false });
+        await bootstrapDatabaseFromMemory({ includeInactive: shouldIncludeInactive });
+        const exercises = await libraryDatabaseRepository.listLibraryExercises({
+          includeInactive: shouldIncludeInactive,
+        });
         const merged = await mergeDatabaseExercisesWithMemoryMedia(exercises);
         syncListToMemory(merged);
         setCachedLibraryList(cacheKey, merged);
         return merged;
       }
-      const items = libraryRepository.listLibraryExercises({ includeInactive: false });
+      const items = libraryRepository.listLibraryExercises({ includeInactive: shouldIncludeInactive });
       setCachedLibraryList(cacheKey, items);
       return items;
     }

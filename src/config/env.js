@@ -81,6 +81,10 @@ const env = {
     1000,
     parseNumber(process.env.DATABASE_POOL_CONNECTION_TIMEOUT_MS, 10000)
   ),
+  databaseSslRejectUnauthorized: parseBoolean(
+    process.env.DATABASE_SSL_REJECT_UNAUTHORIZED,
+    (process.env.NODE_ENV || "development") === "production"
+  ),
   httpCompressionEnabled: parseBoolean(process.env.HTTP_COMPRESSION_ENABLED, true),
   httpCompressionThreshold: parseNumber(process.env.HTTP_COMPRESSION_THRESHOLD, 1024),
   trustProxy: parseTrustProxy(process.env.TRUST_PROXY),

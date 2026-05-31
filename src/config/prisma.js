@@ -11,10 +11,25 @@ if (!env.databaseUrl) {
   throw new Error("DATABASE_URL is required to initialize Prisma.");
 }
 
+function resolvePoolConnectionString(databaseUrl) {
+  if (env.databaseSslRejectUnauthorized !== false) return databaseUrl;
+
+  try {
+    const parsedUrl = new URL(databaseUrl);
+    parsedUrl.searchParams.set("sslmode", "no-verify");
+    return parsedUrl.toString();
+  } catch (_error) {
+    return databaseUrl;
+  }
+}
+
 const pool =
   globalForPrisma.__dnaPgPool ||
   new Pool({
-    connectionString: env.databaseUrl,
+    connectionString: resolvePoolConnectionString(env.databaseUrl),
+    ...(env.databaseSslRejectUnauthorized === false
+      ? { ssl: { rejectUnauthorized: false } }
+      : {}),
     max: env.databasePoolMax,
     idleTimeoutMillis: env.databasePoolIdleTimeoutMs,
     connectionTimeoutMillis: env.databasePoolConnectionTimeoutMs,
