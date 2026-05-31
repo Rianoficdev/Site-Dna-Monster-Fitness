@@ -675,6 +675,186 @@
   }
 }
 
+/* Tema claro: corrige contraste do admin sem alterar o visual escuro. */
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode {
+  --admin-gold: #f7c600;
+  --admin-gold-soft: #ffdc55;
+  --admin-panel: rgba(255, 255, 255, 0.9);
+  --admin-panel-strong: rgba(255, 255, 255, 0.98);
+  --admin-border: rgba(20, 35, 28, 0.12);
+  --admin-muted: #6b7280;
+  --admin-text: #172018;
+  background:
+    radial-gradient(circle at 82% 0%, rgba(247, 198, 0, 0.16), transparent 28%),
+    linear-gradient(180deg, #f8faf7 0%, #eef3ee 100%);
+  color: var(--admin-text);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-topbar,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-bottom-nav,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-head,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-stat-card,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-chart-card,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table-card,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-site-team-item,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-legend-item,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-growth-card {
+  border-color: var(--admin-border);
+  background:
+    linear-gradient(135deg, rgba(247, 198, 0, 0.055), transparent 38%),
+    rgba(255, 255, 255, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 18px 44px rgba(15, 23, 42, 0.11);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-main {
+  background: transparent;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-brand {
+  border-color: rgba(247, 198, 0, 0.25);
+  background: linear-gradient(90deg, #ffffff, #fff7d9);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::before,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-eyebrow {
+  color: #d39b00;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::after,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-head h4,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-chart-head h5,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table-head h5,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-stat-card strong,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-legend-item strong,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-status-label strong,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-growth-card strong,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table td {
+  color: #172018;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-brand-meta p::before,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-head p,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-stat-card small,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table th,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-chart-head p,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table-head p,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-filter-field > span,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-legend-item small,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-status-label small,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-activity-day small,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-activity-legend span,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-action-muted {
+  color: #6b7280;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-head {
+  background:
+    radial-gradient(circle at 84% 40%, rgba(247, 198, 0, 0.2), transparent 24%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.98), rgba(255, 251, 230, 0.94));
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-head::after {
+  opacity: 0.38;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-refresh {
+  border-color: rgba(132, 204, 22, 0.28);
+  background: linear-gradient(135deg, #9cff18, #78e600);
+  color: #102000;
+  box-shadow: 0 16px 32px rgba(132, 204, 22, 0.2);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-report-btn {
+  background: linear-gradient(135deg, #ffd43b, #ffc121);
+  color: #241900;
+  box-shadow: 0 16px 32px rgba(245, 158, 11, 0.18);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-collapse-btn,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-action-btn {
+  border-color: rgba(132, 204, 22, 0.24);
+  background: rgba(236, 252, 203, 0.92);
+  color: #3f6212;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-icon-btn {
+  border-color: rgba(20, 35, 28, 0.14);
+  background: #ffffff;
+  color: #172018;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-nav-btn {
+  color: #667085;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-nav-btn:hover {
+  background: rgba(132, 204, 22, 0.08);
+  color: #245c1b;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-nav-btn.is-active {
+  background: linear-gradient(90deg, rgba(132, 204, 22, 0.16), rgba(247, 198, 0, 0.16));
+  color: #15803d;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-nav-icon img {
+  filter: none;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-blue,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-purple,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-green,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-orange,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-red,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-cyan,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-green-soft,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-slate,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-amber {
+  color: #eab308;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-trend,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-trend.is-neutral,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-trend.is-positive {
+  color: #667085;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-tabs {
+  background: rgba(20, 35, 28, 0.06);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-tab {
+  color: #667085;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-tab.is-active {
+  background: #8bea0f;
+  color: #122000;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table-wrap {
+  border-color: rgba(20, 35, 28, 0.1);
+  background: rgba(255, 255, 255, 0.84);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-filter-field input,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-filter-field select,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-role-select,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-site-team-item .admin-overview-filter-field textarea {
+  border-color: rgba(20, 35, 28, 0.14);
+  background: #ffffff;
+  color: #172018;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-pie-center,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-activity-bars {
+  border-color: rgba(20, 35, 28, 0.1);
+  background: rgba(255, 255, 255, 0.84);
+}
+
 /* Ajuste fino: centraliza os textos do destaque do admin. */
 .student-app-shell.is-admin-geral-mode .admin-overview-head {
   text-align: center;
