@@ -161,6 +161,20 @@ const getApiHostFromBase = (baseUrl) =>
   String(baseUrl || activeStudentApiBaseUrl || '')
     .replace(/\/+$/, '')
     .replace(/\/api$/, '');
+
+const ensureLazyStylesheet = (id, href) => {
+  if (!id || !href || document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  link.href = href;
+  document.head.appendChild(link);
+};
+
+const ensureAdminStylesheet = () => {
+  ensureLazyStylesheet('dna-admin-stylesheet', 'css/admin.css?v=20260530-001');
+};
+
 const shouldIgnoreLocalOriginApiResponse = (status, baseUrl) => {
   const normalizedBase = String(baseUrl || '').replace(/\/+$/, '');
   const currentOriginApiBase = `${window.location.origin}/api`.replace(/\/+$/, '');
@@ -286,10 +300,13 @@ const performStudentApiFetchWithFallback = async ({
     new Set([activeStudentApiBaseUrl, ...STUDENT_API_BASE_URL_CANDIDATES].filter(Boolean))
   );
   const normalizedMethod = String(method || 'GET').trim().toUpperCase();
+  const normalizedPath = String(path || '').trim();
   const isMutationRequest =
     normalizedMethod !== 'GET' &&
     normalizedMethod !== 'HEAD' &&
     normalizedMethod !== 'OPTIONS';
+  const canFallbackAfterNetworkError =
+    isMutationRequest && normalizedPath === '/auth/login';
   const totalAttempts = isMutationRequest
     ? 1
     : Math.max(1, Number(STUDENT_API_MAX_RETRIES) || 1);
@@ -339,7 +356,7 @@ const performStudentApiFetchWithFallback = async ({
         }
       } catch (error) {
         lastNetworkError = error || null;
-        if (isMutationRequest) {
+        if (isMutationRequest && !canFallbackAfterNetworkError) {
           stopAfterCurrentAttempt = true;
           break;
         }
@@ -730,6 +747,7 @@ const adminExercisesCard = document.querySelector('[data-admin-exercises-card]')
 const adminExercisesBody = document.querySelector('[data-admin-exercises-body]');
 const adminExercisesToggleButton = document.querySelector('[data-admin-exercises-toggle]');
 const adminExercisesCardList = document.querySelector('[data-admin-exercises-card-list]');
+const adminExercisesRefreshButton = document.querySelector('[data-admin-exercises-refresh]');
 const adminExerciseModal = document.querySelector('[data-admin-exercise-modal]');
 const adminExerciseModalCloseButtons = document.querySelectorAll('[data-admin-exercise-modal-close]');
 const adminExerciseForm = document.querySelector('[data-admin-exercise-form]');
@@ -925,6 +943,7 @@ const trainerLibraryCaloriesInput = document.querySelector('[data-trainer-librar
 const trainerLibrarySubmitButton = document.querySelector('[data-trainer-library-submit]');
 const libraryManagerSection = document.querySelector('[data-library-manager]');
 const libraryManagerToggleButton = document.querySelector('[data-library-manager-toggle]');
+const libraryManagerRefreshButton = document.querySelector('[data-library-manager-refresh]');
 const libraryManagerFeedback = document.querySelector('[data-library-manager-feedback]');
 const libraryManagerFormWrap = document.querySelector('[data-library-manager-form-wrap]');
 const libraryManagerCloseButton = document.querySelector('[data-library-manager-close]');
@@ -1354,6 +1373,7 @@ let adminExercisesPanelCollapsed = false;
 let adminSupportPanelCollapsed = false;
 let adminSupportView = 'active';
 const adminSupportExpandedCommentIds = new Set();
+let adminExercisesRefreshLoading = false;
 let trainerManagedWorkoutsView = 'assigned';
 let adminTeamPanelCollapsed = false;
 let siteTeamMembersCache = [];
@@ -3041,6 +3061,7 @@ async function createTrainerWorkoutFromExerciseField() {
 const applyRoleBasedUiMode = () => {
   const isGeneralAdmin = isGeneralAdminUser();
   const isTrainerManager = isTrainerManagerUser();
+  if (isGeneralAdmin) ensureAdminStylesheet();
   if (studentAppShell) {
     studentAppShell.classList.toggle('is-admin-geral-mode', isGeneralAdmin);
     studentAppShell.classList.toggle('is-trainer-mode', isTrainerManager);
@@ -9234,23 +9255,40 @@ const buildAdminWeeklyActivity = (users, workouts, totalUsers = 0) => {
 
 const buildAdminGrowthSeries = (users, totalUsers = 0) => {
   const now = new Date();
-  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-  const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const safeUsers = Array.isArray(users) ? users : [];
+  const monthStarts = Array.from({ length: 7 }, (_, index) =>
+    new Date(now.getFullYear(), now.getMonth() - (6 - index), 1)
+  );
+  const monthEnds = monthStarts.map(
+    (monthStart) => new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0, 23, 59, 59, 999)
+  );
+  const realValues = monthEnds.map((monthEnd) =>
+    safeUsers.reduce((count, user) => {
+      const role = normalizeRole(user && user.role);
+      if (role && role !== 'ALUNO') return count;
+      const createdAt = parseAdminChartDate(user && user.createdAt);
+      return createdAt && createdAt <= monthEnd ? count + 1 : count;
+    }, 0)
+  );
 
-  let previousTotal = 0;
-  let currentTotal = 0;
+  const currentTotal = Math.max(realValues[realValues.length - 1] || 0, Number(totalUsers) || 0);
+  let values = realValues.slice();
+  let sourceLabel = 'Dados reais';
+  const hasRealTimeline = values.some((value) => value > 0);
 
-  (Array.isArray(users) ? users : []).forEach((user) => {
-    const createdAt = parseAdminChartDate(user && user.createdAt);
-    if (!createdAt) return;
-    if (createdAt <= previousMonthEnd) previousTotal += 1;
-    if (createdAt <= currentMonthEnd) currentTotal += 1;
-  });
+  if (!hasRealTimeline && currentTotal > 0) {
+    sourceLabel = 'Dados estimados';
+    values = monthStarts.map((_, index) => {
+      const progress = (index + 1) / monthStarts.length;
+      const curve = Math.pow(progress, 1.18);
+      return Math.max(0, Math.round(currentTotal * curve));
+    });
+    values[values.length - 1] = currentTotal;
+  } else if (currentTotal > values[values.length - 1]) {
+    values[values.length - 1] = currentTotal;
+  }
 
-  if (!currentTotal) currentTotal = Math.max(0, Number(totalUsers) || 0);
-  if (!previousTotal && currentTotal > 0) previousTotal = Math.max(0, currentTotal - 1);
+  const previousTotal = values.length > 1 ? values[values.length - 2] : 0;
 
   const growthPercent = previousTotal <= 0
     ? currentTotal > 0
@@ -9259,13 +9297,11 @@ const buildAdminGrowthSeries = (users, totalUsers = 0) => {
     : Math.round(((currentTotal - previousTotal) / previousTotal) * 100);
 
   return {
-    labels: [
-      ADMIN_OVERVIEW_MONTHS[previousMonthStart.getMonth()],
-      ADMIN_OVERVIEW_MONTHS[currentMonthStart.getMonth()]
-    ],
-    values: [previousTotal, currentTotal],
+    labels: monthStarts.map((monthStart) => ADMIN_OVERVIEW_MONTHS[monthStart.getMonth()]),
+    values,
     growthPercent,
-    totalCurrent: currentTotal
+    totalCurrent: currentTotal,
+    sourceLabel
   };
 };
 
@@ -9437,35 +9473,175 @@ const renderAdminGrowthChart = (container, series) => {
   }
 
   const maxValue = Math.max(...values, 1);
-  const svgWidth = 680;
-  const svgHeight = 220;
-  const paddingX = 52;
-  const topY = 24;
-  const bottomY = 180;
+  const svgWidth = 760;
+  const svgHeight = 320;
+  const paddingX = 42;
+  const topY = 34;
+  const bottomY = 268;
   const chartHeight = bottomY - topY;
   const points = values.map((value, index) => {
-    const x = index === 0 ? paddingX : svgWidth - paddingX;
-    const y = topY + chartHeight - ((Math.max(0, Number(value) || 0) / maxValue) * chartHeight);
-    return { x, y, value: Math.max(0, Number(value) || 0), label: labels[index] || '' };
+    const x = paddingX + ((svgWidth - paddingX * 2) * index) / (values.length - 1);
+    const normalizedValue = Math.max(0, Number(value) || 0);
+    const previousValue = index > 0 ? Math.max(0, Number(values[index - 1]) || 0) : 0;
+    const growth = index === 0
+      ? 0
+      : previousValue > 0
+        ? Math.round(((normalizedValue - previousValue) / previousValue) * 100)
+        : normalizedValue > 0
+          ? 100
+          : 0;
+    const delta = index === 0 ? 0 : normalizedValue - previousValue;
+    const y = topY + chartHeight - ((normalizedValue / maxValue) * chartHeight);
+    return {
+      x,
+      y,
+      value: normalizedValue,
+      previousValue,
+      growth,
+      delta,
+      label: labels[index] || ''
+    };
   });
+  const linePath = points.reduce((path, point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`;
+    const previous = points[index - 1];
+    const controlX = previous.x + (point.x - previous.x) / 2;
+    return `${path} C ${controlX} ${previous.y}, ${controlX} ${point.y}, ${point.x} ${point.y}`;
+  }, '');
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${bottomY} L ${points[0].x} ${bottomY} Z`;
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map((step) => {
+    const y = topY + chartHeight * step;
+    return `<line x1="${paddingX}" y1="${y}" x2="${svgWidth - paddingX}" y2="${y}" class="admin-overview-growth-grid-line"></line>`;
+  }).join('');
+  const highlightIndex = Math.max(0, points.length - 1);
+  const highlight = points[highlightIndex];
+  const tooltipWidth = 168;
+  const tooltipHeight = 100;
+  const tooltipX = highlight.x > svgWidth - tooltipWidth - paddingX
+    ? highlight.x - tooltipWidth - 16
+    : highlight.x + 16;
+  const tooltipY = Math.max(topY + 8, Math.min(bottomY - tooltipHeight - 10, highlight.y - 36));
+  const sourceLabel = String((series && series.sourceLabel) || 'Dados reais').trim();
+  const hoverAreas = points.map((point, index) => {
+    const previousX = index > 0 ? points[index - 1].x : paddingX;
+    const nextX = index < points.length - 1 ? points[index + 1].x : svgWidth - paddingX;
+    const startX = index === 0 ? paddingX : point.x - ((point.x - previousX) / 2);
+    const endX = index === points.length - 1 ? svgWidth - paddingX : point.x + ((nextX - point.x) / 2);
+    return `
+      <rect
+        class="admin-overview-growth-hit-area"
+        x="${startX}"
+        y="${topY}"
+        width="${Math.max(1, endX - startX)}"
+        height="${bottomY - topY + 30}"
+        data-growth-hover
+        data-index="${index}"
+        data-x="${point.x}"
+        data-y="${point.y}"
+        data-label="${escapeAdminCell(point.label)}"
+        data-value="${point.value}"
+        data-growth="${point.growth}"
+        data-delta="${point.delta}"
+      ></rect>
+    `;
+  }).join('');
 
   container.innerHTML = `
+    <span class="admin-overview-growth-badge">${escapeAdminCell(sourceLabel)}</span>
     <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="admin-overview-growth-svg" role="img" aria-label="Crescimento mensal de usuários">
-      <line x1="${paddingX}" y1="${bottomY}" x2="${svgWidth - paddingX}" y2="${bottomY}" class="admin-overview-growth-axis"></line>
-      <polyline points="${points.map((point) => `${point.x},${point.y}`).join(' ')}" class="admin-overview-growth-line"></polyline>
+      <defs>
+        <linearGradient id="adminGrowthAreaGradient" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="#facc15" stop-opacity="0.42"></stop>
+          <stop offset="76%" stop-color="#facc15" stop-opacity="0.06"></stop>
+          <stop offset="100%" stop-color="#facc15" stop-opacity="0"></stop>
+        </linearGradient>
+      </defs>
+      ${gridLines}
+      <path d="${areaPath}" class="admin-overview-growth-area"></path>
+      <path d="${linePath}" class="admin-overview-growth-line"></path>
+      <line x1="${highlight.x}" y1="${topY}" x2="${highlight.x}" y2="${bottomY}" class="admin-overview-growth-marker"></line>
+      ${hoverAreas}
       ${points
         .map(
-          (point) => `
-            <g class="admin-overview-growth-node">
+          (point, index) => `
+            <g
+              class="admin-overview-growth-node${point === highlight ? ' is-highlight' : ''}"
+              data-growth-point
+              data-index="${index}"
+              data-x="${point.x}"
+              data-y="${point.y}"
+              data-label="${escapeAdminCell(point.label)}"
+              data-value="${point.value}"
+              data-growth="${point.growth}"
+              data-delta="${point.delta}"
+              tabindex="0"
+              role="button"
+              aria-label="${escapeAdminCell(`${point.label}: ${point.value} alunos, crescimento ${point.growth}%`)}"
+            >
               <circle cx="${point.x}" cy="${point.y}" r="5.5" class="admin-overview-growth-point"></circle>
-              <text x="${point.x}" y="${point.y - 12}" class="admin-overview-growth-value">${escapeAdminCell(point.value)}</text>
-              <text x="${point.x}" y="${svgHeight - 12}" class="admin-overview-growth-label">${escapeAdminCell(point.label)}</text>
+              <text x="${point.x}" y="${svgHeight - 24}" class="admin-overview-growth-label">${escapeAdminCell(point.label)}</text>
             </g>
           `
         )
         .join('')}
+      <g class="admin-overview-growth-tooltip">
+        <rect x="${tooltipX}" y="${tooltipY}" width="${tooltipWidth}" height="${tooltipHeight}" rx="9"></rect>
+        <text x="${tooltipX + 14}" y="${tooltipY + 24}" class="admin-overview-growth-tooltip-title">${escapeAdminCell(highlight.label)}</text>
+        <text x="${tooltipX + 14}" y="${tooltipY + 48}" class="admin-overview-growth-tooltip-value">total: ${escapeAdminCell(highlight.value)} alunos</text>
+        <text x="${tooltipX + 14}" y="${tooltipY + 66}" class="admin-overview-growth-tooltip-delta">novos no mês: ${escapeAdminCell(highlight.delta >= 0 ? `+${highlight.delta}` : highlight.delta)}</text>
+        <text x="${tooltipX + 14}" y="${tooltipY + 84}" class="admin-overview-growth-tooltip-growth">crescimento: ${escapeAdminCell(highlight.growth >= 0 ? `+${highlight.growth}` : highlight.growth)}%</text>
+      </g>
     </svg>
   `;
+
+  const marker = container.querySelector('.admin-overview-growth-marker');
+  const tooltip = container.querySelector('.admin-overview-growth-tooltip');
+  const tooltipRect = tooltip ? tooltip.querySelector('rect') : null;
+  const tooltipTitle = tooltip ? tooltip.querySelector('.admin-overview-growth-tooltip-title') : null;
+  const tooltipValue = tooltip ? tooltip.querySelector('.admin-overview-growth-tooltip-value') : null;
+  const tooltipDelta = tooltip ? tooltip.querySelector('.admin-overview-growth-tooltip-delta') : null;
+  const tooltipGrowth = tooltip ? tooltip.querySelector('.admin-overview-growth-tooltip-growth') : null;
+  const nodes = Array.from(container.querySelectorAll('[data-growth-point]'));
+  const hoverTargets = Array.from(container.querySelectorAll('[data-growth-hover], [data-growth-point]'));
+
+  const setGrowthTooltip = (node) => {
+    if (!node || !marker || !tooltip || !tooltipRect || !tooltipTitle || !tooltipValue || !tooltipDelta || !tooltipGrowth) return;
+    const x = Number(node.dataset.x) || 0;
+    const y = Number(node.dataset.y) || 0;
+    const index = String(node.dataset.index || '');
+    const label = String(node.dataset.label || '').trim();
+    const value = Math.max(0, Number(node.dataset.value) || 0);
+    const growth = Number(node.dataset.growth) || 0;
+    const delta = Number(node.dataset.delta) || 0;
+    const nextTooltipX = x > svgWidth - tooltipWidth - paddingX ? x - tooltipWidth - 16 : x + 16;
+    const nextTooltipY = Math.max(topY + 8, Math.min(bottomY - tooltipHeight - 10, y - 36));
+    const growthPrefix = growth > 0 ? '+' : '';
+    const deltaPrefix = delta > 0 ? '+' : '';
+
+    marker.setAttribute('x1', String(x));
+    marker.setAttribute('x2', String(x));
+    tooltipRect.setAttribute('x', String(nextTooltipX));
+    tooltipRect.setAttribute('y', String(nextTooltipY));
+    tooltipTitle.setAttribute('x', String(nextTooltipX + 14));
+    tooltipTitle.setAttribute('y', String(nextTooltipY + 22));
+    tooltipValue.setAttribute('x', String(nextTooltipX + 14));
+    tooltipValue.setAttribute('y', String(nextTooltipY + 46));
+    tooltipDelta.setAttribute('x', String(nextTooltipX + 14));
+    tooltipDelta.setAttribute('y', String(nextTooltipY + 64));
+    tooltipGrowth.setAttribute('x', String(nextTooltipX + 14));
+    tooltipGrowth.setAttribute('y', String(nextTooltipY + 82));
+    tooltipTitle.textContent = label || '-';
+    tooltipValue.textContent = `total: ${value} alunos`;
+    tooltipDelta.textContent = `novos no mês: ${deltaPrefix}${delta}`;
+    tooltipGrowth.textContent = `crescimento: ${growthPrefix}${growth}%`;
+    nodes.forEach((item) => item.classList.toggle('is-highlight', String(item.dataset.index || '') === index));
+  };
+
+  hoverTargets.forEach((node) => {
+    node.addEventListener('mouseenter', () => setGrowthTooltip(node));
+    node.addEventListener('focus', () => setGrowthTooltip(node));
+    node.addEventListener('click', () => setGrowthTooltip(node));
+  });
 };
 
 const renderAdminStatusBars = (container, items) => {
@@ -10823,7 +10999,10 @@ const renderAdminOverviewPanel = () => {
   }
 };
 
-const fetchAdminOverview = async (forceReload = false) => {
+const fetchAdminOverview = async (
+  forceReload = false,
+  { includeLibrary = false, includeSupport = false } = {}
+) => {
   if (!isGeneralAdminUser()) {
     resetAdminOverviewState();
     renderAdminOverviewPanel();
@@ -10844,31 +11023,39 @@ const fetchAdminOverview = async (forceReload = false) => {
     const overviewPath = forceReload ? '/admin/overview?fresh=true' : '/admin/overview';
     const response = await requestStudentApi(overviewPath);
     const overview = response && response.overview ? response.overview : {};
-    let libraryExercises = [];
+    let libraryExercises = Array.isArray(adminOverviewState.exercises)
+      ? adminOverviewState.exercises
+      : [];
     let libraryLoadError = '';
     let supportTickets = Array.isArray(overview && overview.supportTickets)
       ? overview.supportTickets
       : [];
 
-    try {
-      const libraryResponse = await requestStudentApi('/library/exercises?includeInactive=true');
-      libraryExercises = Array.isArray(libraryResponse && libraryResponse.exercises)
-        ? libraryResponse.exercises
-        : [];
-    } catch (libraryError) {
-      libraryLoadError = libraryError && libraryError.message
-        ? libraryError.message
-        : 'Não foi possível carregar os exercícios da biblioteca.';
-      libraryExercises = [];
+    if (includeLibrary) {
+      try {
+        const libraryResponse = await requestStudentApi('/library/exercises?includeInactive=true');
+        libraryExercises = Array.isArray(libraryResponse && libraryResponse.exercises)
+          ? libraryResponse.exercises
+          : [];
+      } catch (libraryError) {
+        libraryLoadError = libraryError && libraryError.message
+          ? libraryError.message
+          : 'Não foi possível carregar os exercícios da biblioteca.';
+        libraryExercises = Array.isArray(adminOverviewState.exercises)
+          ? adminOverviewState.exercises
+          : [];
+      }
     }
 
-    try {
-      const supportResponse = await requestStudentApi('/admin/support-tickets?archived=all&limit=500');
-      supportTickets = Array.isArray(supportResponse && supportResponse.tickets)
-        ? supportResponse.tickets
-        : supportTickets;
-    } catch (_) {
-      supportTickets = Array.isArray(supportTickets) ? supportTickets : [];
+    if (includeSupport) {
+      try {
+        const supportResponse = await requestStudentApi('/admin/support-tickets?archived=all&limit=500');
+        supportTickets = Array.isArray(supportResponse && supportResponse.tickets)
+          ? supportResponse.tickets
+          : supportTickets;
+      } catch (_) {
+        supportTickets = Array.isArray(supportTickets) ? supportTickets : [];
+      }
     }
 
     adminOverviewState.stats = {
@@ -10934,7 +11121,9 @@ const fetchAdminOverview = async (forceReload = false) => {
     };
     adminOverviewState.users = Array.isArray(overview.users) ? overview.users : [];
     adminOverviewState.workouts = Array.isArray(overview.workouts) ? overview.workouts : [];
-    adminOverviewState.exercises = libraryExercises;
+    if (includeLibrary) {
+      adminOverviewState.exercises = libraryExercises;
+    }
     adminOverviewState.supportTickets = Array.isArray(supportTickets) ? supportTickets : [];
     adminOverviewState.loaded = true;
     adminOverviewState.error = libraryLoadError;
@@ -11395,6 +11584,385 @@ const exportAdminOverviewPdf = async () => {
     setAdminOverviewFeedback('Relatório PDF gerado com sucesso.', true);
   } catch (error) {
     setAdminOverviewFeedback('Falha ao gerar o relatório em PDF.', false);
+  }
+};
+
+const buildAdminMetricsReportFallback = () => {
+  const now = new Date();
+  const toDateKey = (value) => {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+  };
+  const toMonthKey = (value) => {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+  };
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+  const monthStartKey = toDateKey(monthStart);
+  const monthEndKey = toDateKey(monthEnd);
+  const monthKey = toMonthKey(monthStart);
+  const users = Array.isArray(adminOverviewState.users) ? adminOverviewState.users : [];
+  const workouts = Array.isArray(adminOverviewState.workouts) ? adminOverviewState.workouts : [];
+  const students = users.filter((user) => normalizeRole(user && user.role) === 'ALUNO');
+  const studentGrowthByMonth = new Map();
+
+  students.forEach((student) => {
+    const studentMonthKey = toMonthKey(student && student.createdAt);
+    if (!studentMonthKey) return;
+    studentGrowthByMonth.set(studentMonthKey, (studentGrowthByMonth.get(studentMonthKey) || 0) + 1);
+  });
+
+  const monthlyStudentGrowth = Array.from(studentGrowthByMonth.entries())
+    .sort(([first], [second]) => first.localeCompare(second))
+    .map(([month, count]) => ({ month, students: count }));
+  const currentMonthNewStudents = monthlyStudentGrowth.find((item) => item.month === monthKey)?.students || 0;
+  const instructorStats = new Map();
+
+  workouts.forEach((workout) => {
+    const instructorId = Number(workout && workout.instructorId) || 0;
+    const instructorName = String((workout && workout.instructorName) || `Instrutor ${instructorId || ''}`).trim();
+    if (!instructorId && !instructorName) return;
+    const key = instructorId || instructorName;
+    if (!instructorStats.has(key)) {
+      instructorStats.set(key, {
+        instructorId,
+        name: instructorName || 'Instrutor',
+        assignedWorkouts: 0,
+        currentMonthAssignedWorkouts: 0
+      });
+    }
+    const stat = instructorStats.get(key);
+    const createdKey = toDateKey(workout && workout.createdAt);
+    stat.assignedWorkouts += 1;
+    if (createdKey >= monthStartKey && createdKey <= monthEndKey) {
+      stat.currentMonthAssignedWorkouts += 1;
+    }
+  });
+
+  const topInstructor = Array.from(instructorStats.values()).sort((first, second) =>
+    (Number(second.currentMonthAssignedWorkouts) || 0) - (Number(first.currentMonthAssignedWorkouts) || 0) ||
+    (Number(second.assignedWorkouts) || 0) - (Number(first.assignedWorkouts) || 0) ||
+    String(first.name || '').localeCompare(String(second.name || ''), 'pt-BR', { sensitivity: 'base' })
+  )[0] || null;
+
+  const topStudent = students
+    .map((student) => {
+      const lastSeenKey = toDateKey(student && student.lastSeenAt);
+      const accessDays = lastSeenKey >= monthStartKey && lastSeenKey <= monthEndKey ? 1 : 0;
+      return {
+        studentId: Number(student && student.id) || 0,
+        name: String((student && student.name) || 'Aluno').trim(),
+        email: String((student && student.email) || '').trim().toLowerCase(),
+        completedWorkouts: 0,
+        workoutDays: 0,
+        accessDays,
+        score: accessDays
+      };
+    })
+    .sort((first, second) =>
+      (Number(second.score) || 0) - (Number(first.score) || 0) ||
+      String(first.name || '').localeCompare(String(second.name || ''), 'pt-BR', { sensitivity: 'base' })
+    )[0] || null;
+
+  const weeks = [];
+  let current = new Date(monthStart);
+  let weekIndex = 1;
+  while (current <= monthEnd) {
+    const weekStart = new Date(current);
+    const weekEnd = new Date(current);
+    weekEnd.setUTCDate(weekEnd.getUTCDate() + (6 - weekEnd.getUTCDay()));
+    if (weekEnd > monthEnd) weekEnd.setTime(monthEnd.getTime());
+    const days = [];
+    const dayCursor = new Date(weekStart);
+    while (dayCursor <= weekEnd) {
+      const dateKey = toDateKey(dayCursor);
+      days.push({
+        dateKey,
+        accessCount: students.filter((student) => toDateKey(student && student.lastSeenAt) === dateKey).length,
+        completedWorkouts: 0
+      });
+      dayCursor.setUTCDate(dayCursor.getUTCDate() + 1);
+    }
+    weeks.push({
+      label: `Semana ${weekIndex}`,
+      startKey: toDateKey(weekStart),
+      endKey: toDateKey(weekEnd),
+      accessCount: days.reduce((sum, day) => sum + day.accessCount, 0),
+      completedWorkouts: 0,
+      days
+    });
+    current = new Date(weekEnd);
+    current.setUTCDate(current.getUTCDate() + 1);
+    weekIndex += 1;
+  }
+
+  return {
+    referenceDateKey: toDateKey(now),
+    month: { key: monthKey, startKey: monthStartKey, endKey: monthEndKey },
+    summary: {
+      totalStudents: students.length,
+      currentMonthNewStudents,
+      currentMonthCompletedWorkouts: 0,
+      currentMonthKnownAccesses: students.filter((student) => {
+        const dateKey = toDateKey(student && student.lastSeenAt);
+        return dateKey >= monthStartKey && dateKey <= monthEndKey;
+      }).length
+    },
+    monthlyStudentGrowth,
+    topStudent,
+    topInstructor,
+    currentMonthWeeks: weeks,
+    notes: [
+      'Relatorio gerado em modo compatibilidade porque a rota /admin/metrics-report ainda nao esta disponivel na API ativa.',
+      'Neste modo, acessos usam o ultimo acesso conhecido e treinos realizados aparecem como 0 ate a API nova estar publicada/reiniciada.'
+    ]
+  };
+};
+
+const exportAdminMetricsReportPdf = async () => {
+  if (!isGeneralAdminUser()) return;
+
+  setAdminOverviewFeedback('Gerando relatório de métricas...', false);
+
+  try {
+    await ensureAdminPdfLibraries();
+  } catch (_) {
+    setAdminOverviewFeedback('Não foi possível carregar o gerador de PDF.', false);
+    return;
+  }
+
+  const jsPdfLib = window.jspdf;
+  if (!jsPdfLib || typeof jsPdfLib.jsPDF !== 'function') {
+    setAdminOverviewFeedback('Não foi possível carregar o gerador de PDF.', false);
+    return;
+  }
+
+  let report = null;
+  try {
+    const response = await requestStudentApi('/admin/metrics-report');
+    report = response && response.report ? response.report : null;
+  } catch (error) {
+    report = buildAdminMetricsReportFallback();
+    setAdminOverviewFeedback(
+      'API de métricas ainda não disponível. Gerando relatório em modo compatibilidade.',
+      false
+    );
+  }
+
+  try {
+    const { jsPDF } = jsPdfLib;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const marginX = 40;
+    const contentWidth = pageWidth - marginX * 2;
+    const generatedAt = new Date();
+    const fileNameDate = generatedAt.toISOString().slice(0, 10);
+    const month = report && report.month ? report.month : {};
+    const summary = report && report.summary ? report.summary : {};
+    const topStudent = report && report.topStudent ? report.topStudent : null;
+    const topInstructor = report && report.topInstructor ? report.topInstructor : null;
+    const monthlyStudentGrowth = Array.isArray(report && report.monthlyStudentGrowth)
+      ? report.monthlyStudentGrowth
+      : [];
+    const currentMonthWeeks = Array.isArray(report && report.currentMonthWeeks)
+      ? report.currentMonthWeeks
+      : [];
+    const notes = Array.isArray(report && report.notes) ? report.notes : [];
+    const hasAutoTable = typeof doc.autoTable === 'function';
+    let cursorY = 44;
+
+    const formatMonthLabel = (monthKey) => {
+      const normalized = String(monthKey || '').trim();
+      const match = normalized.match(/^(\d{4})-(\d{2})$/);
+      if (!match) return normalized || '-';
+      const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1));
+      return date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+    };
+    const formatDateKeyLabel = (dateKey) => {
+      const normalized = String(dateKey || '').trim();
+      const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!match) return normalized || '-';
+      const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+    };
+    const addSectionTitle = (title) => {
+      if (cursorY > 735) {
+        doc.addPage();
+        cursorY = 44;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(20, 24, 35);
+      doc.text(title, marginX, cursorY);
+      cursorY += 16;
+    };
+    const addSimpleRows = (rows) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10.5);
+      doc.setTextColor(20, 24, 35);
+      rows.forEach((item, index) => {
+        const column = index % 2;
+        const row = Math.floor(index / 2);
+        doc.text(`${item[0]}: ${item[1]}`, marginX + column * 260, cursorY + row * 15);
+      });
+      cursorY += Math.ceil(rows.length / 2) * 15 + 14;
+    };
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Relatorio de metricas do sistema', marginX, cursorY);
+    cursorY += 18;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10.5);
+    doc.setTextColor(82, 92, 114);
+    doc.text(
+      `Mes vigente: ${formatDateKeyLabel(month.startKey)} a ${formatDateKeyLabel(month.endKey)} | Gerado em: ${generatedAt.toLocaleString('pt-BR')}`,
+      marginX,
+      cursorY
+    );
+    cursorY += 26;
+
+    addSectionTitle('Visao do mes vigente');
+    addSimpleRows([
+      ['Novos alunos no mes', Number(summary.currentMonthNewStudents) || 0],
+      ['Treinos realizados no mes', Number(summary.currentMonthCompletedWorkouts) || 0],
+      ['Acessos conhecidos no mes', Number(summary.currentMonthKnownAccesses) || 0],
+      ['Total de alunos no sistema', Number(summary.totalStudents) || 0]
+    ]);
+
+    addSectionTitle('Destaques');
+    addSimpleRows([
+      [
+        'Aluno mais ativo',
+        topStudent
+          ? `${topStudent.name || '-'} (${Number(topStudent.completedWorkouts) || 0} treino(s), ${Number(topStudent.accessDays) || 0} acesso(s))`
+          : 'Sem dados'
+      ],
+      [
+        'Instrutor que mais designa',
+        topInstructor
+          ? `${topInstructor.name || '-'} (${Number(topInstructor.currentMonthAssignedWorkouts) || 0} no mes)`
+          : 'Sem dados'
+      ]
+    ]);
+
+    addSectionTitle('Crescimento de alunos por mes');
+    if (hasAutoTable) {
+      doc.autoTable({
+        startY: cursorY,
+        margin: { left: marginX, right: marginX },
+        head: [['Mes', 'Novos alunos']],
+        body: monthlyStudentGrowth.length
+          ? monthlyStudentGrowth.map((item) => [formatMonthLabel(item.month), Number(item.students) || 0])
+          : [['Sem registros', 0]],
+        styles: { fontSize: 9, cellPadding: 4 },
+        headStyles: { fillColor: [25, 50, 98], textColor: 255 },
+      });
+      cursorY = (Number(doc.lastAutoTable && doc.lastAutoTable.finalY) || cursorY + 60) + 24;
+
+      addSectionTitle('Semanas do mes vigente');
+      doc.autoTable({
+        startY: cursorY,
+        margin: { left: marginX, right: marginX },
+        head: [['Semana', 'Periodo', 'Acessos conhecidos', 'Treinos realizados']],
+        body: currentMonthWeeks.length
+          ? currentMonthWeeks.map((week) => [
+              week.label || '-',
+              `${formatDateKeyLabel(week.startKey)} a ${formatDateKeyLabel(week.endKey)}`,
+              Number(week.accessCount) || 0,
+              Number(week.completedWorkouts) || 0
+            ])
+          : [['Sem registros', '-', 0, 0]],
+        styles: { fontSize: 9, cellPadding: 4 },
+        headStyles: { fillColor: [16, 130, 72], textColor: 255 },
+      });
+      cursorY = (Number(doc.lastAutoTable && doc.lastAutoTable.finalY) || cursorY + 80) + 24;
+
+      addSectionTitle('Acessos e treinos realizados por dia');
+      doc.autoTable({
+        startY: cursorY,
+        margin: { left: marginX, right: marginX },
+        head: [['Semana', 'Dia', 'Acessos conhecidos', 'Treinos realizados']],
+        body: currentMonthWeeks.flatMap((week) =>
+          (Array.isArray(week.days) ? week.days : []).map((day) => [
+            week.label || '-',
+            formatDateKeyLabel(day.dateKey),
+            Number(day.accessCount) || 0,
+            Number(day.completedWorkouts) || 0
+          ])
+        ),
+        styles: { fontSize: 8.5, cellPadding: 3.5 },
+        headStyles: { fillColor: [84, 104, 39], textColor: 255 },
+      });
+      cursorY = (Number(doc.lastAutoTable && doc.lastAutoTable.finalY) || cursorY + 100) + 22;
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      monthlyStudentGrowth.forEach((item) => {
+        if (cursorY > 760) {
+          doc.addPage();
+          cursorY = 44;
+        }
+        doc.text(`${formatMonthLabel(item.month)}: ${Number(item.students) || 0} novo(s) aluno(s)`, marginX, cursorY);
+        cursorY += 13;
+      });
+      cursorY += 10;
+      addSectionTitle('Semanas e dias do mes vigente');
+      currentMonthWeeks.forEach((week) => {
+        if (cursorY > 745) {
+          doc.addPage();
+          cursorY = 44;
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.text(
+          `${week.label || '-'} (${formatDateKeyLabel(week.startKey)} a ${formatDateKeyLabel(week.endKey)}): ${Number(week.accessCount) || 0} acesso(s), ${Number(week.completedWorkouts) || 0} treino(s)`,
+          marginX,
+          cursorY
+        );
+        cursorY += 13;
+        doc.setFont('helvetica', 'normal');
+        (Array.isArray(week.days) ? week.days : []).forEach((day) => {
+          doc.text(
+            `${formatDateKeyLabel(day.dateKey)}: ${Number(day.accessCount) || 0} acesso(s), ${Number(day.completedWorkouts) || 0} treino(s)`,
+            marginX + 12,
+            cursorY
+          );
+          cursorY += 12;
+        });
+      });
+    }
+
+    if (notes.length) {
+      if (cursorY > 720) {
+        doc.addPage();
+        cursorY = 44;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(20, 24, 35);
+      doc.text('Observacoes', marginX, cursorY);
+      cursorY += 13;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(82, 92, 114);
+      notes.forEach((note) => {
+        const lines = doc.splitTextToSize(`- ${note}`, contentWidth);
+        doc.text(lines, marginX, cursorY);
+        cursorY += lines.length * 10 + 2;
+      });
+    }
+
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(9);
+    doc.setTextColor(106, 114, 136);
+    doc.text('DNA Monster Fitness', pageWidth - marginX, 810, { align: 'right' });
+    doc.save(`relatorio-metricas-sistema-${fileNameDate}.pdf`);
+    setAdminOverviewFeedback('Relatório de métricas gerado com sucesso.', true);
+  } catch (error) {
+    setAdminOverviewFeedback('Falha ao gerar o relatório de métricas em PDF.', false);
   }
 };
 
@@ -13649,13 +14217,23 @@ const openTrainerExerciseLibraryScreen = () => {
 };
 
 const refreshRegisteredExercisesData = async (forceReload = false) => {
-  if (isGeneralAdminUser()) {
-    return fetchAdminOverview(forceReload);
-  }
-  if (!isInstructorUser()) {
+  if (!canViewRegisteredExercisesPanel()) {
     renderAdminOverviewPanel();
     return null;
   }
+
+  if (!forceReload && Array.isArray(adminOverviewState.exercises) && adminOverviewState.exercises.length) {
+    renderAdminOverviewPanel();
+    return adminOverviewState;
+  }
+
+  if (adminExercisesRefreshLoading) return adminOverviewState;
+  const refreshButtons = [adminExercisesRefreshButton, libraryManagerRefreshButton].filter(Boolean);
+  adminExercisesRefreshLoading = true;
+  refreshButtons.forEach((button) => {
+    button.disabled = true;
+    button.textContent = 'Atualizando biblioteca...';
+  });
 
   try {
     const response = await requestStudentApi('/library/exercises?includeInactive=true');
@@ -13672,6 +14250,12 @@ const refreshRegisteredExercisesData = async (forceReload = false) => {
     adminOverviewState.error = error && error.message
       ? error.message
       : 'Não foi possível carregar os exercícios cadastrados.';
+  } finally {
+    adminExercisesRefreshLoading = false;
+    refreshButtons.forEach((button) => {
+      button.disabled = false;
+      button.textContent = 'Atualizar biblioteca';
+    });
   }
   renderAdminOverviewPanel();
   return adminOverviewState;
@@ -19592,7 +20176,9 @@ const setStudentAppTab = (tabId, immediate = false) => {
 
     if (resolvedTab === 'admin-geral') {
       void fetchAdminOverview(false);
-      void syncSiteTeamMembersFromApi({ silent: false, syncAdminForm: true });
+      if (!siteTeamMembersCache.length) {
+        void syncSiteTeamMembersFromApi({ silent: false, syncAdminForm: true });
+      }
       if (canGeneralAdmin) startAdminGeralAutoRefresh();
     } else {
       stopAdminGeralAutoRefresh();
@@ -21746,6 +22332,15 @@ const tryAutoLoginFromStoredSession = async ({
     });
 
     void (async () => {
+      if (isGeneralAdminUser()) {
+        await fetchAdminOverview(true, { includeLibrary: false, includeSupport: false });
+        if (!siteTeamMembersCache.length) {
+          await syncSiteTeamMembersFromApi({ silent: true, syncAdminForm: true });
+        }
+        renderStudentApp();
+        return;
+      }
+
       const backgroundTasks = [syncLibraryFromBackend({ silent: true })];
 
       if (normalizeRole(studentData.userRole) === 'ALUNO') {
@@ -21755,9 +22350,6 @@ const tryAutoLoginFromStoredSession = async ({
 
       backgroundTasks.push(syncWorkoutsFromBackend({ silent: true }));
 
-      if (isGeneralAdminUser()) {
-        backgroundTasks.push(fetchAdminOverview(true));
-      }
       if (isTrainerManagerUser()) {
         backgroundTasks.push(loadTrainerManagementData(true));
         backgroundTasks.push(loadTrainerProgressData(true));
@@ -21915,6 +22507,15 @@ const handleLoginSubmit = async (event) => {
     saveStudentAreaState({ isOpen: true, overlay: 'app', tab: firstTab, panel: firstTab });
 
     void (async () => {
+      if (isGeneralAdminUser()) {
+        await fetchAdminOverview(true, { includeLibrary: false, includeSupport: false });
+        if (!siteTeamMembersCache.length) {
+          await syncSiteTeamMembersFromApi({ silent: true, syncAdminForm: true });
+        }
+        renderStudentApp();
+        return;
+      }
+
       await syncLibraryFromBackend({ silent: true });
       if (normalizeRole(studentData.userRole) === 'ALUNO') {
         await syncWorkoutHistoryFromBackend({ silent: true });
@@ -21922,9 +22523,6 @@ const handleLoginSubmit = async (event) => {
       }
       await syncWorkoutsFromBackend({ silent: true });
 
-      if (isGeneralAdminUser()) {
-        await fetchAdminOverview(true);
-      }
       if (isTrainerManagerUser()) {
         await loadTrainerManagementData(true);
         await loadTrainerProgressData(true);
@@ -22914,11 +23512,15 @@ const initStudentArea = () => {
       setStudentAppTab(targetTab, true);
 
       void (async () => {
-        await syncWorkoutsFromBackend({ silent: true });
         if (isGeneralAdminUser()) {
-          await fetchAdminOverview(true);
-          await syncSiteTeamMembersFromApi({ silent: false, syncAdminForm: true });
+          await fetchAdminOverview(true, { includeLibrary: false, includeSupport: false });
+          if (!siteTeamMembersCache.length) {
+            await syncSiteTeamMembersFromApi({ silent: true, syncAdminForm: true });
+          }
+          return;
         }
+
+        await syncWorkoutsFromBackend({ silent: true });
         if (isTrainerManagerUser()) {
           await loadTrainerManagementData(true);
           await loadTrainerProgressData(true);
@@ -22930,11 +23532,20 @@ const initStudentArea = () => {
   if (adminOverviewRefreshButton) {
     adminOverviewRefreshButton.addEventListener('click', () => {
       void (async () => {
-        await fetchAdminOverview(true);
-        if (isGeneralAdminUser()) {
-          await syncSiteTeamMembersFromApi({ silent: false, syncAdminForm: true });
-        }
+        await fetchAdminOverview(true, { includeLibrary: false, includeSupport: false });
       })();
+    });
+  }
+
+  if (adminExercisesRefreshButton) {
+    adminExercisesRefreshButton.addEventListener('click', () => {
+      void refreshRegisteredExercisesData(true);
+    });
+  }
+
+  if (libraryManagerRefreshButton) {
+    libraryManagerRefreshButton.addEventListener('click', () => {
+      void refreshRegisteredExercisesData(true);
     });
   }
 
@@ -23120,7 +23731,7 @@ const initStudentArea = () => {
 
   if (adminOverviewReportButton) {
     adminOverviewReportButton.addEventListener('click', () => {
-      void exportAdminOverviewPdf();
+      void exportAdminMetricsReportPdf();
     });
     adminOverviewReportButton.addEventListener(
       'mouseenter',

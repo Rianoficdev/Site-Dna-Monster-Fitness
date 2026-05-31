@@ -125,6 +125,7 @@ function createContainer() {
     workoutsRepository: repositories.workoutsRepository,
     exercisesRepository: repositories.exercisesRepository,
     libraryRepository: repositories.libraryRepository,
+    progressRepository: repositories.progressRepository,
     supportService: services.supportService,
     clearCachedAuthUser,
     store,

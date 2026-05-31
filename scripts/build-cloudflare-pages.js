@@ -4,7 +4,7 @@ const path = require('path');
 const projectRoot = path.resolve(__dirname, '..');
 const distDir = path.join(projectRoot, 'dist');
 
-const staticFiles = ['index.html', 'script.js', 'styles.css'];
+const staticFiles = ['index.html', 'script.js', 'site-loader.js', 'styles.css', 'css/admin.css'];
 
 function ensureDir(dirPath) {
   fs.mkdirSync(dirPath, { recursive: true });
@@ -23,6 +23,7 @@ function copyStaticFile(fileName) {
     throw new Error(`Arquivo estatico nao encontrado: ${fileName}`);
   }
 
+  ensureDir(path.dirname(targetPath));
   fs.copyFileSync(sourcePath, targetPath);
 }
 
