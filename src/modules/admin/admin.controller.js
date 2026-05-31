@@ -21,6 +21,17 @@ function createAdminController({ adminService }) {
     return res.status(200).json(overview);
   });
 
+  const getMetricsReport = asyncHandler(async (req, res) => {
+    const report = await adminService.getMetricsReport({
+      referenceDate: req.query && req.query.referenceDate,
+    });
+
+    return res.status(200).json({
+      message: "Relatório de métricas carregado com sucesso.",
+      report,
+    });
+  });
+
   const updateUserRole = asyncHandler(async (req, res) => {
     const user = await adminService.updateUserRole({
       actorId: req.user.id,
@@ -82,6 +93,7 @@ function createAdminController({ adminService }) {
   return {
     getOverview,
     getWorkoutsOverview,
+    getMetricsReport,
     updateUserRole,
     updateStudentStatus,
     deleteDisabledUser,

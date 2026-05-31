@@ -1,0 +1,1531 @@
+/* ==========================================================================
+   Admin Geral - premium private OS visual
+   ========================================================================== */
+.student-app-shell.is-admin-geral-mode {
+  --admin-gold: #f6c84c;
+  --admin-gold-strong: #ffd86b;
+  --admin-text: #ffffff;
+  --admin-muted: #a1a1aa;
+  --admin-border: rgba(255, 255, 255, 0.1);
+  --admin-card: rgba(255, 255, 255, 0.055);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(250, 204, 21, 0.14), transparent 32%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.08), transparent 28%),
+    #000;
+  color: var(--admin-text);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-topbar,
+.student-app-shell.is-admin-geral-mode .student-app-bottom-nav,
+.student-app-shell.is-admin-geral-mode .student-app-main {
+  background: transparent;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-topbar {
+  border: 1px solid var(--admin-border);
+  background: var(--admin-card);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.45);
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-logo-wrap {
+  border-radius: 8px;
+  border: 1px solid rgba(246, 200, 76, 0.28);
+  background: rgba(246, 200, 76, 0.08);
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-meta h4 {
+  color: #fff;
+  font-size: 0;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::before {
+  content: "PRIVATE OS";
+  display: block;
+  margin-bottom: 8px;
+  color: #facc15;
+  font-size: 0.72rem;
+  letter-spacing: 0.36em;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::after {
+  content: "DNA MONSTER";
+  display: block;
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1.25;
+  letter-spacing: 0.28em;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-meta p {
+  color: var(--admin-muted);
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-icon-btn {
+  border-color: var(--admin-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-bottom-nav {
+  border: 1px solid var(--admin-border);
+  background: var(--admin-card);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.45);
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-nav-btn {
+  min-height: 48px;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-nav-btn.is-active {
+  border-color: rgba(245, 158, 11, 0.16);
+  background: rgba(245, 158, 11, 0.15);
+  color: #fde68a;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-nav-icon {
+  color: inherit !important;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-nav-icon svg,
+.student-app-shell.is-admin-geral-mode .student-app-nav-icon svg * {
+  color: inherit !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-main {
+  border: 0;
+  border-radius: 0;
+  padding: 16px;
+  overflow-x: hidden;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-screen {
+  gap: 24px;
+  width: min(100%, 1500px);
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-screen > * {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head {
+  align-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background:
+    radial-gradient(circle at 86% 50%, rgba(246, 200, 76, 0.16), transparent 24%),
+    rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(24px);
+  padding: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.admin-overview-eyebrow {
+  color: #fcd34d;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head h4 {
+  color: #fff;
+  font-size: clamp(1.9rem, 3.1vw, 2.85rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.02;
+  max-width: 850px;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head p {
+  color: #a1a1aa;
+  font-size: 1.02rem;
+  max-width: 760px;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-refresh,
+.student-app-shell.is-admin-geral-mode .admin-overview-report-btn,
+.student-app-shell.is-admin-geral-mode .admin-overview-action-btn,
+.student-app-shell.is-admin-geral-mode .admin-overview-collapse-btn {
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid rgba(246, 200, 76, 0.24);
+  background: linear-gradient(135deg, #f6c84c, #ffd86b);
+  color: #050505;
+  box-shadow: 0 16px 38px rgba(246, 200, 76, 0.18);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-refresh:hover,
+.student-app-shell.is-admin-geral-mode .admin-overview-report-btn:hover,
+.student-app-shell.is-admin-geral-mode .admin-overview-action-btn:hover,
+.student-app-shell.is-admin-geral-mode .admin-overview-collapse-btn:hover {
+  transform: translateY(-1px) scale(1.01);
+  filter: brightness(1.03);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-action-btn.is-danger {
+  border-color: rgba(248, 113, 113, 0.36);
+  background: rgba(127, 29, 29, 0.28);
+  color: #fecaca;
+  box-shadow: none;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card--admins,
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card--admin-geral {
+  display: none;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card,
+.student-app-shell.is-admin-geral-mode .admin-overview-chart-card,
+.student-app-shell.is-admin-geral-mode .admin-overview-table-card,
+.student-app-shell.is-admin-geral-mode .admin-site-team-item,
+.student-app-shell.is-admin-geral-mode .admin-overview-legend-item,
+.student-app-shell.is-admin-geral-mode .admin-overview-growth-card {
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background:
+    linear-gradient(115deg, rgba(246, 200, 76, 0.035), transparent 34%),
+    rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card {
+  min-height: 150px;
+  padding: 18px;
+  align-content: space-between;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card small,
+.student-app-shell.is-admin-geral-mode .admin-overview-table th,
+.student-app-shell.is-admin-geral-mode .admin-overview-chart-head p,
+.student-app-shell.is-admin-geral-mode .admin-overview-table-head p,
+.student-app-shell.is-admin-geral-mode .admin-overview-filter-field > span,
+.student-app-shell.is-admin-geral-mode .admin-overview-legend-item small,
+.student-app-shell.is-admin-geral-mode .admin-overview-status-label small,
+.student-app-shell.is-admin-geral-mode .admin-overview-activity-day small,
+.student-app-shell.is-admin-geral-mode .admin-overview-activity-legend span,
+.student-app-shell.is-admin-geral-mode .admin-overview-action-muted {
+  color: var(--admin-muted);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card strong,
+.student-app-shell.is-admin-geral-mode .admin-overview-chart-head h5,
+.student-app-shell.is-admin-geral-mode .admin-overview-table-head h5,
+.student-app-shell.is-admin-geral-mode .admin-overview-table td,
+.student-app-shell.is-admin-geral-mode .admin-overview-legend-item strong,
+.student-app-shell.is-admin-geral-mode .admin-overview-status-label strong,
+.student-app-shell.is-admin-geral-mode .admin-overview-growth-card strong {
+  color: #fff;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card strong {
+  font-size: clamp(1.8rem, 2.6vw, 2.35rem);
+  font-weight: 900;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-blue,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-purple,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-green,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-orange,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-red,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-cyan,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-green-soft,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-slate,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-amber {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(246, 200, 76, 0.1);
+  color: #facc15;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card svg {
+  width: 19px;
+  height: 19px;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-trend,
+.student-app-shell.is-admin-geral-mode .admin-overview-trend.is-neutral,
+.student-app-shell.is-admin-geral-mode .admin-overview-trend.is-positive {
+  background: transparent;
+  border: 0;
+  color: #5eead4;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-tabs {
+  justify-self: center;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.055);
+  padding: 6px;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-tab {
+  border-radius: 8px;
+  color: #a1a1aa;
+  padding: 0 14px;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-tab.is-active {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fde68a;
+  box-shadow: none;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-chart-head {
+  text-align: center;
+  justify-items: center;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-chart-card,
+.student-app-shell.is-admin-geral-mode .admin-overview-table-card {
+  padding: 20px;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-activity-bars,
+.student-app-shell.is-admin-geral-mode .admin-overview-growth-chart,
+.student-app-shell.is-admin-geral-mode .admin-overview-pie-center {
+  border-color: var(--admin-border);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-activity-bar.is-users {
+  background: linear-gradient(180deg, #ffd86b, rgba(246, 200, 76, 0.32));
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-activity-bar.is-workouts {
+  background: linear-gradient(180deg, #5eead4, rgba(94, 234, 212, 0.3));
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-growth-line {
+  stroke: #facc15;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-growth-chart {
+  min-height: 320px;
+  background:
+    radial-gradient(circle at 58% 0%, rgba(250, 204, 21, 0.1), transparent 34%),
+    linear-gradient(180deg, rgba(17, 17, 17, 0.97), rgba(6, 8, 7, 0.98));
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-growth-badge {
+  background: rgba(250, 204, 21, 0.12);
+  color: #fde68a;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-growth-label {
+  color: rgba(229, 231, 235, 0.58);
+  fill: rgba(229, 231, 235, 0.58);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-table-wrap {
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-table {
+  min-width: 760px;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-table th,
+.student-app-shell.is-admin-geral-mode .admin-overview-table td {
+  padding: 16px;
+  border-bottom: 0;
+  border-top: 1px solid var(--admin-border);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-table th {
+  border-top: 0;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-filter-field input,
+.student-app-shell.is-admin-geral-mode .admin-overview-filter-field select,
+.student-app-shell.is-admin-geral-mode .admin-overview-role-select,
+.student-app-shell.is-admin-geral-mode .admin-site-team-item .admin-overview-filter-field textarea {
+  min-height: 48px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-filter-field input::placeholder {
+  color: #71717a;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-filter-field input:focus-visible,
+.student-app-shell.is-admin-geral-mode .admin-overview-filter-field select:focus-visible,
+.student-app-shell.is-admin-geral-mode .admin-overview-role-select:focus-visible,
+.student-app-shell.is-admin-geral-mode .admin-site-team-item .admin-overview-filter-field textarea:focus-visible {
+  outline: none;
+  border-color: rgba(252, 211, 77, 0.6);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-status-badge.is-enabled {
+  border-color: rgba(94, 234, 212, 0.36);
+  background: rgba(20, 184, 166, 0.16);
+  color: #99f6e4;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-status-badge.is-disabled,
+.student-app-shell.is-admin-geral-mode .admin-overview-status-badge.is-warning {
+  border-color: rgba(246, 200, 76, 0.34);
+  background: rgba(246, 200, 76, 0.12);
+  color: #fde68a;
+}
+
+.student-app-shell.is-admin-geral-mode {
+  --admin-gold: #facc15;
+  --admin-gold-soft: #ffd86b;
+  --admin-panel: rgba(255, 255, 255, 0.052);
+  --admin-panel-strong: rgba(255, 255, 255, 0.074);
+  --admin-border: rgba(255, 255, 255, 0.13);
+  --admin-muted: #a1a1aa;
+  --admin-text: #f8fafc;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(250, 204, 21, 0.12), transparent 28%),
+    radial-gradient(circle at 74% 22%, rgba(255, 255, 255, 0.07), transparent 30%),
+    linear-gradient(135deg, #111004 0%, #050505 36%, #0b0b0b 100%);
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-topbar,
+.student-app-shell.is-admin-geral-mode .student-app-bottom-nav,
+.student-app-shell.is-admin-geral-mode .admin-overview-head,
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card,
+.student-app-shell.is-admin-geral-mode .admin-overview-chart-card,
+.student-app-shell.is-admin-geral-mode .admin-overview-table-card,
+.student-app-shell.is-admin-geral-mode .admin-site-team-item {
+  border-color: var(--admin-border);
+  background:
+    linear-gradient(110deg, rgba(250, 204, 21, 0.035), transparent 34%),
+    linear-gradient(180deg, var(--admin-panel-strong), rgba(255, 255, 255, 0.038));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 22px 70px rgba(0, 0, 0, 0.42);
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand {
+  border-color: rgba(250, 204, 21, 0.26);
+  background:
+    linear-gradient(180deg, rgba(250, 204, 21, 0.08), rgba(250, 204, 21, 0.025)),
+    rgba(0, 0, 0, 0.22);
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-logo-wrap {
+  border: 0;
+  background: transparent;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-logo {
+  max-width: 64px;
+  filter: drop-shadow(0 8px 18px rgba(250, 204, 21, 0.18));
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::before {
+  color: var(--admin-gold);
+  letter-spacing: 0.48em;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::after {
+  content: "DNA ADMIN";
+  letter-spacing: 0.3em;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-meta p::before {
+  content: "Admin DNA";
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-meta p {
+  font-size: 0;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-brand-meta p::before {
+  color: var(--admin-muted);
+  font-size: 0.9rem;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-nav-btn {
+  border: 0;
+  background: transparent;
+  color: var(--admin-muted);
+  font-weight: 700;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-nav-btn.is-active {
+  background: linear-gradient(90deg, rgba(250, 204, 21, 0.24), rgba(250, 204, 21, 0.12));
+  color: #fff7cc;
+}
+
+.student-app-shell.is-admin-geral-mode .student-app-nav-icon img {
+  filter: brightness(0) saturate(100%) invert(80%) sepia(64%) saturate(693%) hue-rotate(358deg) brightness(104%) contrast(98%);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head {
+  min-height: 214px;
+  overflow: hidden;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 88% 50%, rgba(250, 204, 21, 0.2), transparent 24%),
+    linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.035) 100%);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head-copy,
+.student-app-shell.is-admin-geral-mode .admin-overview-head-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  width: min(100%, 340px);
+  justify-content: stretch;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-refresh {
+  order: 1;
+  justify-self: start;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-report-btn {
+  order: 2;
+  justify-self: end;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-eyebrow {
+  color: var(--admin-gold);
+  letter-spacing: 0.5em;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head h4 {
+  max-width: 720px;
+  font-size: clamp(2.45rem, 4.5vw, 4.55rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head p {
+  color: #a1a1aa;
+  font-size: clamp(0.98rem, 1.25vw, 1.12rem);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-report-btn {
+  min-width: 156px;
+  min-height: 44px;
+  border: 0;
+  background: linear-gradient(135deg, var(--admin-gold), var(--admin-gold-soft));
+  color: #080808;
+  box-shadow: 0 18px 38px rgba(250, 204, 21, 0.2);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-refresh {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--admin-text);
+  box-shadow: none;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card {
+  min-height: 174px;
+  padding: 20px;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card small {
+  font-size: 0.88rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card strong {
+  margin-top: 10px;
+  font-size: clamp(2.05rem, 3.25vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-blue,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-purple,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-green,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-orange,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-red,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-cyan,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-green-soft,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-slate,
+.student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-amber {
+  background: transparent;
+  color: var(--admin-gold);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-trend,
+.student-app-shell.is-admin-geral-mode .admin-overview-trend.is-neutral,
+.student-app-shell.is-admin-geral-mode .admin-overview-trend.is-positive {
+  color: #8b8b94;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-tabs {
+  background: rgba(250, 204, 21, 0.06);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-chart-head h5,
+.student-app-shell.is-admin-geral-mode .admin-overview-table-head h5 {
+  font-size: 1.32rem;
+  letter-spacing: -0.02em;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-collapse-btn,
+.student-app-shell.is-admin-geral-mode .admin-overview-action-btn {
+  background: rgba(250, 204, 21, 0.12);
+  color: #fde68a;
+  box-shadow: none;
+}
+
+@media (min-width: 1024px) {
+  .student-app-shell.is-admin-geral-mode {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 24px;
+    padding: 10px 14px 0;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-topbar {
+    top: 10px;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 0;
+    min-height: 178px;
+    padding: 16px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-bottom-nav {
+    top: 188px;
+    border-radius: 0 0 8px 8px;
+    border-top: 0;
+    padding-top: 10px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-main {
+    padding: 0 0 28px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .student-app-shell.is-admin-geral-mode .admin-overview-head {
+    min-height: 0;
+    padding: 20px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head h4 {
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Responsivo final do admin: mantém o painel legível e sem estouro no celular. */
+@media (max-width: 1023px) {
+  .student-app-shell.is-admin-geral-mode {
+    display: block;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .student-app-shell.is-admin-geral-mode,
+  .student-app-shell.is-admin-geral-mode * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 0;
+    border-width: 0 0 1px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand {
+    min-width: 0;
+    padding: 10px;
+    border-radius: 8px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand-logo-wrap {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand-logo {
+    max-width: 42px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand-meta {
+    min-width: 0;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::before {
+    margin-bottom: 4px;
+    font-size: 0.58rem;
+    letter-spacing: 0.22em;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::after {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    overflow-wrap: anywhere;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand-meta p::before {
+    font-size: 0.74rem;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-top-actions {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-icon-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
+    border-radius: 10px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-main {
+    width: 100%;
+    padding: 12px 10px calc(106px + env(safe-area-inset-bottom));
+    overflow-x: hidden;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-screen {
+    width: 100%;
+    gap: 14px;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-height: 0;
+    gap: 16px;
+    padding: 18px 14px;
+    text-align: center;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head-copy {
+    width: 100%;
+    justify-items: center;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-eyebrow {
+    font-size: 0.64rem;
+    letter-spacing: 0.28em;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head h4 {
+    max-width: 100%;
+    font-size: clamp(1.55rem, 8vw, 2.35rem);
+    line-height: 1.04;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head p {
+    max-width: 100%;
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head-actions {
+    position: relative;
+    inset: auto;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-refresh,
+  .student-app-shell.is-admin-geral-mode .admin-overview-report-btn,
+  .student-app-shell.is-admin-geral-mode .admin-overview-action-btn,
+  .student-app-shell.is-admin-geral-mode .admin-overview-collapse-btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 0.78rem;
+    white-space: normal;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stat-card {
+    min-height: 118px;
+    padding: 14px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stat-card strong {
+    font-size: clamp(1.9rem, 10vw, 2.45rem);
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-chart-card,
+  .student-app-shell.is-admin-geral-mode .admin-overview-table-card {
+    padding: 14px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-table-head-row,
+  .student-app-shell.is-admin-geral-mode .admin-overview-exercises-toolbar,
+  .student-app-shell.is-admin-geral-mode .admin-site-team-toolbar,
+  .student-app-shell.is-admin-geral-mode .admin-site-team-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-tabs {
+    width: 100%;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-tab {
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 0.76rem;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-table {
+    min-width: 680px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-growth-chart {
+    min-height: 250px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-activity-bars {
+    min-height: 220px;
+    gap: 7px;
+    padding: 12px 8px 8px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-bottom-grid,
+  .student-app-shell.is-admin-geral-mode .admin-overview-charts-grid,
+  .student-app-shell.is-admin-geral-mode .admin-overview-growth-footer,
+  .student-app-shell.is-admin-geral-mode .admin-site-team-list {
+    grid-template-columns: 1fr;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 80;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 4px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-radius: 0;
+    border-width: 1px 0 0;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-nav-btn {
+    min-width: 0;
+    min-height: 48px;
+    padding: 6px 4px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    border-radius: 8px;
+    font-size: 0.68rem;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .student-app-shell.is-admin-geral-mode .student-app-topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-top-actions {
+    justify-content: flex-end;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-table {
+    min-width: 620px;
+  }
+}
+
+/* Tema claro: corrige contraste do admin sem alterar o visual escuro. */
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode {
+  --admin-gold: #f7c600;
+  --admin-gold-soft: #ffdc55;
+  --admin-panel: rgba(255, 255, 255, 0.9);
+  --admin-panel-strong: rgba(255, 255, 255, 0.98);
+  --admin-border: rgba(20, 35, 28, 0.12);
+  --admin-muted: #6b7280;
+  --admin-text: #172018;
+  background:
+    radial-gradient(circle at 82% 0%, rgba(247, 198, 0, 0.16), transparent 28%),
+    linear-gradient(180deg, #f8faf7 0%, #eef3ee 100%);
+  color: var(--admin-text);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-topbar,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-bottom-nav,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-head,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-stat-card,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-chart-card,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table-card,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-site-team-item,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-legend-item,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-growth-card {
+  border-color: var(--admin-border);
+  background:
+    linear-gradient(135deg, rgba(247, 198, 0, 0.055), transparent 38%),
+    rgba(255, 255, 255, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 18px 44px rgba(15, 23, 42, 0.11);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-main {
+  background: transparent;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-brand {
+  border-color: rgba(247, 198, 0, 0.25);
+  background: linear-gradient(90deg, #ffffff, #fff7d9);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::before,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-eyebrow {
+  color: #d39b00;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::after,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-head h4,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-chart-head h5,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table-head h5,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-stat-card strong,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-legend-item strong,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-status-label strong,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-growth-card strong,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table td {
+  color: #172018;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-brand-meta p::before,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-head p,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-stat-card small,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table th,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-chart-head p,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table-head p,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-filter-field > span,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-legend-item small,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-status-label small,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-activity-day small,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-activity-legend span,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-action-muted {
+  color: #6b7280;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-head {
+  background:
+    radial-gradient(circle at 84% 40%, rgba(247, 198, 0, 0.2), transparent 24%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.98), rgba(255, 251, 230, 0.94));
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-head::after {
+  opacity: 0.38;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-refresh {
+  border-color: rgba(132, 204, 22, 0.28);
+  background: linear-gradient(135deg, #9cff18, #78e600);
+  color: #102000;
+  box-shadow: 0 16px 32px rgba(132, 204, 22, 0.2);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-report-btn {
+  background: linear-gradient(135deg, #ffd43b, #ffc121);
+  color: #241900;
+  box-shadow: 0 16px 32px rgba(245, 158, 11, 0.18);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-collapse-btn,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-action-btn {
+  border-color: rgba(132, 204, 22, 0.24);
+  background: rgba(236, 252, 203, 0.92);
+  color: #3f6212;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-icon-btn {
+  border-color: rgba(20, 35, 28, 0.14);
+  background: #ffffff;
+  color: #172018;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-nav-btn {
+  color: #667085;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-nav-btn:hover {
+  background: rgba(132, 204, 22, 0.08);
+  color: #245c1b;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-nav-btn.is-active {
+  background: linear-gradient(90deg, rgba(132, 204, 22, 0.16), rgba(247, 198, 0, 0.16));
+  color: #15803d;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .student-app-nav-icon img {
+  filter: none;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-blue,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-purple,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-green,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-orange,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-red,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-cyan,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-green-soft,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-slate,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-icon-card.is-amber {
+  color: #eab308;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-trend,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-trend.is-neutral,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-trend.is-positive {
+  color: #667085;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-tabs {
+  background: rgba(20, 35, 28, 0.06);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-tab {
+  color: #667085;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-tab.is-active {
+  background: #8bea0f;
+  color: #122000;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-table-wrap {
+  border-color: rgba(20, 35, 28, 0.1);
+  background: rgba(255, 255, 255, 0.84);
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-filter-field input,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-filter-field select,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-role-select,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-site-team-item .admin-overview-filter-field textarea {
+  border-color: rgba(20, 35, 28, 0.14);
+  background: #ffffff;
+  color: #172018;
+}
+
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-pie-center,
+body:not(.theme-dark) .student-app-shell.is-admin-geral-mode .admin-overview-activity-bars {
+  border-color: rgba(20, 35, 28, 0.1);
+  background: rgba(255, 255, 255, 0.84);
+}
+
+/* Ajuste fino: centraliza os textos do destaque do admin. */
+.student-app-shell.is-admin-geral-mode .admin-overview-head {
+  text-align: center;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head-copy {
+  width: min(100%, 780px);
+  margin: 0 auto;
+  justify-items: center;
+  text-align: center;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head h4,
+.student-app-shell.is-admin-geral-mode .admin-overview-head p {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+@media (min-width: 761px) {
+  .student-app-shell.is-admin-geral-mode .admin-overview-head {
+    justify-content: center;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head-copy {
+    flex: 1 1 auto;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head-actions {
+    position: absolute;
+    top: 50%;
+    right: 24px;
+    left: 24px;
+    width: auto;
+    max-width: none;
+    transform: translateY(-50%);
+  }
+}
+
+@media (max-width: 760px) {
+  .student-app-shell.is-admin-geral-mode .admin-overview-head-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+}
+
+@media (min-width: 1024px) {
+  .student-app-shell.is-admin-geral-mode {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 16px;
+    padding: 16px;
+    overflow-x: hidden;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-topbar {
+    position: sticky;
+    top: 16px;
+    z-index: 1;
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 0;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 14px;
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand {
+    align-items: flex-start;
+    gap: 12px;
+    border: 1px solid rgba(246, 200, 76, 0.28);
+    border-radius: 8px;
+    padding: 14px;
+    background: rgba(246, 200, 76, 0.05);
+    min-width: 0;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand-logo-wrap {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand-meta {
+    min-width: 0;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::before {
+    font-size: 0.66rem;
+    letter-spacing: 0.28em;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-brand-meta h4::after {
+    font-size: 0.86rem;
+    letter-spacing: 0.18em;
+    overflow-wrap: anywhere;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-top-actions {
+    margin-top: 4px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-icon-btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-bottom-nav {
+    position: sticky;
+    top: 216px;
+    z-index: 5;
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: var(--admin-card);
+    box-shadow: 0 24px 90px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(24px);
+    padding: 16px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-nav-btn {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-main {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    min-width: 0;
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1380px) {
+  .student-app-shell.is-admin-geral-mode {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-screen {
+    gap: 18px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head {
+    padding: 20px 22px;
+    gap: 16px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head h4 {
+    font-size: clamp(1.85rem, 3.1vw, 2.65rem);
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head-actions {
+    width: min(100%, 340px);
+    max-width: 340px;
+    flex: 0 0 340px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-refresh,
+  .student-app-shell.is-admin-geral-mode .admin-overview-report-btn {
+    width: 100%;
+    padding: 0 14px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .student-app-shell.is-admin-geral-mode {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+    overflow-x: hidden;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-topbar {
+    display: flex;
+    padding: 12px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-bottom-nav {
+    display: grid;
+    padding: 12px;
+    top: 198px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-main {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-screen {
+    width: 100%;
+    max-width: 100%;
+    gap: 16px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head {
+    padding: 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    align-items: center;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head-copy {
+    min-width: 0;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head h4 {
+    max-width: 100%;
+    font-size: clamp(1.8rem, 3.45vw, 2.35rem);
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head-actions {
+    width: 100%;
+    max-width: 340px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-refresh,
+  .student-app-shell.is-admin-geral-mode .admin-overview-report-btn {
+    width: 100%;
+    padding: 0 8px;
+    font-size: 0.68rem;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stat-card {
+    min-width: 0;
+    min-height: 136px;
+    padding: 14px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1090px) {
+  .student-app-shell.is-admin-geral-mode .admin-overview-head {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+    padding: 18px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head h4 {
+    font-size: clamp(2.1rem, 4vw, 2.75rem);
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stat-card {
+    min-height: 150px;
+    padding: 18px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stat-card small {
+    font-size: 0.76rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head-actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1023px) {
+  .student-app-shell.is-admin-geral-mode .student-app-topbar {
+    border-radius: 0;
+    border-width: 0 0 1px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-main {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-bottom-nav {
+    border-width: 1px 0 0;
+    border-radius: 0;
+  }
+}
+
+/* Camada final: aproxima o admin do visual preto/dourado da referencia. */
+.student-app-shell.is-admin-geral-mode {
+  background:
+    radial-gradient(circle at 16% 0%, rgba(250, 204, 21, 0.12), transparent 28%),
+    radial-gradient(circle at 74% 22%, rgba(255, 255, 255, 0.07), transparent 30%),
+    linear-gradient(135deg, #111004 0%, #050505 36%, #0b0b0b 100%);
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head {
+  position: relative;
+  min-height: 214px;
+  overflow: hidden;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-head h4 {
+  max-width: 720px;
+  font-size: clamp(2.45rem, 4.5vw, 4.55rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card {
+  min-height: 174px;
+  padding: 20px;
+}
+
+.student-app-shell.is-admin-geral-mode .admin-overview-stat-card strong {
+  font-size: clamp(2.05rem, 3.25vw, 3rem);
+}
+
+@media (min-width: 1024px) {
+  .student-app-shell.is-admin-geral-mode {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 24px;
+    padding: 10px 14px 0;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-topbar {
+    top: 10px;
+    min-height: 178px;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 0;
+    padding: 16px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-bottom-nav {
+    top: 188px;
+    border-radius: 0 0 8px 8px;
+    border-top: 0;
+    padding-top: 10px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .student-app-main {
+    padding: 0 0 28px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .student-app-shell.is-admin-geral-mode .admin-overview-head {
+    min-height: 0;
+    padding: 20px;
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-head h4 {
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+
+  .student-app-shell.is-admin-geral-mode .admin-overview-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

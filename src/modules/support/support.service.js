@@ -597,7 +597,7 @@ function createSupportService({
       }
 
       const requestedType = normalizeType(type || "PASSWORD_RESET");
-      const finalType = requestedType === "GENERAL_SUPPORT" ? "GENERAL_SUPPORT" : "PASSWORD_RESET";
+      const finalType = requestedType === "PASSWORD_RESET" ? "PASSWORD_RESET" : requestedType;
 
       if (finalType === "PASSWORD_RESET") {
         return createPasswordResetTicketRequest({

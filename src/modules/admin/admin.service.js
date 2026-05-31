@@ -7,6 +7,7 @@ function createAdminService({
   workoutsRepository,
   exercisesRepository,
   libraryRepository,
+  progressRepository,
   supportService,
   clearCachedAuthUser,
   store,
@@ -207,6 +208,262 @@ function createAdminService({
     const lastSeen = new Date(user.lastSeenAt);
     if (Number.isNaN(lastSeen.getTime())) return false;
     return lastSeen >= onlineSince;
+  }
+
+  function toDateKey(date) {
+    const parsed = date instanceof Date ? date : new Date(date);
+    if (Number.isNaN(parsed.getTime())) return "";
+    const year = parsed.getUTCFullYear();
+    const month = String(parsed.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getUTCDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function toMonthKey(date) {
+    const parsed = date instanceof Date ? date : new Date(date);
+    if (Number.isNaN(parsed.getTime())) return "";
+    return `${parsed.getUTCFullYear()}-${String(parsed.getUTCMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function getMonthBounds(referenceDate = new Date()) {
+    const parsed = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
+    const safeDate = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+    const start = new Date(Date.UTC(safeDate.getUTCFullYear(), safeDate.getUTCMonth(), 1));
+    const end = new Date(Date.UTC(safeDate.getUTCFullYear(), safeDate.getUTCMonth() + 1, 0));
+    return {
+      start,
+      end,
+      startKey: toDateKey(start),
+      endKey: toDateKey(end),
+      monthKey: toMonthKey(start),
+    };
+  }
+
+  function getMonthWeeks({ start, end }) {
+    const weeks = [];
+    let current = new Date(start);
+    let index = 1;
+
+    while (current <= end) {
+      const weekStart = new Date(current);
+      const weekEnd = new Date(current);
+      weekEnd.setUTCDate(weekEnd.getUTCDate() + (6 - weekEnd.getUTCDay()));
+      if (weekEnd > end) weekEnd.setTime(end.getTime());
+
+      const days = [];
+      const dayCursor = new Date(weekStart);
+      while (dayCursor <= weekEnd) {
+        days.push(toDateKey(dayCursor));
+        dayCursor.setUTCDate(dayCursor.getUTCDate() + 1);
+      }
+
+      weeks.push({
+        label: `Semana ${index}`,
+        startKey: toDateKey(weekStart),
+        endKey: toDateKey(weekEnd),
+        days,
+      });
+
+      current = new Date(weekEnd);
+      current.setUTCDate(current.getUTCDate() + 1);
+      index += 1;
+    }
+
+    return weeks;
+  }
+
+  function getUserDisplayName(user, fallback = "Não identificado") {
+    return String((user && (user.name || user.email)) || fallback).trim();
+  }
+
+  async function getMetricsReport({ referenceDate } = {}) {
+    const monthBounds = getMonthBounds(referenceDate);
+    const [users, workouts, completions] = await Promise.all([
+      userService.listUsers(),
+      workoutsService && typeof workoutsService.listOverviewWorkouts === "function"
+        ? workoutsService.listOverviewWorkouts()
+        : Promise.resolve([]),
+      progressRepository && typeof progressRepository.listWorkoutCompletions === "function"
+        ? progressRepository.listWorkoutCompletions({
+            completedDateFrom: monthBounds.startKey,
+            completedDateTo: monthBounds.endKey,
+            limit: 10000,
+          }).catch(() => [])
+        : Promise.resolve([]),
+    ]);
+
+    const safeUsers = Array.isArray(users) ? users : [];
+    const safeWorkouts = Array.isArray(workouts) ? workouts : [];
+    const safeCompletions = Array.isArray(completions) ? completions : [];
+    const usersById = new Map();
+    safeUsers.forEach((user) => {
+      const userId = Number(user && user.id) || 0;
+      if (userId) usersById.set(userId, user);
+    });
+
+    const students = safeUsers.filter((user) => normalizeRole(user && user.role) === "ALUNO");
+    const instructors = safeUsers.filter((user) => {
+      const role = normalizeRole(user && user.role);
+      return role === "INSTRUTOR" || role === "ADMIN_GERAL";
+    });
+
+    const monthlyStudentsMap = new Map();
+    students.forEach((student) => {
+      const monthKey = toMonthKey(student && student.createdAt);
+      if (!monthKey) return;
+      monthlyStudentsMap.set(monthKey, (monthlyStudentsMap.get(monthKey) || 0) + 1);
+    });
+
+    const monthlyStudentGrowth = Array.from(monthlyStudentsMap.entries())
+      .sort(([firstMonth], [secondMonth]) => firstMonth.localeCompare(secondMonth))
+      .map(([month, studentsCount]) => ({ month, students: studentsCount }));
+
+    const currentMonthStudentGrowth =
+      monthlyStudentGrowth.find((item) => item.month === monthBounds.monthKey) || {
+        month: monthBounds.monthKey,
+        students: 0,
+      };
+
+    const studentMetrics = new Map();
+    students.forEach((student) => {
+      const studentId = Number(student && student.id) || 0;
+      if (!studentId) return;
+      const lastSeenKey = toDateKey(student && student.lastSeenAt);
+      studentMetrics.set(studentId, {
+        studentId,
+        name: getUserDisplayName(student, `Aluno ${studentId}`),
+        email: String((student && student.email) || "").trim().toLowerCase(),
+        completedWorkouts: 0,
+        workoutDays: new Set(),
+        accessDays: lastSeenKey >= monthBounds.startKey && lastSeenKey <= monthBounds.endKey
+          ? new Set([lastSeenKey])
+          : new Set(),
+        score: 0,
+      });
+    });
+
+    safeCompletions.forEach((completion) => {
+      const studentId = Number(completion && completion.userId) || 0;
+      if (!studentId) return;
+      const metric = studentMetrics.get(studentId);
+      if (!metric) return;
+      const dateKey = String((completion && completion.completedDateKey) || "").trim();
+      metric.completedWorkouts += 1;
+      if (dateKey) metric.workoutDays.add(dateKey);
+    });
+
+    studentMetrics.forEach((metric) => {
+      metric.score = metric.completedWorkouts * 3 + metric.workoutDays.size * 2 + metric.accessDays.size;
+    });
+
+    const topStudent = Array.from(studentMetrics.values())
+      .sort((first, second) => {
+        if (second.score !== first.score) return second.score - first.score;
+        if (second.completedWorkouts !== first.completedWorkouts) {
+          return second.completedWorkouts - first.completedWorkouts;
+        }
+        return first.name.localeCompare(second.name, "pt-BR", { sensitivity: "base" });
+      })[0] || null;
+
+    const instructorMetrics = new Map();
+    instructors.forEach((instructor) => {
+      const instructorId = Number(instructor && instructor.id) || 0;
+      if (!instructorId) return;
+      instructorMetrics.set(instructorId, {
+        instructorId,
+        name: getUserDisplayName(instructor, `Instrutor ${instructorId}`),
+        assignedWorkouts: 0,
+        currentMonthAssignedWorkouts: 0,
+      });
+    });
+
+    safeWorkouts.forEach((workout) => {
+      const instructorId = Number(workout && (workout.instructorId || workout.createdBy)) || 0;
+      if (!instructorId) return;
+      if (!instructorMetrics.has(instructorId)) {
+        const instructor = usersById.get(instructorId);
+        instructorMetrics.set(instructorId, {
+          instructorId,
+          name: getUserDisplayName(instructor, `Instrutor ${instructorId}`),
+          assignedWorkouts: 0,
+          currentMonthAssignedWorkouts: 0,
+        });
+      }
+      const metric = instructorMetrics.get(instructorId);
+      const createdKey = toDateKey(workout && workout.createdAt);
+      metric.assignedWorkouts += 1;
+      if (createdKey >= monthBounds.startKey && createdKey <= monthBounds.endKey) {
+        metric.currentMonthAssignedWorkouts += 1;
+      }
+    });
+
+    const topInstructor = Array.from(instructorMetrics.values())
+      .sort((first, second) => {
+        if (second.currentMonthAssignedWorkouts !== first.currentMonthAssignedWorkouts) {
+          return second.currentMonthAssignedWorkouts - first.currentMonthAssignedWorkouts;
+        }
+        if (second.assignedWorkouts !== first.assignedWorkouts) {
+          return second.assignedWorkouts - first.assignedWorkouts;
+        }
+        return first.name.localeCompare(second.name, "pt-BR", { sensitivity: "base" });
+      })[0] || null;
+
+    const currentMonthWeeks = getMonthWeeks(monthBounds).map((week) => {
+      const dayRows = week.days.map((dateKey) => {
+        const accessCount = students.filter((student) => toDateKey(student && student.lastSeenAt) === dateKey).length;
+        const completedWorkouts = safeCompletions.filter(
+          (completion) => String((completion && completion.completedDateKey) || "").trim() === dateKey
+        ).length;
+        return {
+          dateKey,
+          accessCount,
+          completedWorkouts,
+        };
+      });
+
+      return {
+        ...week,
+        accessCount: dayRows.reduce((sum, day) => sum + day.accessCount, 0),
+        completedWorkouts: dayRows.reduce((sum, day) => sum + day.completedWorkouts, 0),
+        days: dayRows,
+      };
+    });
+
+    return {
+      referenceDateKey: toDateKey(new Date()),
+      month: {
+        key: monthBounds.monthKey,
+        startKey: monthBounds.startKey,
+        endKey: monthBounds.endKey,
+      },
+      summary: {
+        totalStudents: students.length,
+        currentMonthNewStudents: currentMonthStudentGrowth.students,
+        currentMonthCompletedWorkouts: safeCompletions.length,
+        currentMonthKnownAccesses: students.filter((student) => {
+          const dateKey = toDateKey(student && student.lastSeenAt);
+          return dateKey >= monthBounds.startKey && dateKey <= monthBounds.endKey;
+        }).length,
+      },
+      monthlyStudentGrowth,
+      topStudent: topStudent
+        ? {
+            studentId: topStudent.studentId,
+            name: topStudent.name,
+            email: topStudent.email,
+            completedWorkouts: topStudent.completedWorkouts,
+            workoutDays: topStudent.workoutDays.size,
+            accessDays: topStudent.accessDays.size,
+            score: topStudent.score,
+          }
+        : null,
+      topInstructor,
+      currentMonthWeeks,
+      notes: [
+        "Acessos por dia usam o ultimo acesso registrado do usuario; o sistema ainda nao armazena historico completo de logins.",
+        "Treinos realizados usam o historico de conclusao de treinos do mes vigente.",
+      ],
+    };
   }
 
   async function getOverview({ fresh = false } = {}) {
@@ -664,6 +921,7 @@ function createAdminService({
 
   return {
     getOverview,
+    getMetricsReport,
     getWorkoutsOverview,
     updateUserRole,
     updateStudentStatus,

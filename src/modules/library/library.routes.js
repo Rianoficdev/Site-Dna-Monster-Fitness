@@ -15,21 +15,21 @@ function createLibraryRoutes({ libraryController, authMiddleware, roleMiddleware
   router.put(
     "/library/exercises/:exerciseId",
     authMiddleware,
-    roleMiddleware(roles.ADMIN, roles.ADMIN_GERAL),
+    roleMiddleware(roles.INSTRUTOR, roles.ADMIN, roles.ADMIN_GERAL),
     libraryController.updateLibraryExercise
   );
 
   router.patch(
     "/library/exercises/:exerciseId/status",
     authMiddleware,
-    roleMiddleware(roles.ADMIN, roles.ADMIN_GERAL),
+    roleMiddleware(roles.INSTRUTOR, roles.ADMIN, roles.ADMIN_GERAL),
     libraryController.setLibraryExerciseStatus
   );
 
   router.delete(
     "/library/exercises/:exerciseId",
     authMiddleware,
-    roleMiddleware(roles.ADMIN, roles.ADMIN_GERAL),
+    roleMiddleware(roles.INSTRUTOR, roles.ADMIN, roles.ADMIN_GERAL),
     libraryController.deleteLibraryExercise
   );
 

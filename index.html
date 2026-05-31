@@ -21,6 +21,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css?v=20260521-001" />
+  <link id="dna-admin-stylesheet" rel="stylesheet" href="css/admin.css?v=20260531-003" />
 </head>
 <body>
   <!-- Header fixo com navegacao principal e atalhos -->
@@ -385,6 +386,15 @@
               </div>
 
               <p class="student-form-error" data-student-form-error aria-live="polite"></p>
+
+              <button
+                class="student-form-link student-reactivation-support"
+                type="button"
+                data-student-reactivation-support
+                hidden
+              >
+                <span>Solicitar liberação ao Administrador Geral</span>
+              </button>
 
               <button class="student-login-btn" type="submit" data-student-submit>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><path d="m10 17 5-5-5-5"></path><path d="M15 12H3"></path></svg>
@@ -989,9 +999,14 @@
                 </div>
               </div>
               <div class="student-library-manage" data-library-manager hidden>
-                <button class="student-group-create-btn student-group-create-btn-top" type="button" data-library-manager-toggle>
-                  <span>Adicionar à biblioteca</span>
-                </button>
+                <div class="student-library-manage-actions">
+                  <button class="student-group-create-btn student-group-create-btn-top" type="button" data-library-manager-toggle>
+                    <span>Adicionar à biblioteca</span>
+                  </button>
+                  <button class="student-group-create-btn student-library-refresh-btn" type="button" data-library-manager-refresh>
+                    <span>Atualizar biblioteca</span>
+                  </button>
+                </div>
                 <p class="student-form-error student-library-manage-feedback" data-library-manager-feedback aria-live="polite"></p>
                 <article class="admin-overview-table-card student-library-manage-card" data-library-manager-form-wrap hidden>
                   <header class="trainer-library-head">
@@ -1567,8 +1582,9 @@ Core"
               <div class="admin-overview-screen" data-admin-overview-panel>
                 <div class="student-panel-head admin-overview-head">
                   <div class="admin-overview-head-copy">
-                    <h4>Painel do Administrador Geral</h4>
-                    <p>Visualize usuários cadastrados, funções e todos os treinos do sistema.</p>
+                    <span class="admin-overview-eyebrow">Área Privada</span>
+                    <h4>Operacional DNA</h4>
+                    <p>Painel Geral de Dados Do App Dna Monster</p>
                   </div>
                   <div class="admin-overview-head-actions">
                     <button class="student-progress-action-btn admin-overview-refresh" type="button" data-admin-overview-refresh>
@@ -1638,7 +1654,7 @@ Core"
                     <strong data-admin-stat-instrutores>0</strong>
                     <span class="admin-overview-trend is-neutral" data-admin-stat-instrutores-meta>0 cadastrados</span>
                   </article>
-                  <article class="admin-overview-stat-card">
+                  <article class="admin-overview-stat-card admin-overview-stat-card--admins">
                     <div class="admin-overview-stat-head">
                       <small>Administradores</small>
                       <span class="admin-overview-icon-card is-red">
@@ -1648,7 +1664,7 @@ Core"
                     <strong data-admin-stat-admins>0</strong>
                     <span class="admin-overview-trend is-neutral" data-admin-stat-admins-meta>0 habilitados</span>
                   </article>
-                  <article class="admin-overview-stat-card">
+                  <article class="admin-overview-stat-card admin-overview-stat-card--admin-geral">
                     <div class="admin-overview-stat-head">
                       <small>Admin geral</small>
                       <span class="admin-overview-icon-card is-cyan">
@@ -1721,7 +1737,7 @@ Core"
                   <article class="admin-overview-chart-card" data-admin-overview-pane="growth" hidden>
                     <header class="admin-overview-chart-head">
                       <h5>Crescimento Mensal</h5>
-                      <p>Evolução do número de usuários ao longo dos meses</p>
+                      <p>Evolução dos alunos nos últimos 7 meses</p>
                     </header>
                     <div class="admin-overview-growth-chart chart-container" data-admin-growth-chart></div>
                     <div class="admin-overview-growth-footer">
@@ -2261,6 +2277,9 @@ Core"
                           <option value="todos">Todos os grupos</option>
                         </select>
                       </label>
+                      <button class="admin-overview-action-btn" type="button" data-admin-exercises-refresh>
+                        Atualizar biblioteca
+                      </button>
                     </div>
                     <div class="trainer-registered-exercises-list" data-admin-exercises-card-list></div>
                     <div class="admin-overview-table-wrap trainer-registered-exercises-table-wrap">
@@ -3523,11 +3542,8 @@ Core"
     <img src="https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/ede7b8ac60-logo-whats.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
   </a>
 
-  <!-- GSAP (animacoes premium) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-
-  <!-- Script principal de interações -->
-  <script defer src="script.js?v=20260521-001"></script>
+  <!-- Loader leve: carrega o app completo em idle ou ao abrir a Area do Aluno -->
+  <script defer src="site-loader.js?v=20260530-001" data-dna-full-script="script.js?v=20260530-001"></script>
 
   <div class="site-top-notice" data-site-notice hidden role="status" aria-live="polite" aria-atomic="true">
     <article class="site-top-notice-card">
