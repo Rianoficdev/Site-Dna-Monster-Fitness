@@ -1320,6 +1320,7 @@ let mobileSelectPickerRoot = null;
 let mobileSelectPickerTitle = null;
 let mobileSelectPickerSubtitle = null;
 let mobileSelectPickerSearchInput = null;
+let mobileSelectPickerWorkoutGenderFilter = null;
 let mobileSelectPickerList = null;
 let mobileSelectPickerConfirmButton = null;
 let mobileSelectPickerCloseButton = null;
@@ -1327,6 +1328,7 @@ let mobileSelectPickerActiveSelect = null;
 let mobileSelectPickerFocusOrigin = null;
 let mobileSelectPickerTapIntent = null;
 let mobileSelectPickerSearchTerm = '';
+let mobileSelectPickerWorkoutGenderTerm = '';
 let mobileSelectPickerSuppressClickUntil = 0;
 let mobileSelectPickerIgnoreCloseUntil = 0;
 let activeProfileAction = '';
@@ -16129,6 +16131,13 @@ const getMobileSelectPickerTitle = (select) => {
 const isTrainerAssignmentWorkoutSelect = (select) =>
   select instanceof HTMLSelectElement && select.matches('[data-trainer-weekday-assignment-select]');
 
+const getMobileWorkoutOptionGender = (optionText = '') => {
+  const normalizedText = normalizeText(optionText);
+  if (/\b(feminino|feminina|mulher|mulheres)\b/.test(normalizedText)) return 'feminino';
+  if (/\b(masculino|masculina|homem|homens)\b/.test(normalizedText)) return 'masculino';
+  return '';
+};
+
 const isEnhancedMobileSelectPicker = (select) =>
   select === trainerWorkoutStudentSelect ||
   select === trainerWorkoutInstructorSelect ||
@@ -16240,7 +16249,11 @@ const closeMobileSelectPicker = ({ restoreFocus = true } = {}) => {
   mobileSelectPickerRoot.classList.remove('is-assignment-workout-picker');
   mobileSelectPickerActiveSelect = null;
   mobileSelectPickerSearchTerm = '';
+  mobileSelectPickerWorkoutGenderTerm = '';
   if (mobileSelectPickerSearchInput) mobileSelectPickerSearchInput.value = '';
+  if (mobileSelectPickerWorkoutGenderFilter) {
+    mobileSelectPickerWorkoutGenderFilter.hidden = true;
+  }
   if (studentAppShell) studentAppShell.classList.remove('is-mobile-select-picker-open');
   document.body.classList.remove('student-mobile-select-picker-open');
   if (
@@ -16277,6 +16290,7 @@ const ensureMobileSelectPicker = () => {
     mobileSelectPickerTitle &&
     mobileSelectPickerSubtitle &&
     mobileSelectPickerSearchInput &&
+    mobileSelectPickerWorkoutGenderFilter &&
     mobileSelectPickerList &&
     mobileSelectPickerConfirmButton &&
     mobileSelectPickerCloseButton
@@ -16315,6 +16329,17 @@ const ensureMobileSelectPicker = () => {
         </svg>
         <input type="search" data-mobile-select-picker-search placeholder="Buscar opção..." autocomplete="off" />
       </label>
+      <div
+        class="student-mobile-select-picker-gender"
+        data-mobile-select-picker-gender
+        role="group"
+        aria-label="Filtrar treinos por sexo"
+        hidden
+      >
+        <button type="button" data-mobile-select-picker-gender-option value="" aria-pressed="true">Todos</button>
+        <button type="button" data-mobile-select-picker-gender-option value="masculino" aria-pressed="false">Masculino</button>
+        <button type="button" data-mobile-select-picker-gender-option value="feminino" aria-pressed="false">Feminino</button>
+      </div>
       <div class="student-mobile-select-picker-list" data-mobile-select-picker-list></div>
       <footer class="student-mobile-select-picker-footer">
         <button type="button" data-mobile-select-picker-confirm>
@@ -16332,6 +16357,7 @@ const ensureMobileSelectPicker = () => {
   mobileSelectPickerTitle = root.querySelector('[data-mobile-select-picker-title]');
   mobileSelectPickerSubtitle = root.querySelector('[data-mobile-select-picker-subtitle]');
   mobileSelectPickerSearchInput = root.querySelector('[data-mobile-select-picker-search]');
+  mobileSelectPickerWorkoutGenderFilter = root.querySelector('[data-mobile-select-picker-gender]');
   mobileSelectPickerList = root.querySelector('[data-mobile-select-picker-list]');
   mobileSelectPickerConfirmButton = root.querySelector('[data-mobile-select-picker-confirm]');
   mobileSelectPickerCloseButton = root.querySelector('.student-mobile-select-picker-head [data-mobile-select-picker-close]');
@@ -16356,6 +16382,26 @@ const ensureMobileSelectPicker = () => {
   if (mobileSelectPickerSearchInput) {
     mobileSelectPickerSearchInput.addEventListener('input', () => {
       mobileSelectPickerSearchTerm = String(mobileSelectPickerSearchInput.value || '').trim();
+      renderMobileSelectPickerOptions();
+    });
+  }
+
+  if (mobileSelectPickerWorkoutGenderFilter) {
+    mobileSelectPickerWorkoutGenderFilter.addEventListener('click', (event) => {
+      const target = event && event.target;
+      const button = target instanceof Element
+        ? target.closest('[data-mobile-select-picker-gender-option]')
+        : null;
+      if (!(button instanceof HTMLButtonElement)) return;
+      mobileSelectPickerWorkoutGenderTerm = String(button.value || '').trim();
+      mobileSelectPickerWorkoutGenderFilter
+        .querySelectorAll('[data-mobile-select-picker-gender-option]')
+        .forEach((item) => {
+          if (!(item instanceof HTMLButtonElement)) return;
+          const isActive = String(item.value || '').trim() === mobileSelectPickerWorkoutGenderTerm;
+          item.classList.toggle('is-active', isActive);
+          item.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
       renderMobileSelectPickerOptions();
     });
   }
@@ -16439,6 +16485,9 @@ function renderMobileSelectPickerOptions() {
   const isAssignmentWorkoutSelect = isTrainerAssignmentWorkoutSelect(select);
   const isEnhancedPicker = isEnhancedMobileSelectPicker(select);
   const normalizedSearch = normalizeText(mobileSelectPickerSearchTerm || '');
+  const normalizedGender = isAssignmentWorkoutSelect
+    ? String(mobileSelectPickerWorkoutGenderTerm || '').trim()
+    : '';
   mobileSelectPickerList.innerHTML = '';
 
   let renderedCount = 0;
@@ -16450,6 +16499,13 @@ function renderMobileSelectPickerOptions() {
     const optionText = String(option.textContent || '').trim();
     const searchText = normalizeText(`${optionText} ${optionValue}`);
     if (normalizedSearch && !searchText.includes(normalizedSearch)) return;
+    if (
+      normalizedGender &&
+      optionValue &&
+      getMobileWorkoutOptionGender(optionText) !== normalizedGender
+    ) {
+      return;
+    }
 
     const optionButton = document.createElement('button');
     optionButton.type = 'button';
@@ -16560,9 +16616,11 @@ function renderMobileSelectPickerOptions() {
   if (!renderedCount) {
     const empty = document.createElement('p');
     empty.className = 'student-mobile-select-picker-empty';
-    empty.textContent = normalizedSearch
-      ? 'Nenhuma opção encontrada.'
-      : 'Nenhuma opção disponível.';
+    empty.textContent = normalizedGender
+      ? 'Nenhum treino encontrado para este sexo.'
+      : normalizedSearch
+        ? 'Nenhuma opção encontrada.'
+        : 'Nenhuma opção disponível.';
     mobileSelectPickerList.appendChild(empty);
   }
 }
@@ -16592,9 +16650,21 @@ const openMobileSelectPicker = (select, { force = false } = {}) => {
     mobileSelectPickerSubtitle.hidden = !subtitle;
   }
   mobileSelectPickerSearchTerm = '';
+  mobileSelectPickerWorkoutGenderTerm = '';
   if (mobileSelectPickerSearchInput) {
     mobileSelectPickerSearchInput.value = '';
     mobileSelectPickerSearchInput.placeholder = getMobileSelectPickerSearchPlaceholder(select);
+  }
+  if (mobileSelectPickerWorkoutGenderFilter) {
+    mobileSelectPickerWorkoutGenderFilter.hidden = !isAssignmentWorkoutSelect;
+    mobileSelectPickerWorkoutGenderFilter
+      .querySelectorAll('[data-mobile-select-picker-gender-option]')
+      .forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        const isActive = !String(button.value || '').trim();
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
   }
   renderMobileSelectPickerOptions();
 
