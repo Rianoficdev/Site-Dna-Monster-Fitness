@@ -14,10 +14,10 @@ function createAdminService({
   persistStore,
   bcrypt,
   validRoles = [],
-  onlineWindowMinutes = 5,
+  onlineWindowMinutes = 2,
 }) {
   const ADMIN_OVERVIEW_CACHE_TTL_MS = 60000;
-  const normalizedOnlineWindowMinutes = Math.max(1, Number(onlineWindowMinutes) || 5);
+  const normalizedOnlineWindowMinutes = Math.max(1, Number(onlineWindowMinutes) || 2);
   const editableRoles = new Set(validRoles.map((role) => String(role || "").toUpperCase()));
   const defaultTeamPhotoPositionY = 50;
   const defaultTeamPhotoZoom = 1;
@@ -210,6 +210,16 @@ function createAdminService({
     return lastSeen >= onlineSince;
   }
 
+  function getLatestValidDate(...values) {
+    return values.reduce((latest, value) => {
+      if (!value) return latest;
+      const parsed = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(parsed.getTime())) return latest;
+      if (!latest || parsed.getTime() > latest.getTime()) return parsed;
+      return latest;
+    }, null);
+  }
+
   function toDateKey(date) {
     const parsed = date instanceof Date ? date : new Date(date);
     if (Number.isNaN(parsed.getTime())) return "";
@@ -236,6 +246,29 @@ function createAdminService({
       startKey: toDateKey(start),
       endKey: toDateKey(end),
       monthKey: toMonthKey(start),
+    };
+  }
+
+  function getWeekBounds(referenceDate = new Date()) {
+    const parsed = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
+    const safeDate = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+    const start = new Date(Date.UTC(
+      safeDate.getUTCFullYear(),
+      safeDate.getUTCMonth(),
+      safeDate.getUTCDate()
+    ));
+    const jsDay = start.getUTCDay();
+    const offset = jsDay === 0 ? -6 : 1 - jsDay;
+    start.setUTCDate(start.getUTCDate() + offset);
+
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 6);
+
+    return {
+      start,
+      end,
+      startKey: toDateKey(start),
+      endKey: toDateKey(end),
     };
   }
 
@@ -471,8 +504,9 @@ function createAdminService({
     if (cachedOverview) return cachedOverview;
 
     const onlineSince = new Date(Date.now() - normalizedOnlineWindowMinutes * 60 * 1000);
+    const weekBounds = getWeekBounds(new Date());
 
-    const [users, workoutStats, workouts, libraryExercises, supportTickets] = await Promise.all([
+    const [users, workoutStats, workouts, libraryExercises, supportTickets, weeklyCompletions] = await Promise.all([
       userService.listUsers(),
       workoutsService && typeof workoutsService.getWorkoutStats === "function"
         ? workoutsService.getWorkoutStats()
@@ -485,6 +519,13 @@ function createAdminService({
         : Promise.resolve([]),
       supportService && typeof supportService.listAdminTickets === "function"
         ? supportService.listAdminTickets({ limit: 500 }).catch(() => [])
+        : Promise.resolve([]),
+      progressRepository && typeof progressRepository.listWorkoutCompletions === "function"
+        ? progressRepository.listWorkoutCompletions({
+            completedDateFrom: weekBounds.startKey,
+            completedDateTo: weekBounds.endKey,
+            limit: 10000,
+          }).catch(() => [])
         : Promise.resolve([]),
     ]);
 
@@ -571,6 +612,43 @@ function createAdminService({
     const totalWorkouts = Number(workoutStats && workoutStats.totalCount) || normalizedWorkouts.length;
     const activeWorkouts = Number(workoutStats && workoutStats.activeCount) || 0;
     const inactiveWorkouts = Number(workoutStats && workoutStats.inactiveCount) || 0;
+    const weeklyActivityByDate = new Map();
+    const dayCursor = new Date(weekBounds.start);
+
+    while (dayCursor <= weekBounds.end) {
+      weeklyActivityByDate.set(toDateKey(dayCursor), {
+        label: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"][weeklyActivityByDate.size],
+        activeUserIds: new Set(),
+        workouts: 0,
+      });
+      dayCursor.setUTCDate(dayCursor.getUTCDate() + 1);
+    }
+
+    (Array.isArray(users) ? users : []).forEach((user) => {
+      const userId = Number(user && user.id) || 0;
+      const accessKey = toDateKey(getLatestValidDate(
+        user && user.lastSeenAt,
+        user && user.lastLoginAt
+      ));
+      const row = weeklyActivityByDate.get(accessKey);
+      if (row && userId) row.activeUserIds.add(userId);
+    });
+
+    (Array.isArray(weeklyCompletions) ? weeklyCompletions : []).forEach((completion) => {
+      const completionKey = String((completion && completion.completedDateKey) || "").trim() ||
+        toDateKey(completion && completion.completedAt);
+      const row = weeklyActivityByDate.get(completionKey);
+      if (!row) return;
+      row.workouts += 1;
+      const userId = Number(completion && completion.userId) || 0;
+      if (userId) row.activeUserIds.add(userId);
+    });
+
+    const weeklyActivity = Array.from(weeklyActivityByDate.values()).map((item) => ({
+      label: item.label,
+      activeUsers: item.activeUserIds.size,
+      workouts: item.workouts,
+    }));
 
     const overview = {
       stats: {
@@ -609,6 +687,7 @@ function createAdminService({
           { label: "Desabilitados", value: stats.alunosDesabilitados },
           { label: "Online agora", value: stats.alunosOnlineAgora },
         ],
+        weeklyActivity,
       },
       users,
       workouts: normalizedWorkouts,

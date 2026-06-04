@@ -44,6 +44,7 @@ const STUDENT_FORGOT_RELEASE_BUFFER_SECONDS = 5;
 const STUDENT_FORGOT_AUTO_APPROVE_SECONDS =
   STUDENT_FORGOT_COUNTDOWN_SECONDS - STUDENT_FORGOT_RELEASE_BUFFER_SECONDS;
 const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 30000;
+const SESSION_HEARTBEAT_INTERVAL_MS = 60000;
 const TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT = 3;
 const ADMIN_TEAM_MIN_MEMBERS = 1;
 const ADMIN_TEAM_MAX_MEMBERS = 8;
@@ -4370,6 +4371,8 @@ const startStudentWorkoutsRefresh = () => {
 const sendSessionHeartbeat = async () => {
   const token = loadStudentAuthToken();
   if (!token) return;
+  if (!studentArea || studentArea.hidden || studentArea.getAttribute('aria-hidden') === 'true') return;
+  if (document.visibilityState && document.visibilityState !== 'visible') return;
 
   try {
     await requestStudentApi('/auth/heartbeat', {
@@ -4389,7 +4392,7 @@ const startSessionHeartbeat = () => {
   void sendSessionHeartbeat();
   sessionHeartbeatTimer = window.setInterval(() => {
     void sendSessionHeartbeat();
-  }, 120000);
+  }, SESSION_HEARTBEAT_INTERVAL_MS);
 };
 
 const normalizeText = (value) =>
@@ -9050,7 +9053,8 @@ const resetAdminOverviewState = () => {
   };
   adminOverviewState.charts = {
     roleDistribution: [],
-    studentsStatus: []
+    studentsStatus: [],
+    weeklyActivity: []
   };
   adminOverviewState.users = [];
   adminOverviewState.workouts = [];
@@ -9221,6 +9225,13 @@ const parseAdminChartDate = (value) => {
   return parsed;
 };
 
+const getLatestAdminChartDate = (...values) => values.reduce((latest, value) => {
+  const parsed = parseAdminChartDate(value);
+  if (!parsed) return latest;
+  if (!latest || parsed.getTime() > latest.getTime()) return parsed;
+  return latest;
+}, null);
+
 const getMondayFromDate = (baseDate = new Date()) => {
   const reference = new Date(baseDate);
   reference.setHours(0, 0, 0, 0);
@@ -9235,10 +9246,18 @@ const getWeekdayIndex = (date) => {
   return jsDay === 0 ? 6 : jsDay - 1;
 };
 
-const buildAdminWeeklyActivity = (users, workouts, totalUsers = 0) => {
+const buildAdminWeeklyActivity = (users, workouts, totalUsers = 0, weeklyActivity = null) => {
+  if (Array.isArray(weeklyActivity) && weeklyActivity.length) {
+    return weeklyActivity.map((item, index) => ({
+      label: String((item && item.label) || WEEKDAY_LABELS[index] || ''),
+      activeUsers: Math.max(0, Number(item && item.activeUsers) || 0),
+      workouts: Math.max(0, Number(item && item.workouts) || 0)
+    }));
+  }
+
   const rows = WEEKDAY_LABELS.map((label) => ({
     label,
-    activeUsers: 0,
+    activeUserIds: new Set(),
     workouts: 0
   }));
 
@@ -9247,21 +9266,31 @@ const buildAdminWeeklyActivity = (users, workouts, totalUsers = 0) => {
   weekEnd.setDate(weekEnd.getDate() + 7);
 
   (Array.isArray(users) ? users : []).forEach((user) => {
-    const date = parseAdminChartDate(user && (user.lastSeenAt || user.updatedAt || user.createdAt));
+    const userId = Number(user && user.id) || 0;
+    const date = getLatestAdminChartDate(user && user.lastSeenAt, user && user.lastLoginAt);
     if (!date || date < weekStart || date >= weekEnd) return;
-    rows[getWeekdayIndex(date)].activeUsers += 1;
+    if (userId) rows[getWeekdayIndex(date)].activeUserIds.add(userId);
   });
 
   (Array.isArray(workouts) ? workouts : []).forEach((workout) => {
-    const date = parseAdminChartDate(workout && workout.createdAt);
+    const date = parseAdminChartDate(workout && (workout.completedAt || workout.completedDateKey));
     if (!date || date < weekStart || date >= weekEnd) return;
-    rows[getWeekdayIndex(date)].workouts += 1;
+    const row = rows[getWeekdayIndex(date)];
+    row.workouts += 1;
+    const userId = Number(workout && (workout.userId || workout.studentId)) || 0;
+    if (userId) row.activeUserIds.add(userId);
   });
 
-  const hasValues = rows.some((item) => item.activeUsers > 0 || item.workouts > 0);
-  if (hasValues || Number(totalUsers) <= 0) return rows;
+  const normalizedRows = rows.map((item) => ({
+    label: item.label,
+    activeUsers: item.activeUserIds.size,
+    workouts: item.workouts
+  }));
 
-  return rows.map((item, index) => ({
+  const hasValues = normalizedRows.some((item) => item.activeUsers > 0 || item.workouts > 0);
+  if (hasValues || Number(totalUsers) <= 0) return normalizedRows;
+
+  return normalizedRows.map((item, index) => ({
     ...item,
     activeUsers: ADMIN_OVERVIEW_ACTIVITY_FALLBACK[index] || 0,
     workouts: Math.max(0, (ADMIN_OVERVIEW_ACTIVITY_FALLBACK[index] || 0) - 1)
@@ -10206,7 +10235,8 @@ const renderAdminOverviewPanel = () => {
     const weeklyActivity = buildAdminWeeklyActivity(
       adminOverviewState.users,
       adminOverviewState.workouts,
-      Number(stats.totalUsers) || 0
+      Number(stats.totalUsers) || 0,
+      adminOverviewState.charts.weeklyActivity
     );
     renderAdminActivityChart(adminActivityChart, weeklyActivity);
 
@@ -11132,6 +11162,9 @@ const fetchAdminOverview = async (
         : [],
       studentsStatus: Array.isArray(overview.charts && overview.charts.studentsStatus)
         ? overview.charts.studentsStatus
+        : [],
+      weeklyActivity: Array.isArray(overview.charts && overview.charts.weeklyActivity)
+        ? overview.charts.weeklyActivity
         : []
     };
     adminOverviewState.users = Array.isArray(overview.users) ? overview.users : [];
@@ -22502,6 +22535,7 @@ const openStudentArea = (event) => {
 const closeStudentArea = () => {
   if (!studentArea) return;
   clearStudentTimer();
+  stopSessionHeartbeat();
   stopStudentWorkoutsRefresh();
   clearPrepCountdown();
   clearRunCountdown();
@@ -23559,11 +23593,13 @@ const initStudentArea = () => {
     if (document.visibilityState !== 'visible') return;
     if (studentInLoginStage) return;
     playStudentLoadingVideo();
+    void sendSessionHeartbeat();
     void checkStudentWorkoutsRevisionInBackground();
   });
 
   window.addEventListener('focus', () => {
     if (studentInLoginStage) return;
+    void sendSessionHeartbeat();
     void checkStudentWorkoutsRevisionInBackground();
   });
 

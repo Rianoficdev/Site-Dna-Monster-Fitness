@@ -60,7 +60,7 @@ const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   jwtSessionExpiresIn: process.env.JWT_EXPIRES_IN_SESSION || "12h",
   jwtRememberExpiresIn: process.env.JWT_EXPIRES_IN_REMEMBER || process.env.JWT_EXPIRES_IN || "30d",
-  onlinePresenceWindowMinutes: parseNumber(process.env.ONLINE_PRESENCE_WINDOW_MINUTES, 5),
+  onlinePresenceWindowMinutes: parseNumber(process.env.ONLINE_PRESENCE_WINDOW_MINUTES, 2),
   corsOrigins: parseCsv(process.env.CORS_ORIGINS),
   passwordResetTokenMinutes: parseNumber(process.env.PASSWORD_RESET_TOKEN_MINUTES, 30),
   mailService: process.env.MAIL_SERVICE || "",
