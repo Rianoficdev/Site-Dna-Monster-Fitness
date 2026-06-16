@@ -45,6 +45,7 @@ const STUDENT_FORGOT_AUTO_APPROVE_SECONDS =
   STUDENT_FORGOT_COUNTDOWN_SECONDS - STUDENT_FORGOT_RELEASE_BUFFER_SECONDS;
 const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 30000;
 const SESSION_HEARTBEAT_INTERVAL_MS = 60000;
+const SESSION_PROFILE_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 const TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT = 3;
 const ADMIN_TEAM_MIN_MEMBERS = 1;
 const ADMIN_TEAM_MAX_MEMBERS = 8;
@@ -4379,11 +4380,15 @@ const sendSessionHeartbeat = async () => {
       method: 'POST',
       token
     });
-    await syncSessionProfileFromServer({
-      token,
-      remember: loadRememberPreference(),
-      refreshUi: true
-    });
+    const lastProfileRefreshAt = Number(studentData.lastSessionProfileRefreshAt) || 0;
+    if (Date.now() - lastProfileRefreshAt >= SESSION_PROFILE_REFRESH_INTERVAL_MS) {
+      await syncSessionProfileFromServer({
+        token,
+        remember: loadRememberPreference(),
+        refreshUi: true
+      });
+      studentData.lastSessionProfileRefreshAt = Date.now();
+    }
   } catch (_) {}
 };
 

@@ -684,32 +684,25 @@ function createUserService({
       throw new AppError("Usuário não autenticado.", 401, "UNAUTHORIZED");
     }
 
-    let user = null;
     try {
-      user = await withDbTimeout(
-        userRepository.findById(userId),
+      await withDbTimeout(
+        userRepository.touchUserPresence({
+          userId: Number(userId),
+          onLogin: false,
+        }),
         "USER_HEARTBEAT_DB_TIMEOUT"
       );
     } catch (error) {
       if (nodeEnv !== "production" && isDatabaseConnectivityError(error)) {
         return;
       }
-      throw error;
-    }
 
-    if (!user) {
-      throw new AppError("Usuário não encontrado.", 404, "USER_NOT_FOUND");
-    }
-
-    try {
-      await userRepository.touchUserPresence({
-        userId: Number(userId),
-        onLogin: false,
-      });
-    } catch (error) {
-      if (!(nodeEnv !== "production" && isDatabaseConnectivityError(error))) {
-        throw error;
+      const errorCode = String((error && error.code) || "").trim().toUpperCase();
+      if (errorCode === "P2025") {
+        throw new AppError("Usuário não encontrado.", 404, "USER_NOT_FOUND");
       }
+
+      throw error;
     }
   }
 

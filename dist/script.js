@@ -44,6 +44,8 @@ const STUDENT_FORGOT_RELEASE_BUFFER_SECONDS = 5;
 const STUDENT_FORGOT_AUTO_APPROVE_SECONDS =
   STUDENT_FORGOT_COUNTDOWN_SECONDS - STUDENT_FORGOT_RELEASE_BUFFER_SECONDS;
 const STUDENT_WORKOUTS_REVISION_CHECK_INTERVAL_MS = 30000;
+const SESSION_HEARTBEAT_INTERVAL_MS = 60000;
+const SESSION_PROFILE_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
 const TRAINER_MANAGED_WORKOUTS_PREVIEW_LIMIT = 3;
 const ADMIN_TEAM_MIN_MEMBERS = 1;
 const ADMIN_TEAM_MAX_MEMBERS = 8;
@@ -1320,6 +1322,7 @@ let mobileSelectPickerRoot = null;
 let mobileSelectPickerTitle = null;
 let mobileSelectPickerSubtitle = null;
 let mobileSelectPickerSearchInput = null;
+let mobileSelectPickerWorkoutGenderFilter = null;
 let mobileSelectPickerList = null;
 let mobileSelectPickerConfirmButton = null;
 let mobileSelectPickerCloseButton = null;
@@ -1327,6 +1330,7 @@ let mobileSelectPickerActiveSelect = null;
 let mobileSelectPickerFocusOrigin = null;
 let mobileSelectPickerTapIntent = null;
 let mobileSelectPickerSearchTerm = '';
+let mobileSelectPickerWorkoutGenderTerm = '';
 let mobileSelectPickerSuppressClickUntil = 0;
 let mobileSelectPickerIgnoreCloseUntil = 0;
 let activeProfileAction = '';
@@ -4368,17 +4372,23 @@ const startStudentWorkoutsRefresh = () => {
 const sendSessionHeartbeat = async () => {
   const token = loadStudentAuthToken();
   if (!token) return;
+  if (!studentArea || studentArea.hidden || studentArea.getAttribute('aria-hidden') === 'true') return;
+  if (document.visibilityState && document.visibilityState !== 'visible') return;
 
   try {
     await requestStudentApi('/auth/heartbeat', {
       method: 'POST',
       token
     });
-    await syncSessionProfileFromServer({
-      token,
-      remember: loadRememberPreference(),
-      refreshUi: true
-    });
+    const lastProfileRefreshAt = Number(studentData.lastSessionProfileRefreshAt) || 0;
+    if (Date.now() - lastProfileRefreshAt >= SESSION_PROFILE_REFRESH_INTERVAL_MS) {
+      await syncSessionProfileFromServer({
+        token,
+        remember: loadRememberPreference(),
+        refreshUi: true
+      });
+      studentData.lastSessionProfileRefreshAt = Date.now();
+    }
   } catch (_) {}
 };
 
@@ -4387,7 +4397,7 @@ const startSessionHeartbeat = () => {
   void sendSessionHeartbeat();
   sessionHeartbeatTimer = window.setInterval(() => {
     void sendSessionHeartbeat();
-  }, 120000);
+  }, SESSION_HEARTBEAT_INTERVAL_MS);
 };
 
 const normalizeText = (value) =>
@@ -9048,7 +9058,8 @@ const resetAdminOverviewState = () => {
   };
   adminOverviewState.charts = {
     roleDistribution: [],
-    studentsStatus: []
+    studentsStatus: [],
+    weeklyActivity: []
   };
   adminOverviewState.users = [];
   adminOverviewState.workouts = [];
@@ -9219,6 +9230,13 @@ const parseAdminChartDate = (value) => {
   return parsed;
 };
 
+const getLatestAdminChartDate = (...values) => values.reduce((latest, value) => {
+  const parsed = parseAdminChartDate(value);
+  if (!parsed) return latest;
+  if (!latest || parsed.getTime() > latest.getTime()) return parsed;
+  return latest;
+}, null);
+
 const getMondayFromDate = (baseDate = new Date()) => {
   const reference = new Date(baseDate);
   reference.setHours(0, 0, 0, 0);
@@ -9233,10 +9251,18 @@ const getWeekdayIndex = (date) => {
   return jsDay === 0 ? 6 : jsDay - 1;
 };
 
-const buildAdminWeeklyActivity = (users, workouts, totalUsers = 0) => {
+const buildAdminWeeklyActivity = (users, workouts, totalUsers = 0, weeklyActivity = null) => {
+  if (Array.isArray(weeklyActivity) && weeklyActivity.length) {
+    return weeklyActivity.map((item, index) => ({
+      label: String((item && item.label) || WEEKDAY_LABELS[index] || ''),
+      activeUsers: Math.max(0, Number(item && item.activeUsers) || 0),
+      workouts: Math.max(0, Number(item && item.workouts) || 0)
+    }));
+  }
+
   const rows = WEEKDAY_LABELS.map((label) => ({
     label,
-    activeUsers: 0,
+    activeUserIds: new Set(),
     workouts: 0
   }));
 
@@ -9245,21 +9271,31 @@ const buildAdminWeeklyActivity = (users, workouts, totalUsers = 0) => {
   weekEnd.setDate(weekEnd.getDate() + 7);
 
   (Array.isArray(users) ? users : []).forEach((user) => {
-    const date = parseAdminChartDate(user && (user.lastSeenAt || user.updatedAt || user.createdAt));
+    const userId = Number(user && user.id) || 0;
+    const date = getLatestAdminChartDate(user && user.lastSeenAt, user && user.lastLoginAt);
     if (!date || date < weekStart || date >= weekEnd) return;
-    rows[getWeekdayIndex(date)].activeUsers += 1;
+    if (userId) rows[getWeekdayIndex(date)].activeUserIds.add(userId);
   });
 
   (Array.isArray(workouts) ? workouts : []).forEach((workout) => {
-    const date = parseAdminChartDate(workout && workout.createdAt);
+    const date = parseAdminChartDate(workout && (workout.completedAt || workout.completedDateKey));
     if (!date || date < weekStart || date >= weekEnd) return;
-    rows[getWeekdayIndex(date)].workouts += 1;
+    const row = rows[getWeekdayIndex(date)];
+    row.workouts += 1;
+    const userId = Number(workout && (workout.userId || workout.studentId)) || 0;
+    if (userId) row.activeUserIds.add(userId);
   });
 
-  const hasValues = rows.some((item) => item.activeUsers > 0 || item.workouts > 0);
-  if (hasValues || Number(totalUsers) <= 0) return rows;
+  const normalizedRows = rows.map((item) => ({
+    label: item.label,
+    activeUsers: item.activeUserIds.size,
+    workouts: item.workouts
+  }));
 
-  return rows.map((item, index) => ({
+  const hasValues = normalizedRows.some((item) => item.activeUsers > 0 || item.workouts > 0);
+  if (hasValues || Number(totalUsers) <= 0) return normalizedRows;
+
+  return normalizedRows.map((item, index) => ({
     ...item,
     activeUsers: ADMIN_OVERVIEW_ACTIVITY_FALLBACK[index] || 0,
     workouts: Math.max(0, (ADMIN_OVERVIEW_ACTIVITY_FALLBACK[index] || 0) - 1)
@@ -10204,7 +10240,8 @@ const renderAdminOverviewPanel = () => {
     const weeklyActivity = buildAdminWeeklyActivity(
       adminOverviewState.users,
       adminOverviewState.workouts,
-      Number(stats.totalUsers) || 0
+      Number(stats.totalUsers) || 0,
+      adminOverviewState.charts.weeklyActivity
     );
     renderAdminActivityChart(adminActivityChart, weeklyActivity);
 
@@ -11130,6 +11167,9 @@ const fetchAdminOverview = async (
         : [],
       studentsStatus: Array.isArray(overview.charts && overview.charts.studentsStatus)
         ? overview.charts.studentsStatus
+        : [],
+      weeklyActivity: Array.isArray(overview.charts && overview.charts.weeklyActivity)
+        ? overview.charts.weeklyActivity
         : []
     };
     adminOverviewState.users = Array.isArray(overview.users) ? overview.users : [];
@@ -16129,6 +16169,13 @@ const getMobileSelectPickerTitle = (select) => {
 const isTrainerAssignmentWorkoutSelect = (select) =>
   select instanceof HTMLSelectElement && select.matches('[data-trainer-weekday-assignment-select]');
 
+const getMobileWorkoutOptionGender = (optionText = '') => {
+  const normalizedText = normalizeText(optionText);
+  if (/\b(feminino|feminina|mulher|mulheres)\b/.test(normalizedText)) return 'feminino';
+  if (/\b(masculino|masculina|homem|homens)\b/.test(normalizedText)) return 'masculino';
+  return '';
+};
+
 const isEnhancedMobileSelectPicker = (select) =>
   select === trainerWorkoutStudentSelect ||
   select === trainerWorkoutInstructorSelect ||
@@ -16240,7 +16287,11 @@ const closeMobileSelectPicker = ({ restoreFocus = true } = {}) => {
   mobileSelectPickerRoot.classList.remove('is-assignment-workout-picker');
   mobileSelectPickerActiveSelect = null;
   mobileSelectPickerSearchTerm = '';
+  mobileSelectPickerWorkoutGenderTerm = '';
   if (mobileSelectPickerSearchInput) mobileSelectPickerSearchInput.value = '';
+  if (mobileSelectPickerWorkoutGenderFilter) {
+    mobileSelectPickerWorkoutGenderFilter.hidden = true;
+  }
   if (studentAppShell) studentAppShell.classList.remove('is-mobile-select-picker-open');
   document.body.classList.remove('student-mobile-select-picker-open');
   if (
@@ -16277,6 +16328,7 @@ const ensureMobileSelectPicker = () => {
     mobileSelectPickerTitle &&
     mobileSelectPickerSubtitle &&
     mobileSelectPickerSearchInput &&
+    mobileSelectPickerWorkoutGenderFilter &&
     mobileSelectPickerList &&
     mobileSelectPickerConfirmButton &&
     mobileSelectPickerCloseButton
@@ -16315,6 +16367,17 @@ const ensureMobileSelectPicker = () => {
         </svg>
         <input type="search" data-mobile-select-picker-search placeholder="Buscar opção..." autocomplete="off" />
       </label>
+      <div
+        class="student-mobile-select-picker-gender"
+        data-mobile-select-picker-gender
+        role="group"
+        aria-label="Filtrar treinos por sexo"
+        hidden
+      >
+        <button type="button" data-mobile-select-picker-gender-option value="" aria-pressed="true">Todos</button>
+        <button type="button" data-mobile-select-picker-gender-option value="masculino" aria-pressed="false">Masculino</button>
+        <button type="button" data-mobile-select-picker-gender-option value="feminino" aria-pressed="false">Feminino</button>
+      </div>
       <div class="student-mobile-select-picker-list" data-mobile-select-picker-list></div>
       <footer class="student-mobile-select-picker-footer">
         <button type="button" data-mobile-select-picker-confirm>
@@ -16332,6 +16395,7 @@ const ensureMobileSelectPicker = () => {
   mobileSelectPickerTitle = root.querySelector('[data-mobile-select-picker-title]');
   mobileSelectPickerSubtitle = root.querySelector('[data-mobile-select-picker-subtitle]');
   mobileSelectPickerSearchInput = root.querySelector('[data-mobile-select-picker-search]');
+  mobileSelectPickerWorkoutGenderFilter = root.querySelector('[data-mobile-select-picker-gender]');
   mobileSelectPickerList = root.querySelector('[data-mobile-select-picker-list]');
   mobileSelectPickerConfirmButton = root.querySelector('[data-mobile-select-picker-confirm]');
   mobileSelectPickerCloseButton = root.querySelector('.student-mobile-select-picker-head [data-mobile-select-picker-close]');
@@ -16356,6 +16420,26 @@ const ensureMobileSelectPicker = () => {
   if (mobileSelectPickerSearchInput) {
     mobileSelectPickerSearchInput.addEventListener('input', () => {
       mobileSelectPickerSearchTerm = String(mobileSelectPickerSearchInput.value || '').trim();
+      renderMobileSelectPickerOptions();
+    });
+  }
+
+  if (mobileSelectPickerWorkoutGenderFilter) {
+    mobileSelectPickerWorkoutGenderFilter.addEventListener('click', (event) => {
+      const target = event && event.target;
+      const button = target instanceof Element
+        ? target.closest('[data-mobile-select-picker-gender-option]')
+        : null;
+      if (!(button instanceof HTMLButtonElement)) return;
+      mobileSelectPickerWorkoutGenderTerm = String(button.value || '').trim();
+      mobileSelectPickerWorkoutGenderFilter
+        .querySelectorAll('[data-mobile-select-picker-gender-option]')
+        .forEach((item) => {
+          if (!(item instanceof HTMLButtonElement)) return;
+          const isActive = String(item.value || '').trim() === mobileSelectPickerWorkoutGenderTerm;
+          item.classList.toggle('is-active', isActive);
+          item.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
       renderMobileSelectPickerOptions();
     });
   }
@@ -16439,6 +16523,9 @@ function renderMobileSelectPickerOptions() {
   const isAssignmentWorkoutSelect = isTrainerAssignmentWorkoutSelect(select);
   const isEnhancedPicker = isEnhancedMobileSelectPicker(select);
   const normalizedSearch = normalizeText(mobileSelectPickerSearchTerm || '');
+  const normalizedGender = isAssignmentWorkoutSelect
+    ? String(mobileSelectPickerWorkoutGenderTerm || '').trim()
+    : '';
   mobileSelectPickerList.innerHTML = '';
 
   let renderedCount = 0;
@@ -16450,6 +16537,13 @@ function renderMobileSelectPickerOptions() {
     const optionText = String(option.textContent || '').trim();
     const searchText = normalizeText(`${optionText} ${optionValue}`);
     if (normalizedSearch && !searchText.includes(normalizedSearch)) return;
+    if (
+      normalizedGender &&
+      optionValue &&
+      getMobileWorkoutOptionGender(optionText) !== normalizedGender
+    ) {
+      return;
+    }
 
     const optionButton = document.createElement('button');
     optionButton.type = 'button';
@@ -16560,9 +16654,11 @@ function renderMobileSelectPickerOptions() {
   if (!renderedCount) {
     const empty = document.createElement('p');
     empty.className = 'student-mobile-select-picker-empty';
-    empty.textContent = normalizedSearch
-      ? 'Nenhuma opção encontrada.'
-      : 'Nenhuma opção disponível.';
+    empty.textContent = normalizedGender
+      ? 'Nenhum treino encontrado para este sexo.'
+      : normalizedSearch
+        ? 'Nenhuma opção encontrada.'
+        : 'Nenhuma opção disponível.';
     mobileSelectPickerList.appendChild(empty);
   }
 }
@@ -16592,9 +16688,21 @@ const openMobileSelectPicker = (select, { force = false } = {}) => {
     mobileSelectPickerSubtitle.hidden = !subtitle;
   }
   mobileSelectPickerSearchTerm = '';
+  mobileSelectPickerWorkoutGenderTerm = '';
   if (mobileSelectPickerSearchInput) {
     mobileSelectPickerSearchInput.value = '';
     mobileSelectPickerSearchInput.placeholder = getMobileSelectPickerSearchPlaceholder(select);
+  }
+  if (mobileSelectPickerWorkoutGenderFilter) {
+    mobileSelectPickerWorkoutGenderFilter.hidden = !isAssignmentWorkoutSelect;
+    mobileSelectPickerWorkoutGenderFilter
+      .querySelectorAll('[data-mobile-select-picker-gender-option]')
+      .forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return;
+        const isActive = !String(button.value || '').trim();
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
   }
   renderMobileSelectPickerOptions();
 
@@ -22432,6 +22540,7 @@ const openStudentArea = (event) => {
 const closeStudentArea = () => {
   if (!studentArea) return;
   clearStudentTimer();
+  stopSessionHeartbeat();
   stopStudentWorkoutsRefresh();
   clearPrepCountdown();
   clearRunCountdown();
@@ -23489,11 +23598,13 @@ const initStudentArea = () => {
     if (document.visibilityState !== 'visible') return;
     if (studentInLoginStage) return;
     playStudentLoadingVideo();
+    void sendSessionHeartbeat();
     void checkStudentWorkoutsRevisionInBackground();
   });
 
   window.addEventListener('focus', () => {
     if (studentInLoginStage) return;
+    void sendSessionHeartbeat();
     void checkStudentWorkoutsRevisionInBackground();
   });
 

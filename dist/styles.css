@@ -17296,7 +17296,7 @@ body.theme-dark .student-mobile-select-picker-card {
   max-width: calc(100vw - 44px);
   min-width: 0;
   max-height: min(86vh, 760px);
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   border-radius: 18px;
   border-color: rgba(103, 154, 128, 0.34);
   background:
@@ -17380,7 +17380,42 @@ body.theme-dark .student-mobile-select-picker.is-assignment-workout-picker .stud
 
 .student-mobile-select-picker.is-assignment-workout-picker .student-mobile-select-picker-search {
   width: min(calc(100% - 34px), 380px);
+  margin: 0 auto 10px;
+}
+
+.student-mobile-select-picker-gender {
+  width: min(calc(100% - 34px), 380px);
   margin: 0 auto 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.student-mobile-select-picker-gender[hidden] {
+  display: none;
+}
+
+.student-mobile-select-picker-gender button {
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid rgba(146, 184, 163, 0.28);
+  border-radius: 999px;
+  background: rgba(3, 8, 10, 0.38);
+  color: rgba(232, 238, 234, 0.78);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.student-mobile-select-picker-gender button.is-active,
+.student-mobile-select-picker-gender button[aria-pressed="true"] {
+  border-color: #4ade80;
+  background: linear-gradient(135deg, rgba(18, 169, 75, 0.34), rgba(8, 19, 24, 0.86));
+  color: #f4fbf7;
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.2);
 }
 
 .student-mobile-select-picker.is-assignment-workout-picker .student-mobile-select-picker-list,
@@ -17715,6 +17750,18 @@ body.theme-dark .student-mobile-select-picker.is-multiple .student-mobile-select
 
   .student-mobile-select-picker.is-assignment-workout-picker .student-mobile-select-picker-search {
     width: min(calc(100% - 28px), 340px);
+    margin-bottom: 8px;
+  }
+
+  .student-mobile-select-picker-gender {
+    width: min(calc(100% - 28px), 340px);
+    gap: 6px;
+  }
+
+  .student-mobile-select-picker-gender button {
+    min-height: 30px;
+    font-size: 0.64rem;
+    padding: 0 6px;
   }
 
   .student-mobile-select-picker.is-assignment-workout-picker .student-mobile-select-picker-search input {
