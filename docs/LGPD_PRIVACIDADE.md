@@ -37,7 +37,6 @@ Controlador: DNA Monster Fitness.
 
 Canal do titular:
 
-- E-mail: contato@dnmonsterfitness.com
 - WhatsApp: (85) 8672-1781
 
 Se a academia for classificada como agente de tratamento de pequeno porte e não indicar encarregado formal, o canal acima deve continuar disponível para titulares de dados. Se houver nomeação de encarregado/DPO, este documento e a Política de Privacidade devem ser atualizados com nome e contato.
