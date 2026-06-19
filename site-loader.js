@@ -4,6 +4,7 @@
     (loaderScript && loaderScript.dataset && loaderScript.dataset.dnaFullScript) ||
     'script.js';
   const fullScriptId = 'dna-full-app-script';
+  const privacyConsentKey = 'dna_privacy_consent_v1';
   let fullScriptLoaded = false;
   let fullScriptPromise = null;
 
@@ -105,6 +106,80 @@
     } catch (_) {}
   };
 
+  const initPrivacyControls = () => {
+    const modal = document.querySelector('[data-privacy-modal]');
+    const modalCard = modal ? modal.querySelector('.privacy-modal-card') : null;
+    const banner = document.querySelector('[data-privacy-banner]');
+    const openButtons = document.querySelectorAll('[data-privacy-open]');
+    const closeButtons = document.querySelectorAll('[data-privacy-close]');
+    const acceptButtons = document.querySelectorAll('[data-privacy-accept]');
+
+    const hasConsent = () => {
+      try {
+        return localStorage.getItem(privacyConsentKey) === 'accepted';
+      } catch (_) {
+        return false;
+      }
+    };
+
+    const saveConsent = () => {
+      try {
+        localStorage.setItem(privacyConsentKey, 'accepted');
+        localStorage.setItem(`${privacyConsentKey}_at`, new Date().toISOString());
+      } catch (_) {}
+    };
+
+    const openModal = () => {
+      if (!modal) return;
+      modal.hidden = false;
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('privacy-modal-open');
+      window.setTimeout(() => {
+        if (modalCard && typeof modalCard.focus === 'function') modalCard.focus();
+      }, 0);
+    };
+
+    const closeModal = () => {
+      if (!modal) return;
+      modal.hidden = true;
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('privacy-modal-open');
+    };
+
+    const hideBanner = () => {
+      if (banner) banner.hidden = true;
+    };
+
+    const acceptPrivacy = () => {
+      saveConsent();
+      hideBanner();
+      closeModal();
+    };
+
+    openButtons.forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        openModal();
+      });
+    });
+
+    closeButtons.forEach((button) => {
+      button.addEventListener('click', closeModal);
+    });
+
+    acceptButtons.forEach((button) => {
+      button.addEventListener('click', acceptPrivacy);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modal && !modal.hidden) closeModal();
+    });
+
+    if (banner && !hasConsent()) {
+      banner.hidden = false;
+    }
+  };
+
   const scheduleIdleFullLoad = () => {
     const run = () => loadFullAppScript().catch(() => {});
     window.setTimeout(() => {
@@ -121,6 +196,7 @@
     bindStudentAreaEntry();
     bindBasicMenu();
     bindBasicThemeToggle();
+    initPrivacyControls();
 
     if (document.readyState === 'complete') {
       scheduleIdleFullLoad();

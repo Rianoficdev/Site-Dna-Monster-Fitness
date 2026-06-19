@@ -571,16 +571,19 @@ const resolveContactWhatsappPhone = () => {
 
 const buildContactLeadWhatsappMessage = ({
   name = '',
+  email = '',
   phone = '',
   objective = ''
 } = {}) => {
   const safeName = String(name || '').trim() || '-';
+  const safeEmail = String(email || '').trim() || '-';
   const safePhone = String(phone || '').trim() || '-';
   const safeObjective = String(objective || '').trim() || '-';
 
   return [
     'Quero mais informações sobre a Academia',
     `Nome: ${safeName}`,
+    `E-mail: ${safeEmail}`,
     `Telefone: ${safePhone}`,
     `Objetivo: ${safeObjective}`
   ].join('\n');
@@ -606,6 +609,7 @@ const initContactLeadForm = () => {
     const formData = new FormData(contactForm);
     const message = buildContactLeadWhatsappMessage({
       name: formData.get('nome'),
+      email: formData.get('email'),
       phone: formData.get('telefone'),
       objective: formData.get('objetivo')
     });
@@ -654,6 +658,7 @@ const studentRegisterEmail = document.querySelector('[data-student-register-emai
 const studentRegisterPhone = document.querySelector('[data-student-register-phone]');
 const studentRegisterPass = document.querySelector('[data-student-register-pass]');
 const studentRegisterPassConfirm = document.querySelector('[data-student-register-pass-confirm]');
+const studentRegisterPrivacy = document.querySelector('[data-student-register-privacy]');
 const studentRegisterError = document.querySelector('[data-student-register-error]');
 const studentRegisterSubmit = document.querySelector('[data-student-register-submit]');
 
@@ -1705,6 +1710,7 @@ studentData.profilePersonalInfo = [
 ];
 
 studentData.profileSettings = [
+  { id: 'privacy', icon: 'shield', label: 'Privacidade e dados' },
   { id: 'support', icon: 'help', label: 'Ajuda e Suporte' }
 ];
 
@@ -2365,6 +2371,7 @@ const resetStudentForms = () => {
     studentRegisterPhone,
     studentRegisterPass,
     studentRegisterPassConfirm,
+    studentRegisterPrivacy,
     studentForgotEmail,
     studentForgotType,
     studentForgotDescription,
@@ -2378,6 +2385,9 @@ const resetStudentForms = () => {
   );
   if (studentFormError) { studentFormError.textContent = ''; studentFormError.classList.remove('is-success'); }
   if (studentRegisterError) { studentRegisterError.textContent = ''; studentRegisterError.classList.remove('is-success'); }
+  if (studentRegisterPrivacy) {
+    studentRegisterPrivacy.closest('.student-privacy-consent')?.classList.remove('is-invalid');
+  }
   if (studentForgotRequestError) { studentForgotRequestError.textContent = ''; studentForgotRequestError.classList.remove('is-success'); }
   if (studentForgotResetError) { studentForgotResetError.textContent = ''; studentForgotResetError.classList.remove('is-success'); }
   if (profileSupportFeedback) { profileSupportFeedback.textContent = ''; profileSupportFeedback.classList.remove('is-success'); }
@@ -7623,6 +7633,14 @@ const getProfileItemIcon = (icon) => {
 };
 
 const getProfileActionConfig = (actionId) => {
+  if (actionId === 'privacy') {
+    return {
+      title: 'Privacidade e dados',
+      text: 'Solicite acesso, correção, exclusão, bloqueio, anonimização ou informações sobre seus dados pessoais.',
+      primaryLabel: 'Continuar',
+      showPrimary: false
+    };
+  }
   if (actionId === 'account') {
     return {
       title: 'Configuracoes da Conta',
@@ -7664,7 +7682,7 @@ const isProfileSupportResetSelected = () =>
   normalizeSupportTicketType(profileSupportType && profileSupportType.value) === 'PASSWORD_RESET';
 
 const isProfileSupportModalVisible = () =>
-  Boolean(profileActionModal && !profileActionModal.hidden && activeProfileAction === 'support');
+  Boolean(profileActionModal && !profileActionModal.hidden && ['support', 'privacy'].includes(activeProfileAction));
 
 const stopProfilePasswordResetWatcher = () => {
   if (profilePasswordResetPollTimer) {
@@ -7996,7 +8014,7 @@ const syncProfileActionModal = () => {
   profileActionText.textContent = config.text;
   profileActionPrimary.textContent = config.primaryLabel;
   profileActionPrimary.hidden = !config.showPrimary;
-  const isSupportAction = activeProfileAction === 'support';
+  const isSupportAction = ['support', 'privacy'].includes(activeProfileAction);
   if (profileActionModal) profileActionModal.classList.toggle('is-support-mode', isSupportAction);
   if (profileSupportWrap) profileSupportWrap.hidden = !isSupportAction;
   if (profileActionText) profileActionText.hidden = isSupportAction;
@@ -8011,9 +8029,14 @@ const openProfileActionModal = (actionId) => {
   syncProfileActionModal();
   profileActionModal.hidden = false;
   if (studentAppShell) studentAppShell.classList.add('is-profile-modal-open');
-  if (activeProfileAction === 'support') {
+  if (['support', 'privacy'].includes(activeProfileAction)) {
     setProfileSupportFeedback('', false);
-    if (profileSupportType && profileSupportSubject && !String(profileSupportSubject.value || '').trim()) {
+    if (activeProfileAction === 'privacy' && profileSupportType) {
+      profileSupportType.value = 'PROFILE_UPDATE';
+    }
+    if (profileSupportSubject && activeProfileAction === 'privacy') {
+      profileSupportSubject.value = 'Solicitação LGPD - direitos do titular';
+    } else if (profileSupportType && profileSupportSubject && !String(profileSupportSubject.value || '').trim()) {
       profileSupportSubject.value = buildSupportDefaultSubject(profileSupportType.value);
     }
     void fetchProfileSupportTickets(false);
@@ -22725,7 +22748,10 @@ const handleRegisterSubmit = async (event) => {
   event.preventDefault();
   if (!studentRegisterError) return;
 
-  clearInvalidState(studentRegisterName, studentRegisterEmail, studentRegisterPhone, studentRegisterPass, studentRegisterPassConfirm);
+  clearInvalidState(studentRegisterName, studentRegisterEmail, studentRegisterPhone, studentRegisterPass, studentRegisterPassConfirm, studentRegisterPrivacy);
+  if (studentRegisterPrivacy) {
+    studentRegisterPrivacy.closest('.student-privacy-consent')?.classList.remove('is-invalid');
+  }
   studentRegisterError.textContent = '';
   studentRegisterError.classList.remove('is-success');
 
@@ -22734,6 +22760,7 @@ const handleRegisterSubmit = async (event) => {
   const phoneDigits = studentRegisterPhone ? studentRegisterPhone.value.replace(/\D/g, '') : '';
   const pass = studentRegisterPass ? studentRegisterPass.value.trim() : '';
   const confirm = studentRegisterPassConfirm ? studentRegisterPassConfirm.value.trim() : '';
+  const privacyAccepted = studentRegisterPrivacy ? studentRegisterPrivacy.checked : false;
   const isPasswordStrong = hasStrongPassword(pass);
 
   let hasError = false;
@@ -22742,9 +22769,13 @@ const handleRegisterSubmit = async (event) => {
   if (phoneDigits.length < 10) { if (studentRegisterPhone) studentRegisterPhone.classList.add('is-invalid'); hasError = true; }
   if (!isPasswordStrong) { if (studentRegisterPass) studentRegisterPass.classList.add('is-invalid'); hasError = true; }
   if (!confirm || confirm !== pass) { if (studentRegisterPassConfirm) studentRegisterPassConfirm.classList.add('is-invalid'); hasError = true; }
+  if (!privacyAccepted) {
+    if (studentRegisterPrivacy) studentRegisterPrivacy.closest('.student-privacy-consent')?.classList.add('is-invalid');
+    hasError = true;
+  }
 
   if (hasError) {
-    studentRegisterError.textContent = 'Preencha corretamente os dados. A senha deve ter pelo menos 6 caracteres.';
+    studentRegisterError.textContent = 'Preencha corretamente os dados, use senha com pelo menos 6 caracteres e aceite a Política de Privacidade.';
     return;
   }
 

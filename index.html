@@ -39,6 +39,7 @@
         <a href="#planos">Planos</a>
         <a href="#localizacao">Localização</a>
         <a href="#contato">Contato</a>
+        <a href="#privacidade" data-privacy-open>Privacidade</a>
       </nav>
       <div class="header-actions">
         <!-- Aciona fluxo SPA da Area do Aluno -->
@@ -325,7 +326,7 @@
 
             <label class="contact-consent">
               <input type="checkbox" name="consentimento" required />
-              <span>Declaro que li e concordo com o uso dos meus dados para contato e apresentação dos serviços da academia.</span>
+              <span>Declaro que li e concordo com o uso dos meus dados para contato e apresentação dos serviços da academia, conforme a <a href="#privacidade" data-privacy-open>Política de Privacidade</a>.</span>
             </label>
 
             <button class="btn btn-primary contact-submit" type="submit">Enviar</button>
@@ -450,6 +451,11 @@
                   <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 1 1 10 0v3"/><rect x="4" y="11" width="16" height="10" rx="2"/></svg>
                 </span>
                 <input type="password" name="confirmar_senha" placeholder="Confirmar senha" autocomplete="new-password" data-student-register-pass-confirm required />
+              </label>
+
+              <label class="student-privacy-consent">
+                <input type="checkbox" name="aceite_privacidade" data-student-register-privacy required />
+                <span>Li e concordo com a <a href="#privacidade" data-privacy-open>Política de Privacidade</a> e autorizo o tratamento dos meus dados para cadastro, acesso à Área do Aluno, gestão de treinos, suporte e comunicações necessárias da academia.</span>
               </label>
 
               <p class="student-form-error" data-student-register-error aria-live="polite"></p>
@@ -3504,6 +3510,7 @@ Core"
           </div>
           <p>Treino com foco em resultado, saúde e evolução constante.</p>
           <small>Direitos Reservados &copy; 2026 DNA Monster Fitness.</small>
+          <button class="footer-privacy-link" type="button" data-privacy-open>Política de Privacidade</button>
         </div>
 
         <div>
@@ -3541,6 +3548,94 @@ Core"
   <a class="whatsapp" href="https://wa.me/558586721781?text=Ol%C3%A1%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es%20sobre%20a%20academia" target="_blank" rel="noopener" aria-label="WhatsApp">
     <img src="https://ugcfxksbzbqzdoxjneys.supabase.co/storage/v1/object/public/media/repo-media/imagens/aba-de-img/ede7b8ac60-logo-whats.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
   </a>
+
+  <section class="privacy-modal" data-privacy-modal hidden aria-hidden="true">
+    <div class="privacy-modal-scrim" data-privacy-close></div>
+    <article class="privacy-modal-card" role="dialog" aria-modal="true" aria-labelledby="privacy-title" tabindex="-1">
+      <header class="privacy-modal-head">
+        <div>
+          <span class="privacy-kicker">LGPD</span>
+          <h2 id="privacy-title">Política de Privacidade</h2>
+          <p>Última atualização: 19/06/2026</p>
+        </div>
+        <button class="privacy-modal-close" type="button" data-privacy-close aria-label="Fechar política de privacidade">&times;</button>
+      </header>
+
+      <div class="privacy-modal-body">
+        <section>
+          <h3>1. Controlador e canal de atendimento</h3>
+          <p>A DNA Monster Fitness é a controladora dos dados pessoais tratados neste site e na Área do Aluno. Para exercer direitos previstos na LGPD, solicitar informações ou pedir revisão/exclusão de dados, use o e-mail <a href="mailto:contato@dnmonsterfitness.com">contato@dnmonsterfitness.com</a> ou o WhatsApp <a href="https://wa.me/558586721781" target="_blank" rel="noopener">(85) 8672-1781</a>.</p>
+        </section>
+
+        <section>
+          <h3>2. Dados coletados</h3>
+          <ul>
+            <li>Contato comercial: nome, e-mail, telefone e objetivo informado no formulário.</li>
+            <li>Cadastro e login: nome, e-mail, telefone, senha criptografada, perfil, status de conta, datas de criação, acesso e uso.</li>
+            <li>Área do Aluno: treinos, exercícios, progresso, histórico de conclusão, métricas registradas, avatar e solicitações de suporte.</li>
+            <li>Dados técnicos: endereço IP, navegador, dispositivo, logs de segurança e preferências locais como tema, login lembrado e aceite de privacidade.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3>3. Finalidades e bases legais</h3>
+          <ul>
+            <li>Responder contatos e apresentar serviços, com consentimento do titular.</li>
+            <li>Criar e manter a conta do aluno, executar o serviço contratado e permitir acesso aos treinos.</li>
+            <li>Registrar progresso, acompanhamento técnico e histórico de treinos, quando necessário para a prestação do serviço e, quando aplicável, com consentimento específico.</li>
+            <li>Prevenir fraudes, proteger contas, auditar acessos e cumprir obrigações legais ou regulatórias.</li>
+            <li>Enviar comunicações operacionais sobre cadastro, suporte, plano, segurança e atendimento.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3>4. Compartilhamento</h3>
+          <p>Os dados podem ser tratados por fornecedores necessários para hospedagem, banco de dados, armazenamento de mídia, e-mail, WhatsApp, mapas, fontes e infraestrutura técnica. Esses fornecedores devem tratar os dados apenas conforme instruções da DNA Monster Fitness e medidas de segurança compatíveis.</p>
+        </section>
+
+        <section>
+          <h3>5. Cookies e armazenamento local</h3>
+          <p>O site usa armazenamento local essencial para tema, sessão, lembrança de login, preferências e funcionamento da Área do Aluno. Recursos de terceiros, como Google Maps, Google Fonts, WhatsApp e mídias externas, podem aplicar suas próprias tecnologias quando acessados.</p>
+        </section>
+
+        <section>
+          <h3>6. Prazo de retenção</h3>
+          <p>Os dados são mantidos enquanto necessários para atendimento, execução do serviço, segurança, obrigações legais, defesa de direitos ou até solicitação válida de exclusão. Dados de contato sem matrícula devem ser revisados periodicamente e eliminados quando não forem mais necessários.</p>
+        </section>
+
+        <section>
+          <h3>7. Direitos do titular</h3>
+          <p>Você pode solicitar confirmação de tratamento, acesso, correção, portabilidade, anonimização, bloqueio, eliminação, informação sobre compartilhamento, revisão de decisões automatizadas e revogação do consentimento, conforme a LGPD. Pedidos serão respondidos pelo canal informado acima, respeitando prazos legais e validação de identidade.</p>
+        </section>
+
+        <section>
+          <h3>8. Segurança</h3>
+          <p>O sistema deve usar controle de acesso por perfil, senhas criptografadas, autenticação por token, restrição administrativa, logs, backups protegidos e revisão periódica de permissões. Incidentes relevantes serão avaliados e comunicados quando exigido pela legislação aplicável.</p>
+        </section>
+
+        <section>
+          <h3>9. Crianças e adolescentes</h3>
+          <p>Quando houver aluno menor de idade, o cadastro e o acompanhamento devem observar o melhor interesse do menor e, quando necessário, autorização do responsável legal.</p>
+        </section>
+      </div>
+
+      <footer class="privacy-modal-actions">
+        <button class="btn btn-outline" type="button" data-privacy-close>Fechar</button>
+        <button class="btn btn-primary" type="button" data-privacy-accept>Li e concordo</button>
+      </footer>
+    </article>
+  </section>
+
+  <section class="privacy-banner" data-privacy-banner hidden>
+    <div>
+      <strong>Privacidade e LGPD</strong>
+      <p>Usamos dados e armazenamento local para contato, Área do Aluno, segurança, preferências e funcionamento do sistema.</p>
+    </div>
+    <div class="privacy-banner-actions">
+      <button class="btn btn-outline" type="button" data-privacy-open>Ver política</button>
+      <button class="btn btn-primary" type="button" data-privacy-accept>Aceitar</button>
+    </div>
+  </section>
 
   <!-- Loader leve: carrega o app completo em idle ou ao abrir a Area do Aluno -->
   <script defer src="site-loader.js?v=20260530-001" data-dna-full-script="script.js?v=20260530-001"></script>
